@@ -1,8 +1,8 @@
 # data
-data/
+/data/
 
 #lib
-lib/
+/lib/
 
 # Compiled class file
 *.class
