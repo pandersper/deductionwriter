@@ -9,6 +9,7 @@ import model.independent.CyclicList;
 import model.logic.Implication.ImplicationType;
 
 /** NOW GIT IS WORKING **/
+/** ON WINDOWS TO **/
 
 /**
   * The objects of class Theorem is the formal part of a mathematics theorem which the user is editing and describing and 
