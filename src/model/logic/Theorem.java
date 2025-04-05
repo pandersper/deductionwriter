@@ -8,8 +8,10 @@ import model.description.abstraction.Described;
 import model.independent.CyclicList;
 import model.logic.Implication.ImplicationType;
 
+/** NOW GIT IS WORKING **/
+
 /**
- * The objects of class Theorem is the formal part of a mathematics theorem which the user is editing and describing and 
+  * The objects of class Theorem is the formal part of a mathematics theorem which the user is editing and describing and 
  * which is displayed and stored. <br><br>
  * 
  * It is implemented as an easily iterable {@see CyclicList} of {@see DStatement}s which are part of the non formal, non value 
