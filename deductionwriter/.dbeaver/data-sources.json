@@ -1,0 +1,35 @@
+{
+	"folders": {},
+	"connections": {
+		"sqlite_jdbc-19659d0013e-11a3916c8c3d2799": {
+			"provider": "sqlite",
+			"driver": "sqlite_jdbc",
+			"name": "variables.sqlite",
+			"save-password": true,
+			"configuration": {
+				"database": "/home/anders/eclipse-workspace/localgitdw/deductionwriter/data/sqlite/variables.sqlite",
+				"url": "jdbc:sqlite:/home/anders/eclipse-workspace/localgitdw/deductionwriter/data/sqlite/variables.sqlite",
+				"configurationType": "MANUAL",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"auth-model": "native"
+			}
+		}
+	},
+	"connection-types": {
+		"dev": {
+			"name": "Development",
+			"color": "255,255,255",
+			"description": "Regular development database",
+			"auto-commit": true,
+			"confirm-execute": false,
+			"confirm-data-change": false,
+			"smart-commit": false,
+			"smart-commit-recover": true,
+			"auto-close-transactions": true,
+			"close-transactions-period": 1800,
+			"auto-close-connections": true,
+			"close-connections-period": 14400
+		}
+	}
+}
