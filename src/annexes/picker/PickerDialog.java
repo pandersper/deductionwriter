@@ -3,6 +3,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JOptionPane;
 
+import control.Session;
 import control.Toolbox;
 import control.db.DeductionBase;
 import view.components.dialogs.DefaultDialog;
@@ -18,8 +19,8 @@ public class PickerDialog extends DefaultDialog {
 	 * @param parent 	The parent frame and application to return control to.
 	 * @param base 		The base containing theorems and their constituents.
 	 */
-	public PickerDialog(DeductionPicker parent, DeductionBase base) {
-		super(parent, base);
+	public PickerDialog(DeductionPicker parent, Session session) {
+		super(parent, session);
 
 		btnLoad.setText("Add");
 	}
@@ -86,6 +87,8 @@ public class PickerDialog extends DefaultDialog {
 
 		if (Toolbox.isOkName(columnvalue)) {	
 
+			DeductionBase base = session.getBase();
+			
 			if (base.contains(columnvalue, "FormalsViews", "name")) {							
 
 				int ok = JOptionPane.showConfirmDialog(parent, "Name exists, overwrite?");
@@ -127,7 +130,9 @@ public class PickerDialog extends DefaultDialog {
 	public void delete(String deleted) {
 
 		if (!list.isSelectionEmpty()) {
-
+			
+			DeductionBase base = session.getBase();
+			
 			columnvalue = list.getSelectedValue();
 			done = false;
 

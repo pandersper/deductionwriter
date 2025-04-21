@@ -37,7 +37,7 @@ public class Theorem extends CyclicList<DStatement> {
 	protected Statement preliminaryvalue;	
 
 	/** The name of the theorem. */
-	private String name;				
+	protected String name;				
 
 
 	/**
@@ -129,4 +129,17 @@ public class Theorem extends CyclicList<DStatement> {
 	public void setName(String name) {
 		this.name = name;
 	}
+
+
+	public int consistencyNumber() {
+		
+		int sum = 0;
+		
+		for (Statement statement : this) {
+			sum += statement.consistencyNumber();
+		}
+		
+		return sum;
+	}
+
 }

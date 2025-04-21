@@ -79,10 +79,10 @@ public class Toolbox {
 	 */
 	public static BufferedImage		makeGlyph(int codepoint, int baseline) {
  
-		float scale  = ((float) baseline) / FONTMETRICS.charWidth((char)codepoint);
+		float charwidthscaling  = ((float) baseline) / FONTMETRICS.charWidth((char)codepoint);
 
 		int width  = baseline;
-		int height = (int) scale * (FONTMETRICS.getHeight() - FONTMETRICS.getDescent());
+		int height = (int) charwidthscaling * (FONTMETRICS.getHeight() - FONTMETRICS.getDescent());
 				 
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		
@@ -95,8 +95,14 @@ public class Toolbox {
 
 		g.setColor(Color.black);				
 		
+		int y = image.getHeight();
+    	
+    	double renderscaling = y / ((double) Toolbox.FONTMETRICS.getHeight()); 
+    	
+    	y -= (int) (renderscaling * Toolbox.FONTMETRICS.getDescent());
+    	
 		// characters are written upside down relative device coordinates
-		g.drawString("" + (char) codepoint, FONTMETRICS.getLeading(), height - scale * FONTMETRICS.getDescent());
+		g.drawString("" + (char) codepoint, FONTMETRICS.getLeading(), y);
 		
 		return image;
 	}
@@ -145,7 +151,6 @@ public class Toolbox {
 	 */
 	public static DStatement 		findStatement(Described find, DTheorem theorem) {
 
- 		boolean done = false;
 
  		DStatement s; Described d;
  		
@@ -402,4 +407,12 @@ public class Toolbox {
 		
 		return (int) (sum / (float) widths.length);
 	}
+
+	public static void output(String minimum, String verbose) {
+		
+		if (Toolbox.DEBUGMINIMAL) System.out.println(minimum);
+		if (Toolbox.DEBUGVERBOSE) System.out.println(verbose);
+		
+	}
+
 }

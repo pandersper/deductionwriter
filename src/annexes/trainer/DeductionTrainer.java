@@ -13,6 +13,7 @@ import javax.swing.JButton;
 import javax.swing.KeyStroke;
 
 import annexes.trainer.BindingsViewDialog.BindingContainer;
+import control.Session;
 import control.Shortcut;
 import control.Toolbox;
 import control.db.DeductionBase;
@@ -36,7 +37,7 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 	private BindingsViewDialog 	mapdialog;
 	private DeductionFrame 		mainframe;
 	
-	private DeductionBase 		base;	
+	private Session 			session;	
 	private Timer 				timer = new Timer();
 	
 	private ArrayBlockingQueue<Described> 	keyqueue = new ArrayBlockingQueue<Described>(300);
@@ -56,11 +57,9 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 	 *
 	 * @param base The base of theorems and their constituents.
 	 */
- 	public DeductionTrainer(DeductionBase base) {
+ 	public DeductionTrainer() {
 		super();
 
-		this.base = base;
-		
 		frame = new TrainerFrame();
 		frame.addListener(this);
 		frame.addKeyListener(this);
@@ -68,6 +67,11 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 		mapdialog	= new BindingsViewDialog(this);
 			
 		timer.schedule(this, DELAY, INTERVAL);				
+	}
+
+
+	public void setSession(Session session) {
+		this.session = session;		
 	}
 
  	
@@ -104,9 +108,9 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
   		
 		DoubleArray<Formal, Shortcut> bindings = Toolbox.formals(mapdialog.getBindings());
 
-  		int inserted = base.insertBindings(bindings, mainframe.currentTheorem());					
+  		int inserted = session.getBase().insertBindings(bindings, session.getCurrentCanvas(),session.primitivestable,session.compositestable);					
 		  		
-  		mainframe.getPrimitivesPanel().unionBindings(bindings);
+  		mainframe.getGlyphsPanel().unionBindings(bindings);
 	}
 
 	/** 
@@ -114,7 +118,7 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 	 */
  	public void loadPrimitives() {
 		
-		DoubleArray<Described, Shortcut> mapping = mainframe.getPrimitivesPanel().getDescribed();
+		DoubleArray<Described, Shortcut> mapping = mainframe.getGlyphsPanel().getDescribed();
 						
 		mapdialog.updateBindings(mapping);
 		
@@ -207,7 +211,7 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 				
 				stopped = true;		
 
-				DoubleArray<Described, Shortcut> described = Toolbox.describe(mainframe.getPrimitivesPanel().getBindings());
+				DoubleArray<Described, Shortcut> described = Toolbox.describe(mainframe.getGlyphsPanel().getBindings());
 
 				mapdialog.resetBindings(described);
 
@@ -389,5 +393,7 @@ public class DeductionTrainer extends TimerTask implements KeyListener, ActionLi
 		System.out.println("KeyEvent:" + e.getKeyChar() + " : " + e.getKeyCode() + " : " + e.getExtendedKeyCode() + " : " + e.getKeyLocation()+ " : " + e.getModifiersEx());
 		System.out.println("KeyStroke:" + bindingchar + " : " + bindingcode + " : " + stroke.getKeyEventType()+ " : " + bindingmodifiers);
 	}
+
+
 	
 }

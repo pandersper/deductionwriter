@@ -96,7 +96,7 @@ public final class DisplayTools {
 		else
 			gc.setColor(Color.lightGray);
 
-		paintThickRectangle(gc, 0, 0, r.width, r.height, 1, gc.getColor());
+		paintThickRectangle(gc, 0, 0, r.width, r.height, 2, gc.getColor());
 
 		gc.dispose();
 	}
@@ -171,7 +171,7 @@ public final class DisplayTools {
 
 			Graphics gc = g.create(dr.x, dr.y, dr.width , dr.height);
 
-			paintThickRectangle(gc, 0, 0, dr.width, dr.height, 1, c);
+			paintThickRectangle(gc, 0, 0, dr.width, dr.height, 3, c);
 		}	
 	}
 

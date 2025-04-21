@@ -15,6 +15,7 @@ import annexes.trainer.DeductionTrainer;
 import control.db.DeductionBase;
 import view.DeductionFrame;
 import view.abstraction.CustomTraversalPolicy;
+import view.components.DeductionMenuBar;
 
 
 /**
@@ -38,20 +39,36 @@ public class DeductionWriter implements FocusListener {
 		}
 	}
 
-	private DeductionBase 			 	base 	= new DeductionBase(false); 	
-	private DeductionTrainer 			trainer = new DeductionTrainer(base);	
-	private DeductionPicker 			picker	= new DeductionPicker(base); 
-	private DeductionFrame 				frame 	= new DeductionFrame(base, trainer, picker); 			
+	private final DeductionBase 	 	base 	= new DeductionBase(false); 	
+	private final DeductionMenuBar		menu;
 
+	private Session 					session = new Session(base,"empty");;
+	
+	// to be anonymous
+	private final DeductionTrainer 		trainer = new DeductionTrainer();	
+	private final DeductionPicker 		picker 	= new DeductionPicker(session); 
+	private final DeductionFrame 		frame 	= new DeductionFrame(trainer,picker,session); 			
+	
 	private CustomKeyboardFocusManager 	manager;
 	private CustomTraversalPolicy 		policy;
-	
+
+
 	/**
 	 * Instantiates a new DeductionWriter application.
 	 */
 	public DeductionWriter() {		
 				
-		initManager();	 	// default policy only sticks to new components
+		session.connectPanels(frame);
+
+		menu 	= new DeductionMenuBar(trainer, picker, frame);
+		menu.fillStoreMenu();		
+
+		frame.setJMenuBar(menu);
+
+		session.loadPrimitives("default");	
+		
+						
+		initManager();	 		/* default policy only sticks to new components - must be outside constructor */
 		initComponents();
 		setListeners();		
 	}
@@ -70,6 +87,7 @@ public class DeductionWriter implements FocusListener {
 
 		frame.setFocusTraversal(manager);
 		frame.initTraversalPolicy();
+
 	}
 
 	private void setListeners() {
@@ -117,6 +135,7 @@ public class DeductionWriter implements FocusListener {
 
 		DeductionWriter application = new DeductionWriter();
 		application.frame.setVisible(true);		
+		application.frame.pack();		
 	} 
 
 }

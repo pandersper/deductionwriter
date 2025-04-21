@@ -16,12 +16,13 @@ import javax.swing.KeyStroke;
 import control.DeductionWriter.CustomKeyboardFocusManager;
 import control.Shortcut;
 import control.Toolbox;
+import model.description.DTheorem;
 import model.independent.DoubleArray;
 import model.independent.DoubleArray.Tuple;
 import model.logic.abstraction.Formal;
 import view.DeductionFrame;
-import view.DisplayCanvas;
-import view.PrimitivesPanel;
+import view.GlyphsPanel;
+import view.components.DisplayCanvas;
 
 /**
  * A JPanel object that handles the most common window events and window listening. An important distinction to make is that between this
@@ -36,6 +37,8 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	/** Still just a plain WindowAdapter and nothing else. */
 	public class CustomAdapter extends WindowAdapter { }
 
+
+
 	/** Filters key events to those that concerns the bindings in use in the application and then dispatches them again. */
 	public class CustomDispatcher implements KeyEventDispatcher {
 																																				/**(251A)**/
@@ -45,7 +48,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 
 			if (e.isControlDown() || stroke.getKeyCode() == KeyEvent.VK_SPACE) {																///(E82E)
 
-				manager.redispatchEvent(panel, e);									
+				manager.redispatchEvent(panel, e);
 				e.consume();
 				return true;				
 
@@ -91,13 +94,10 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 
 	
 	/** Often the parent or grand parent container of this panel. */
-	protected DeductionFrame 					frame;
+	protected DeductionFrame 					parent;
 
 	/** The panel containing the buttons for typing primitives. */																																			
-	protected PrimitivesPanel 					panel;
-
-	/** Used if this panel contains a canvas for drawing. */
-	protected DisplayCanvas 					canvas;
+	protected GlyphsPanel						panel;
 
 	/** Handles focus traversal by keyboard. */
 	protected CustomKeyboardFocusManager 		manager;
@@ -119,6 +119,15 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	/** Still just a plain window adapter. {@link WindowAdapter}. */
 	protected CustomAdapter			adapter = new CustomAdapter();
 
+	
+
+ 	public DTheorem getTheorem() {
+ 		return this.parent.getSession().getCurrentCanvas().getTheorem();
+ 	}
+ 	
+ 	public DisplayCanvas getCanvas() {
+ 		return this.parent.getSession().getCurrentCanvas(); 		
+ 	}
 	/**
 	 * The bindings used across the application. Maps formal mathematics atoms to keyboard short-cuts.
 	 * 
@@ -130,6 +139,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 		return this.bindings;
 	}
 
+	public DeductionFrame getFrame() { return parent; }
 	
 	/**
 	 * Sets up essential focus traversal components.
@@ -168,7 +178,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 
 		if (Toolbox.DEBUGVERBOSE) System.out.println("window opened");
 
-		this.canvas.setPaintMode(false, false, false);
+		this.parent.getSession().getCurrentCanvas().setPaintMode(false, false, false);
 		panel.restoreFocus();
 
 	}
@@ -191,14 +201,14 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	/** 
 	 * Repaints all and restores focus to the panel of buttons. 
 	 * 
-	 *	@see view.DisplayCanvas#setPaintMode(boolean, boolean, boolean) 
+	 *	@see view.components.DisplayCanvas#setPaintMode(boolean, boolean, boolean) 
 	 */
 	public void windowActivated(WindowEvent e) {
 
 		if (Toolbox.DEBUGVERBOSE) System.out.println("window activated - repainting all");
 
-		this.canvas.setPaintMode(false, false, false);
-
+		this.parent.getSession().getCurrentCanvas().setPaintMode(false, false, false);
+		
 		panel.restoreFocus();
 	}
 	/** Delegates to adapter. */

@@ -66,7 +66,7 @@ public class Implication extends AbstractFormal {
 	public String toString() {
 		return "I[" + super.toString() + "]";
 	}
-
+	
 	/**
 	 * {@inheritDoc}
 	 */

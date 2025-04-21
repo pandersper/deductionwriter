@@ -174,7 +174,7 @@ public class BindingsViewDialog extends JFrame {
  	/**
 	  * Instantiates a new bindings view dialog.
 	  *
-	  * @param parent The main (parent) frame of the sub application.
+	  * @param parentcontainer The main (parent) frame of the sub application.
 	  */
 	public BindingsViewDialog(DeductionTrainer parent) {
 

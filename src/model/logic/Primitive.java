@@ -38,5 +38,7 @@ public final class Primitive extends AbstractFormal {
     	
     	return "P[" + super.toString() + "]";
     }
+
+    
 }
  

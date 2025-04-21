@@ -33,6 +33,7 @@ public class Statement extends CyclicList<Described> {
 	/** Identifcation number for this statement. Used for storage in the database. */
 	protected String id;
 	
+	
 	/** 
 	 * Constructors is meant to be called by the {@see #makeValue()} and {@see #makeValue(Collection<Described>, ImplicationType)} 
 	 * but are exported to extending classes as well. Se these methods for description.
@@ -62,13 +63,14 @@ public class Statement extends CyclicList<Described> {
 			this.addLast(new DPrimitive(Implication.makeValue(type)));
 	}
  
+	
 	/**
  	 * Tells if this statement has an Implication that closes it. 
  	 * 
  	 * @return	Wether this statement is closed or not.
 	 */
 	public final boolean isClosed() {
-		return this.getLast() instanceof Implication;
+		return this.getLast().value() instanceof Implication;
 	}
 
 	/**
@@ -111,7 +113,9 @@ public class Statement extends CyclicList<Described> {
 
 		Described implication = null; 
 		
-		if (this.isClosed())
+		boolean closed = this.isClosed();
+		
+		if (closed)
 			implication = this.removeLast();
 		
 		for (Described described : this) 			
@@ -121,11 +125,23 @@ public class Statement extends CyclicList<Described> {
 			else
 				output += (char) described.getCodepoint() + ":";
 
-		if (this.isClosed())
+		if (closed) {
 			this.addLast(implication);
-		
-		return output.substring(0, output.length() - 1);
+			return output.substring(0, output.length() - 1);
+		} else
+			return output.substring(0, output.length());
 	}
+
 	
+	public long consistencyNumber() {
+		
+		long sum = 0;
+		
+		for (Described formal : this) {
+			sum += formal.concistencyNumber();
+		}
+		
+		return sum;
+	}
 }
  

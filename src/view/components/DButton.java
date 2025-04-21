@@ -15,7 +15,7 @@ import control.Shortcut;
 import control.Toolbox;
 import model.description.DComposite;
 import model.description.abstraction.Described;
-import view.PrimitivesPanel;
+import view.GlyphsPanel;
 import view.abstraction.CursoredCanvas;
 
 /**
@@ -24,6 +24,7 @@ import view.abstraction.CursoredCanvas;
  */
 public class DButton extends JButton {
 
+	
 	private Described  	formal;
 	private KeyStroke 	key;    
 
@@ -33,6 +34,7 @@ public class DButton extends JButton {
 	 * An action that buttons use to fill in their formal's description into the canvas cursor. All by themselves. 
 	 */
 	public class DisplayAction extends AbstractAction {
+
 
 		/**
 		 * Instantiates a new display action.
@@ -53,7 +55,7 @@ public class DButton extends JButton {
 		 *
 		 * @param primitivesPanel The component (currently a PrimitivesPanel) to focus after displaying.
 		 */
- 		public void setFocusrestore(PrimitivesPanel primitivesPanel) { this.putValue("focusrestore", primitivesPanel); }   		
+ 		public void setFocusrestore(GlyphsPanel primitivesPanel) { this.putValue("focusrestore", primitivesPanel); }   		
 
 		/**
 		 * Action performed.
@@ -66,7 +68,7 @@ public class DButton extends JButton {
 
 			if (canvas != null) {
 
-				PrimitivesPanel focus  = (PrimitivesPanel) this.getValue("focusrestore");
+				GlyphsPanel 	focus  = (GlyphsPanel) this.getValue("focusrestore");
 				Described 		formal = (Described) this.getValue("formal");
 
 				Described newformal = formal.clone();

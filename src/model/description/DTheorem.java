@@ -3,7 +3,6 @@ package model.description;
 import java.util.ArrayList;
 
 import control.Toolbox;
-import control.db.DeductionBase;
 import model.description.abstraction.Described;
 import model.independent.CyclicList;
 import model.logic.Implication.ImplicationType;
@@ -13,7 +12,7 @@ import model.logic.Theorem;
 /**
  * The objects of class DTheorem is the main workpiece for DeductionWriter. It is the described aspect of a formal mathematical 
  * writing and it's formal non-described value part is implemented by {@link Theorem}. The user is editing and describing this
- * described theorem which is displayed on the {@link view.DisplayCanvas} and stored in the {@link control.db.DeductionBase}<br><br>
+ * described theorem which is displayed on the {@link view.components.DisplayCanvas} and stored in the {@link control.db.DeductionBase}<br><br>
  * 
  * The edited content of this application is modelled by an as strict as possible division between formal value and more loosely
  * defined description of the mathematics. Hence the model contains {@link model.logic.Theorem}, {@link model.logic.Statement}, 
@@ -44,11 +43,6 @@ public class DTheorem extends Theorem {
 	 * */
 	private DEditableStatement 		editing = null;
 
-	/** Not used yet */
-	public String primitivestable = "default";
-	/** Not used yet */
-	public String compositestable = "default";
-
 	
 	/**
 	 * Instantiates a new empty described theorem.
@@ -60,7 +54,7 @@ public class DTheorem extends Theorem {
 
 		this.preliminarydescribed = new DStatement();	
 
-		this.setName(super.getName() + "D");
+		this.setName(super.getName());
 		super.preliminaryvalue = (Statement) this.preliminarydescribed;
 
 	} 
@@ -79,10 +73,27 @@ public class DTheorem extends Theorem {
 
 		this.preliminarydescribed = (type == null) ? new DStatement(sequences.get(sequences.size()-1), null) : new DStatement();		
 
-		this.setName(super.getName() + "D");
+		this.setName(super.getName());
 		super.preliminaryvalue = (Statement) this.preliminarydescribed;
 	} 
 
+	
+	/**
+	 * The name of the theorem.
+	 * @return The name of the theorem.
+	 */
+	public String getName() { 
+		return name; 
+	}
+
+	/**
+	 * Sets the name of this described theorem.
+	 *
+	 * @param name The new name.
+	 */
+	public void setName(String name) {
+		this.name = name + "D";	// To distinguish described from formal theorem.
+	}
 
 	/**
 	 * Finalises the preliminary statement, adding it to the theorem together with an ending implication. 

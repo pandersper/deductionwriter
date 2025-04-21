@@ -15,9 +15,9 @@ import control.Toolbox;
 import model.description.DComposite;
 import model.description.abstraction.Described;
 import view.DeductionFrame;
-import view.DisplayCanvas;
-import view.PrimitivesPanel;
+import view.GlyphsPanel;
 import view.components.DButton;
+import view.components.DisplayCanvas;
 import view.components.DButton.DisplayAction;
 
 /**
@@ -27,8 +27,8 @@ import view.components.DButton.DisplayAction;
 public class CompositeMaker extends JFrame implements ActionListener {
 
 	private CompositePanel 	compositespanel;
-	private DeductionFrame 	deductionframe;
-	private PrimitivesPanel primitivespanel;
+	private DeductionFrame 	deductionframe;	
+	private GlyphsPanel primitivespanel;
 	private DisplayCanvas 	makercanvas;
 
 	private JFrame 			primitivesmenu = new JFrame();
@@ -77,7 +77,7 @@ public class CompositeMaker extends JFrame implements ActionListener {
 	
 				if (done != null) {				
 	
-					primitivespanel.makeButton(done, null);	
+	//				primitivespanel.makeButton(done, null);	
 					
 					done = null;					
 				}
@@ -111,7 +111,7 @@ public class CompositeMaker extends JFrame implements ActionListener {
 	 *
 	 * @param panel the new primitives panel
 	 */
-	public void setPrimitivesPanel(PrimitivesPanel panel) {
+	public void setGlyphsPanel(GlyphsPanel panel) {
 
 		this.primitivespanel = panel;
 		this.primitivespanel.doLayout();
@@ -205,10 +205,10 @@ public class CompositeMaker extends JFrame implements ActionListener {
 
 		Toolbox.switchContainer(deductionframe, this);
 
-		primitivesmenu.remove(primitivespanel);
-
-		deductionframe.redoLayout();
-		deductionframe.revalidate();
+//		primitivesmenu.remove(primitivespanel);
+//
+//		deductionframe.redoLayout();
+//		deductionframe.revalidate();
 	}
 
 }

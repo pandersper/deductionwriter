@@ -8,10 +8,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.stream.Stream;
 
+import control.Session;
 import control.Shortcut;
 import control.Toolbox;
+import control.WorkList;
 import model.description.DComposite;
 import model.description.DPrimitive;
 import model.description.DStatement;
@@ -20,8 +23,8 @@ import model.description.abstraction.Described;
 import model.independent.DoubleArray;
 import model.independent.DoubleArray.Tuple;
 import model.logic.Implication.ImplicationType;
-import model.logic.Theorem;
 import model.logic.abstraction.Formal;
+import view.components.DisplayCanvas;
 
 /**
  * Front end for the storage of theorems and all their parts. Back end is sqlite <a href="http://www.sqlite.org">www.sqlite.org</a>.<br><br>
@@ -31,17 +34,11 @@ import model.logic.abstraction.Formal;
  * bindings are cached in that way for example.
  */
 public class DeductionBase {
-
 	
-	private static final String sql_theorems_insert		= "INSERT INTO Theorems(name, tablename, statements) VALUES";
-	private static final String sql_statements_insert 	= "INSERT INTO Statements(id, theorem, sequence, implication) VALUES";
-	private static final String sql_primitives_insert	= "INSERT INTO Primitives(tablename, codepoint) VALUES";
-	private static final String sql_composites_insert	= "INSERT INTO Composites(tablename, codepoint, codepoints, baselines, keycode, modifiers) VALUES";
 
 	private Connection connection;
 
 	private boolean passivemode;
-
 	
 	/**
 	 * Instantiates a new data base front-end and back-end where the base file is located at 'data/sqlite/variables.sqlite'. 
@@ -55,32 +52,23 @@ public class DeductionBase {
 
 		if (!passivemode) {
 
-			DriverManager dm;
-
 			Stream<Driver> drivers = DriverManager.drivers();
-
+			
 			for (Driver d : drivers.toList()) 
-				if (Toolbox.DEBUGMINIMAL) System.out.println("Driver: " + d.toString() + ". ");
+				if (Toolbox.DEBUGMINIMAL) System.out.println("Driver:\t\t\t" + d.toString());
 
 			try {
-
 				connection = DriverManager.getConnection("jdbc:sqlite:data/sqlite/variables.sqlite");
-				if (Toolbox.DEBUGMINIMAL) System.out.print("Connection open: " + (! connection.isClosed()) + System.lineSeparator());
-
-				connection.setAutoCommit(true);
-																																				///(34D1)
-																																				///(2G63)
-																																				///(A189)
-
+				
+				if (Toolbox.DEBUGMINIMAL) StaticSQL.connectionInfo(connection);
+								
 				this.setupDB();
 			} 
 			catch (Exception ioe) { ioe.printStackTrace(); }	
 		}
-	}
-																																				
+	}																																
 	
 	/* * * * * * * * * * * * * database setup * * * * * * * * * * * * * */
-	
 	
 	/**
 	 * Drops all tables in the database.
@@ -93,6 +81,7 @@ public class DeductionBase {
 			s.addBatch("DROP TABLE IF EXISTS Composites;");
 			s.addBatch("DROP TABLE IF EXISTS Statements;");
 			s.addBatch("DROP TABLE IF EXISTS Theorems;");
+			s.addBatch("DROP TABLE IF EXISTS Sessions;");
 
 			endTransaction(s, "Main tables dropped! ");
 
@@ -129,7 +118,7 @@ public class DeductionBase {
 	private void dropUserViews() 	throws SQLException {
 
 		try (Statement s = connection.createStatement()) {
-			s.execute("SELECT tablename FROM Primitivetables;");		
+			s.execute("SELECT glyphtablename FROM Primitivetables;");		
 
 			ResultSet result = s.getResultSet();
 
@@ -163,50 +152,14 @@ public class DeductionBase {
 
 		try (Statement s = connection.createStatement()) {
 
-			s.addBatch("CREATE TABLE IF NOT EXISTS "
-					+ "Theorems("
-					+ "name VARCHAR(100) NOT NULL,"
-					+ "statements VARCHAR(300), "
-					+ "tablename VARCHAR(30) NOT NULL,"
-					+ "PRIMARY KEY (name));");
-
-			s.addBatch("CREATE TABLE IF NOT EXISTS "
-					+ "Statements("
-					+ "id VARCHAR(100) NOT NULL PRIMARY KEY, "
-					+ "theorem VARCHAR(100) NOT NULL, "
-					+ "sequence VARCHAR(2000), "
-					+ "implication INT, "
-					+ "FOREIGN KEY (theorem) REFERENCES Theorems(name));");
-
-			s.addBatch("CREATE TABLE IF NOT EXISTS "
-					+ "Primitives("
-					+ "tablename VARCHAR(30) NOT NULL, "
-					+ "codepoint INT NOT NULL, "
-					+ "keycode INT, "
-					+ "modifiers INT, "
-					+ "PRIMARY KEY (tablename, codepoint));");
-
-			s.addBatch("CREATE TABLE IF NOT EXISTS "
-					+ "Composites("
-					+ "tablename VARCHAR(30) NOT NULL, "
-					+ "codepoint INT NOT NULL, "
-					+ "codepoints VARCHAR(500) NOT NULL, "
-					+ "baselines VARCHAR(2000) NOT NULL, "
-					+ "keycode INT, "
-					+ "modifiers INT, "
-					+ "PRIMARY KEY (tablename, codepoint));");
-
-			s.addBatch("CREATE VIEW IF NOT EXISTS Theoremnames AS "
-					+ "SELECT name FROM Theorems INTERSECT "
-					+ "SELECT name FROM Theorems;");
-			
-			s.addBatch("CREATE VIEW IF NOT EXISTS Primitivetables AS "
-					+ "SELECT tablename FROM Primitives INTERSECT "
-					+ "SELECT tablename FROM Primitives;");
-			
-			s.addBatch("CREATE VIEW IF NOT EXISTS Compositetables AS "
-					+ "SELECT tablename FROM Composites INTERSECT "
-					+ "SELECT tablename FROM Composites;");
+			s.addBatch(StaticSQL.sessions_setup);
+			s.addBatch(StaticSQL.theorems_setup);
+			s.addBatch(StaticSQL.statements_setup);
+			s.addBatch(StaticSQL.primitives_setup);
+			s.addBatch(StaticSQL.composites_setup);
+			s.addBatch(StaticSQL.theoremnames_view);
+			s.addBatch(StaticSQL.primitivestables_view);
+			s.addBatch(StaticSQL.compositestables_view);
 
 			endTransaction(s, "DB tables are set up ok! ");
 		}		
@@ -219,38 +172,201 @@ public class DeductionBase {
 
 		if (!passivemode) 
 			try { connection.close(); } catch (SQLException e) { e.printStackTrace(); }		
-
 	}
 
+	/* * * * * * * * * * * * database conditionals  * * * * * * * * * * */	
 	
-	/* * * * * * * * * * * * database altering  * * * * * * * * * * * * */
-	
-	
-	/**
-	 * Delete an element from the data base.
-	 * 
-	 * @param table		The table to dele from.
-	 * @param column	The tables column name.
-	 * @param element	The column value.
-	 * @return 			True if deletion carried out.
-	 */
-	public boolean				delete(String table, String column, String element) {
+	public boolean 		isConsistent(Session session) {
 
-		try (Statement s = connection.createStatement()) {
+		try {
 
-			s.execute("DELETE FROM " + table + " WHERE " + column + "='" + element + "';");
+			LinkedList<DTheorem> theorems = new LinkedList<DTheorem>();		
+			LinkedList<String> theoremsnames = new LinkedList<String>();
 
-			int occurrences = s.getUpdateCount();		// delete is an update-operation in sql, no result set.
+			DTheorem theorem;
+			int statements = 0;
+			
+			for (DisplayCanvas canvas : session.getWorks()) {
+				
+				theorem = canvas.getTheorem();
+				
+				theorems.addLast(theorem);
+				theoremsnames.addLast(theorem.getName());
 
-			s.close();
+				statements += theorem.lengthInStatements();
+			}
+			
+			String sql= "SELECT theorems FROM Sessions WHERE name='" + session.getName() + "';"; 
 
-			return occurrences > 0;
+			Statement s = connection.createStatement();
+			ResultSet r = s.executeQuery(sql);
 
-		} catch (SQLException e) { e.printStackTrace(); }	
+			String namesstring = "";
+			
+			if (r.next()) namesstring = r.getString(0);
+			else 
+				Toolbox.output("Inconsistent db: no names string.",null);
+
+			String[] names = namesstring.split(":");
+
+			if (names.length == theoremsnames.size()) {}
+			else { 
+			
+				Toolbox.output("Inconsistent db: not all sessions theorems in db. Trying to update.",null);
+			
+				if (this.saveSession(session, " (repair update) ")) Toolbox.output("db: Repair update ok'd.",null);
+				else
+					Toolbox.output("db: Repair update failed.",null);
+			}
+			
+			DTheorem dbtheorem;
+			int dbstatements = 0;
+ 
+			for (DTheorem t : theorems) {
+				
+				dbtheorem = fetchTheorem(t.getName());
+								
+				int diff = dbtheorem.lengthInFormals() - t.lengthInFormals();
+				
+				if (dbtheorem.lengthInFormals() == t.lengthInFormals()) 
+					Toolbox.output("db _seems_ ok.",null); 
+				else {
+					
+					Toolbox.output("Inconsistent db: theorem " + t.getName() + " is incorrect in db." + diff + 
+																 " primitives differ. Trying repair update.",null); 
+					int insertions = this.update(t);
+					
+					if (insertions == t.lengthInStatements()) Toolbox.output("db: repair uppdate of " + t.getName() + " _seems_ to have worked.",null);
+					else	
+						Toolbox.output("db: repair uppdate of " + t.getName() + " failed.",null); 
+				}
+				
+				dbtheorem = fetchTheorem(t.getName());		
+				dbstatements += dbtheorem.lengthInStatements();
+			}
+		
+			s.closeOnCompletion();		
+			
+			if (statements == dbstatements) {
+				Toolbox.output("db is ok regarding size.",null);
+				return true;
+			} else {
+				Toolbox.output("db is wrong regarding size for the session " + session.getName() + ".",null);
+				return false;
+			}
+
+		} catch (SQLException sqle) { sqle.printStackTrace(); }
 
 		return false;
 	}
-	
+
+	/**
+	 * Checks if an element exists in a column of a table in the data base.
+	 *
+	 * @param element 	The element value (string) to search for in the column.
+	 * @param table 	The table name.
+	 * @param column 	The column name that eventually contains the element name.
+	 * 
+	 * @return			 Wether the element was found.
+	 */
+	public boolean 		contains(String element, String table, String column) {
+
+		try (Statement s = connection.createStatement()) {
+
+			s.execute("SELECT COUNT(" + column + ") FROM " + table + " WHERE " + column + "='" +  element + "';");
+
+			ResultSet result = s.getResultSet();
+
+			int occurrences = result.getInt(1);
+
+			s.closeOnCompletion();
+
+			return occurrences > 0;
+
+		} catch (SQLException e) {
+
+			e.printStackTrace();
+		}	
+		return false;
+	}
+
+	/* * * * * * * * * * * * database altering  * * * * * * * * * * * * */	
+
+	public boolean 		saveSession(Session session, String description) {
+		
+		try {
+			LinkedList<DTheorem> theorems = session.getTheorems();		
+			String theoremsnames = session.getTheoremsNames();
+									
+			String sql = StaticSQL.sessions_insert + "('" + session.getName() + "', '"+ theoremsnames + "', '"+ description + "')"; 
+
+			Statement s = connection.createStatement();
+
+			boolean ok = s.execute(sql);
+
+			boolean overwrite = true;
+
+			int insertions = 0;
+			
+			for (DTheorem theorem : theorems) 
+				insertions += this.insert(theorem, overwrite, session.primitivestable, session.compositestable);
+
+			Toolbox.output("saved session: " + session.getName() + " with " + insertions + " insertions. (session ok: " + ok + ")",null);
+			
+			s.closeOnCompletion();		
+
+			return true;
+
+		} catch (SQLException sqle) { sqle.printStackTrace(); }
+
+		return false;
+	}
+		
+	/**
+	 * Inserts a new theorem into the base. Also here, no other complementary method should be used. 
+	 *
+	 * @param theorem 		The theorem to insert.
+	 * @param overwrite 	Overwrite if theorem with same name exist.
+	 * @return 				The number of sql instructions executed (inserts). 
+	 */
+	public int 			insert(DTheorem theorem, boolean overwrite, String primitivestable,String compositestable) {
+									// Composites then?
+		try {
+			String[] sqls;
+
+			if (overwrite) return update(theorem);
+			else {
+
+				sqls = StaticSQL.TheoremToSQL(theorem);
+
+				Statement s = connection.createStatement();
+
+				for (String sql : sqls) s.addBatch(sql);
+
+				boolean ok = endTransaction(s, "Trying to insert " + sqls.length + " statements.");
+
+				s.clearBatch();
+
+				if (ok) {
+					String statementids = statementIDs(theorem);
+
+					s.addBatch(StaticSQL.theorems_insert + "('" + theorem.getName() + "', '" + statementids +  "');");
+
+					ok = endTransaction(s, "Trying to insert a theorem.");
+
+					if (ok) Toolbox.output("All ok. New theorem added to database.",null);
+					else Toolbox.output("Something wrong. No new theorem in database.",null);		
+				} else Toolbox.output("Something wrong. statements not all in database.",null);		
+
+				s.closeOnCompletion();		
+			}
+			return sqls.length;
+
+		} catch (SQLException sqle) { sqle.printStackTrace(); }
+
+		return -1;
+	}
+
 	/**
 	 * Updates the data base regarding the theorem given as parameter, and everything related to it.
 	 * This is the only method that is needed when updating a theorem. 
@@ -260,13 +376,11 @@ public class DeductionBase {
 	 */
 	public int	 		update(DTheorem theorem) {
 
-		String sql = "SELECT * FROM Statements WHERE name='" + theorem.getName() + "';";
+		String sql = "SELECT * FROM Statements WHERE id='" + theorem.getName() + "';";
 
 		try (Statement query = connection.createStatement()) {
 
 			query.executeQuery(sql);
-
-			//connection.commit();
 
 			String[] sqls = new String[theorem.lengthInStatements()];
 
@@ -289,87 +403,47 @@ public class DeductionBase {
 					
 					if (updated == 1)
 						if (result.rowUpdated())
-							if (Toolbox.DEBUGMINIMAL) System.out.println("One row updated.");
-
+							Toolbox.output("One row updated.",null);
 				}
-			}
-			
+			}			
 			return sqls.length;
 
 		} catch (SQLException sqle) { sqle.printStackTrace(); }
 
 		return -1;
 	}
-	
+
 	/**
-	 * Inserts a new theorem into the base. Also here, no other complementary method should be used. 
-	 *
-	 * @param theorem 		The theorem to insert.
-	 * @param overwrite 	Overwrite if theorem with same name exist.
-	 * @return 				The number of sql instructions executed (inserts). 
+	 * Delete an element from the data base.
+	 * 
+	 * @param table		The table to dele from.
+	 * @param column	The tables column name.
+	 * @param element	The column value.
+	 * @return 			True if deletion carried out.
 	 */
-	public int 			insert(DTheorem theorem, boolean overwrite) {
+	public boolean		delete(String table, String column, String element) {
 
-		try {
+		try (Statement s = connection.createStatement()) {
 
-			String[] sqls;
+			s.execute("DELETE FROM " + table + " WHERE " + column + "='" + element + "';");
 
-			if (overwrite) return update(theorem);
+			int occurrences = s.getUpdateCount();		// delete is an update-operation in sql, no result set.
 
-			else {
+			s.closeOnCompletion();
 
-				sqls = TheoremToSQL(theorem);
+			return occurrences > 0;
 
-				Statement s = connection.createStatement();
+		} catch (SQLException e) { e.printStackTrace(); }	
 
-				for (String sql : sqls) s.addBatch(sql);
-
-				boolean ok = endTransaction(s, "Trying to insert " + sqls.length + " statements.");
-
-				s.clearBatch();
-
-				if (ok) {
-
-					String statementids = statementIDs(theorem);
-
-					s.addBatch(sql_theorems_insert + "('" + theorem.getName() + "', '" + theorem.primitivestable + "', '" + statementids +  "');");
-
-					ok = endTransaction(s, "Trying to insert a theorem.");
-
-					if (ok) if (Toolbox.DEBUGMINIMAL) System.out.println("All ok. New theorem added to database.");
-					else if (Toolbox.DEBUGMINIMAL) System.out.println("Something wrong. No new theorem in database.");		
-				} else if (Toolbox.DEBUGMINIMAL) System.out.println("Something wrong. statements not all in database.");		
-
-				s.closeOnCompletion();		
-			}
-
-			return sqls.length;
-
-		} catch (SQLException sqle) { sqle.printStackTrace(); }
-
-		return -1;
+		return false;
 	}
 
-	private String 		statementIDs(DTheorem theorem) {
-
-		String ids = "";
-		for (model.logic.Statement s : theorem) {
-			ids += s.getID() + ":";			
-		}
-
-		DStatement preliminary = theorem.getPreliminary();
-
-		if (preliminary.size() > 0)
-			ids += theorem.getPreliminary().getID();
-
-		return ids;
-	}
 	
 	/**
 	 * Inserts a collection of primitives into the base's table of primitives.
 	 *
 	 * @param primitives 	The formals to insert.
-	 * @param tablename 	The name of the view to which they belong.
+	 * @param glyphtablename 	The name of the view to which they belong.
 	 * @return 				The number of sql commands executed (inserts). 
 	 */
 	public int			insertPrimitivesTable(Collection<Formal> primitives, String tablename)	{
@@ -382,23 +456,23 @@ public class DeductionBase {
 
 			int i = 0;
 
-			String sql = sql_primitives_insert;
+			String sql = StaticSQL.primitives_insert;
 
 			for (Formal primitive : primitives) {
 
-				sql += valuesString(primitive, tablename);
+				sql += StaticSQL.valuesString(primitive, tablename);
 
 				s.addBatch(sql);
 
 				sqls[i++] = sql;
 
-				sql = sql_primitives_insert;
+				sql = StaticSQL.primitives_insert;
 			}
 
 			boolean ok = endTransaction(s, "Trying to insert " + primitives.size() + " primitives.");	
 
-			if (ok) if (Toolbox.DEBUGMINIMAL) System.out.println("All ok. Table " + tablename + "View of primitives is in database.");
-			else if (Toolbox.DEBUGMINIMAL) System.out.println("Something wrong. Check table of primitives, if it exists.");
+			if (ok) Toolbox.output("All ok. Table " + tablename + "View of primitives is in database.",null);
+			else Toolbox.output("Something wrong. Check table of primitives, if it exists.",null);
 
 			s.closeOnCompletion();		
 
@@ -426,23 +500,23 @@ public class DeductionBase {
 
 			int i = 0;
 
-			String sql = sql_composites_insert;
+			String sql = StaticSQL.composites_insert;
 
 			for (DComposite composite : composites) {
 				
-				sql += valuesString(composite, prefix);
+				sql += StaticSQL.valuesString(composite, prefix);
 
 				s.addBatch(sql);
 
 				sqls[i++] = sql;
 
-				sql = sql_composites_insert;
+				sql = StaticSQL.composites_insert;
 			}
 
 			boolean ok = endTransaction(s, "Trying to insert " + composites.size() + " composites.");	
 
-			if (ok) if (Toolbox.DEBUGMINIMAL) System.out.println("All ok. Table " + prefix + "View of composites is in database.");
-			else if (Toolbox.DEBUGMINIMAL) System.out.println("Something wrong. Check table of composites, if it exists.");
+			if (ok) Toolbox.output("All ok. Table " + prefix + "View of composites is in database.",null);
+			else Toolbox.output("Something wrong. Check table of composites, if it exists.",null);
 
 			s.closeOnCompletion();		
 
@@ -452,6 +526,75 @@ public class DeductionBase {
 
 		return -1;
 	}
+		
+	/**
+	 * Insert bindings into the database. The bindings are used to enable direct typing of primitives into the theorem.
+	 *
+	 * @param bijection 	A bijective array of pairs of formals to keyboard key short-cuts. Used to enable typing primitives. 
+	 * @param theorem 		The name of the grouping, the view that the formals bound belong to.
+	 * @return				The	number of sql commands executed (updates).
+	 */
+	public int 			insertBindings(DoubleArray<Formal, Shortcut> bijection, DisplayCanvas canvas,String primitivestable, String compositestable)  {
+
+		int counter = 0;
+
+		System.out.println("Not implemented in DeductionBase");
+		String primitivesview = primitivestable;
+		String compositesview = compositestable;
+		
+		DoubleArray<Formal, Shortcut> primitives = Toolbox.filterBindings(bijection, Formal.FormalType.VARIABLE);
+		DoubleArray<Formal, Shortcut> composites = Toolbox.filterBindings(bijection, Formal.FormalType.COMPOSITE);
+				
+		try {
+
+			Statement s = connection.createStatement();
+
+			String sqlpre, sqlmid, sql;
+			
+			if (primitives != null) {
+
+				sqlpre  = "UPDATE Primitives SET ";
+				sqlmid = " WHERE glyphtablename='" + primitivesview + "' AND codepoint=";
+
+				for (Tuple<Formal, Shortcut> pair : primitives) {
+
+					Formal p = pair.first();
+
+					sql = sqlpre + "keycode='" + pair.second().keycode + "', " + 
+							"modifiers='" + pair.second().modifiers + "'" + 
+							sqlmid + p.getCodepoint() + ";";
+
+					s.addBatch(sql);
+
+					counter++;
+				}
+			}
+
+			if (composites != null) {
+
+				sqlpre  = "UPDATE Composites SET ";
+				sqlmid = " WHERE glyphtablename='" + compositesview + "' AND codepoint=";
+
+				for (Tuple<Formal, Shortcut> pair : composites) {
+
+					Formal p = pair.first();
+
+					sql = sqlpre + "keycode='" + pair.second().keycode + "', " + 
+							"modifiers='" + pair.second().modifiers + "'" + 
+							sqlmid + p.getCodepoint() + ";";
+
+					s.addBatch(sql);
+
+					counter++;
+				}
+			}
+			endTransaction(s,"Inserted shortcuts in Primitives and Composites.");
+
+		} catch (SQLException sqle) { sqle.printStackTrace(); }
+
+		return counter;
+	}
+
 	
 	/**
 	 * Creates a new view for managing formals.
@@ -463,13 +606,13 @@ public class DeductionBase {
 	public int 			createView(String viewprefix, String formalsview) {
 
 		try {
-
+			
 			Statement s = connection.createStatement();
 
 			String sql = "CREATE VIEW IF NOT EXISTS " + viewprefix + "View" + 
 					" AS " +
-					" SELECT tablename, codepoint, keycode, modifiers " +
-					" FROM " + formalsview + " WHERE tablename='" + viewprefix + "'";
+					" SELECT glyphtablename, codepoint, keycode, modifiers " +
+					" FROM " + formalsview + " WHERE glyphtablename='" + viewprefix + "'";
 			
 			s.execute(sql);
 
@@ -491,78 +634,49 @@ public class DeductionBase {
 
 		return -1;
 	}
-	
+
+	/* * * * * * * * * * * * * * * retreivers * * * * * * * * * * * * * * */		
+
 	/**
-	 * Insert bindings into the database. The bindings are used to enable direct typing of primitives into the theorem.
+	 * Fetches sessions worklist from the data base.
 	 *
-	 * @param bijection 	A bijective array of pairs of formals to keyboard key short-cuts. Used to enable typing primitives. 
-	 * @param theorem 		The name of the grouping, the view that the formals bound belong to.
-	 * @return				The	number of sql commands executed (updates).
+	 * @param sessionname 	The name of the session to fetch worklist for.
+	 * @return 				The {@see WorkList} of canvases with theorem for a session.
+	 * 
+	 * @see WorkList
 	 */
-	public int 			insertBindings(DoubleArray<Formal, Shortcut> bijection, DTheorem theorem)  {
+	public WorkList 						fetchWorklist(String sessionname) {
 
-		int counter = 0;
+		String sql = "SELECT * FROM Sessions WHERE name='" + sessionname + "';";
 
-		String primitivesview = theorem.primitivestable;
-		String compositesview = theorem.compositestable;
-		
-		DoubleArray<Formal, Shortcut> primitives = Toolbox.filterBindings(bijection, Formal.FormalType.VARIABLE);
-		DoubleArray<Formal, Shortcut> composites = Toolbox.filterBindings(bijection, Formal.FormalType.COMPOSITE);
-				
 		try {
 
 			Statement s = connection.createStatement();
 
-			String sqlpre, sqlmid, sql;
-			
-			if (primitives != null) {
+			ResultSet r = s.executeQuery(sql);
 
-				sqlpre  = "UPDATE Primitives SET ";
-				sqlmid = " WHERE tablename='" + primitivesview + "' AND codepoint=";
+			String namesstring  	= r.getString(0);
+			String primitivestable  = r.getString(1);
+			String compositestable  = r.getString(2);
+			String description 		= r.getString(3);
 
-				for (Tuple<Formal, Shortcut> pair : primitives) {
+			String[] names = namesstring.split(":");
 
-					Formal p = pair.first();
+			ArrayList<DisplayCanvas> canvases 	= new ArrayList<DisplayCanvas>();
 
-					sql = sqlpre + "keycode='" + pair.second().keycode + "', " + 
-							"modifiers='" + pair.second().modifiers + "'" + 
-							sqlmid + p.getCodepoint() + ";";
+			for (String name : names) 
+				canvases.add(new DisplayCanvas(this.fetchTheorem(name)));
 
-					s.addBatch(sql);
+			DoubleArray<Formal, Shortcut> primitives = fetchPrimitives(primitivestable);
 
-					counter++;
-				}
-			}
+			DoubleArray<Described, Shortcut> composites = fetchComposites(compositestable);
 
-			if (composites != null) {
-
-				sqlpre  = "UPDATE Composites SET ";
-				sqlmid = " WHERE tablename='" + compositesview + "' AND codepoint=";
-
-				for (Tuple<Formal, Shortcut> pair : composites) {
-
-					Formal p = pair.first();
-
-					sql = sqlpre + "keycode='" + pair.second().keycode + "', " + 
-							"modifiers='" + pair.second().modifiers + "'" + 
-							sqlmid + p.getCodepoint() + ";";
-
-					s.addBatch(sql);
-
-					counter++;
-				}
-			}
-			
-			endTransaction(s,"Inserted shortcuts in Primitives and Composites.");
+			return new WorkList(canvases,primitives,composites,description);
 
 		} catch (SQLException sqle) { sqle.printStackTrace(); }
 
-		return counter;
+		return null;
 	}
-
-	
-	/* * * * * * * * * * * * * * * retreivers * * * * * * * * * * * * * * */		
-
 	
 	/**
 	 * Fetches a theorem from the data base.
@@ -570,7 +684,7 @@ public class DeductionBase {
 	 * @param theoremname 	The name of the theorem.
 	 * @return 				The described theorem. Remark: the theorem is not layed out yet. It is layed out over and by a canvas.
 	 * 
-	 * @see view.DisplayCanvas
+	 * @see view.components.DisplayCanvas
 	 */
 	public DTheorem							fetchTheorem(String theoremname) {
 
@@ -608,15 +722,13 @@ public class DeductionBase {
 				}
 			}
 
-			int batchsize = sequences.size();
-
-			ArrayList<ImplicationType> types = parseToImplicationType(implications);
+			ArrayList<ImplicationType> types = StaticSQL.parseToImplicationType(implications);
 
 			ArrayList<ArrayList<Described>> statementlists = new ArrayList<ArrayList<Described>>();
 
 			for (String sequence : sequences) {
 
-				if (Toolbox.DEBUGVERBOSE) System.out.print("Parsing from sequence: " + sequence);
+				Toolbox.output(null,"Parsing from sequence: " + sequence);
 
 				String[] tokens = sequence.split(":");
 
@@ -655,12 +767,12 @@ public class DeductionBase {
 
 				statementlists.add(statementlist);
 
-				if (Toolbox.DEBUGVERBOSE) System.out.print(" to " + statementlist.size() + " sized statement.\n");
+				Toolbox.output(null," to " + statementlist.size() + " sized statement.\n");
 			}
 
 			DTheorem theorem = new DTheorem(theoremname, statementlists, types);
 			
-			if (Toolbox.DEBUGMINIMAL) System.out.println("Theorem from db:  #s=" + theorem.lengthInStatements() + ", #p=" + theorem.lengthInFormals());	
+			Toolbox.output("Theorem from db:  #s=" + theorem.lengthInStatements() + ", #p=" + theorem.lengthInFormals(),null);	
 
 			return theorem;
 
@@ -673,7 +785,6 @@ public class DeductionBase {
 	 * Fetches a mapping of primitives from the data base.
 	 *
 	 * @param viewname 	The name of the collection (sql view) to fetch. 
-	 * 
 	 * @return 			A bijective array of pairs of <b>primitive <u>non-described</u> formals</b> and keyboard key short-cuts. Used to enable typing primitives. 
 	 */
 	public DoubleArray<Formal, Shortcut> 	fetchPrimitives(String viewname) {			
@@ -682,7 +793,7 @@ public class DeductionBase {
 
 		try {
 
-			String sql = "SELECT * FROM Primitives WHERE tablename='" + viewname + "';";
+			String sql = "SELECT * FROM Primitives WHERE glyphtablename='" + viewname + "';";
 
 			Statement query = connection.createStatement();
 
@@ -713,7 +824,6 @@ public class DeductionBase {
 	 * Fetches a mapping of composites from the data base.
 	 *
 	 * @param viewname 	The name of the collection (sql view) to fetch. 
-	 * 
 	 * @return 			A bijective array of pairs of <b><u>described</u> composite formals</b> and keyboard key short-cuts. Used to enable typing primitives. 
 	 */	
 	public DoubleArray<Described, Shortcut> fetchComposites(String viewname) {
@@ -722,7 +832,7 @@ public class DeductionBase {
 
 		try {
 
-			String sql = "SELECT * FROM Composites where tablename='" + viewname + "';";
+			String sql = "SELECT * FROM Composites where glyphtablename='" + viewname + "';";
 
 			Statement query = connection.createStatement();
 
@@ -751,6 +861,85 @@ public class DeductionBase {
 		return bindings;
 	}
 
+	/**
+	 * Fetch theorem names.
+	 *
+	 * @return The names of all theorems stored.
+	 */
+	public ArrayList<String> 				fetchTheoremNames()  {
+
+		return fetchStringColumn("name", "Theorems");
+	}
+
+	/**
+	 * BAD IMPLEMENTATION - BE MORE SPECIFIC AND HANDLE ERRORS.
+	 * 
+	 * Fetches everything from a table.
+	 *
+	 * @param glyphtablename The name of the tabe to select from.
+	 * @return One array of strings.
+	 */
+ 	public ArrayList<String> 				fetchNames(String tablename) {
+
+		return fetchStringColumn("*", tablename);
+
+	}
+
+ 	/**
+ 	 * Fetch a category of primitives belonging to view with the given cetagoryname.
+ 	 * 
+ 	 * @param categoryname	The name of the category in the primitives table.
+ 	 * @return				An array of codepoints belonging to the category.
+ 	 */
+	public ArrayList<Integer> 				fetchCategory(String categoryname) {
+
+		ArrayList<Integer> codepoints = new ArrayList<Integer>();
+
+		String sql = "SELECT codepoint FROM Primitives WHERE glyphtablename='" + categoryname + "';";
+
+		try {
+
+			Statement s = connection.createStatement();
+
+			ResultSet result = s.executeQuery(sql);
+
+			while (result.next()) 			
+				codepoints.add(result.getInt(1));
+
+		} catch (SQLException sqle) { sqle.printStackTrace(); }
+		
+		return codepoints;
+	}
+	
+	/* * * * * * * * * * * * helpers, not alternating * * * * * * * * * * * */
+		
+	private boolean 			endTransaction(Statement s, String message) 	throws SQLException  {
+
+		int[] oks = s.executeBatch();
+
+		boolean allok = StaticSQL.allok(oks);
+
+		int batchsize = oks.length;
+
+		if (allok) Toolbox.output(message + "\t" + batchsize + " sql-transactions in batch." ,null);
+		else 
+			connection.rollback();
+
+		return allok;
+	}
+
+	private String 				statementIDs(DTheorem theorem) {
+
+		String ids = "";
+		for (model.logic.Statement s : theorem) ids += s.getID() + ":";			
+
+		DStatement preliminary = theorem.getPreliminary();
+
+		if (preliminary.size() > 0)
+			ids += theorem.getPreliminary().getID();
+
+		return ids;
+	}
 	
 	private ArrayList<String> 	fetchStringColumn(String column, String table) {
 
@@ -771,222 +960,4 @@ public class DeductionBase {
 
 		return names;
 	}
-
-	/**
-	 * Fetch theorem names.
-	 *
-	 * @return The names of all theorems stored.
-	 */
-	public ArrayList<String> 	fetchTheoremNames()  {
-
-		return fetchStringColumn("name", "Theorems");
-	}
-
-	/**
-	 * BAD IMPLEMENTATION - BE MORE SPECIFIC AND HANDLE ERRORS.
-	 * 
-	 * Fetches everything from a table.
-	 *
-	 * @param tablename The name of the tabe to select from.
-	 * 
-	 * @return One array of strings.
-	 */
- 	public ArrayList<String> 	fetchNames(String tablename) {
-
-		return fetchStringColumn("*", tablename);
-
-	}
-
- 	/**
- 	 * Fetch a category of primitives belonging to view with the given cetagoryname.
- 	 * 
- 	 * @param categoryname	The name of the category in the primitives table.
- 	 * 
- 	 * @return				An array of codepoints belonging to the category.
- 	 */
-	public ArrayList<Integer> 	fetchCategory(String categoryname) {
-
-		ArrayList<Integer> codepoints = new ArrayList<Integer>();
-
-		String sql = "SELECT codepoint FROM Primitives WHERE tablename='" + categoryname + "';";
-
-		try {
-
-			Statement s = connection.createStatement();
-
-			ResultSet result = s.executeQuery(sql);
-			//connection.commit();
-
-			while (result.next()) 			
-				codepoints.add(result.getInt(1));
-
-		} catch (SQLException sqle) { sqle.printStackTrace(); }
-
-		return codepoints;
-	}
-
-	/**
-	 * Checks if an element exists in a column of a table in the data base.
-	 *
-	 * @param element 	The element value (string) to search for in the column.
-	 * @param table 	The table name.
-	 * @param column 	The column name that eventually contains the element name.
-	 * 
-	 * @return			 Wether the element was found.
-	 */
-	public boolean 				contains(String element, String table, String column) {
-
-		try (Statement s = connection.createStatement()) {
-
-			s.execute("SELECT COUNT(" + column + ") FROM " + table + " WHERE " + column + "='" +  element + "';");
-
-			ResultSet result = s.getResultSet();
-
-			int occurrences = result.getInt(1);
-
-			s.close();
-
-			return occurrences > 0;
-
-		} catch (SQLException e) {
-
-			e.printStackTrace();
-		}	
-
-		return false;
-	}
-	
-	
-	/* * * * * * * * * * * * helpers, not alternating * * * * * * * * * * * */
-	
-	
-	private boolean 			endTransaction(Statement s, String message) 	throws SQLException  {
-
-		int[] oks = s.executeBatch();
-
-		boolean allok = allok(oks);
-
-		int batchsize = oks.length;
-
-		if (allok) {
-
-			if (Toolbox.DEBUGMINIMAL) System.out.println(message + "\t" + batchsize + " sql-transactions in batch." );
-			if (Toolbox.DEBUGMINIMAL) System.out.println("Autocommit");
-
-		} else connection.rollback();
-
-
-		return allok;
-	}
-
-
-	private static String 		valuesString(Formal primitive, String viewname) {
-
-		String result = "(";
-
-		result += "'" + viewname + "', " ;
-
-		result += primitive.getCodepoint();
-
-		result += ");";
-
-		return result;
-	}
-
-	private static String 		valuesString(DComposite composite, String viewname) {
-
-		String result = "(";
-
-		result += "'" + viewname + "', " ;
-
-		result += "'" + composite.getCodepoint() + "', ";
-
-		result += "'" + composite.codepointsString() + "', ";
-
-		result += "'" + composite.baselinesString() + "', ";
-
-		result += "0, 0);";
-
-		return result;
-	}
-
-	private static String 		valuesString(DStatement statement, Theorem parent) {
-
-		String formals = statement.formalsString();
-
-		String result = "(";
-
-		result += "'" + statement.getID() + "', ";
-
-		result += "'" + parent.getName() + "', ";
-
-		result += "'" + formals + "', ";
-
-		result += statement.implicationID() + ");";
-
-		return result;
-	}	
-
-	
-	private static String[] 	TheoremToSQL(DTheorem theorem) {
-
-		DStatement preliminary = theorem.getPreliminary();
-
-		String[] sqls = new String[theorem.lengthInStatements()];
-
-		String sql = sql_statements_insert;
-
-		int i = 0;
-		for (DStatement s : theorem) {																										///(0B1D)
-			sql += valuesString(theorem.get(i), theorem);
-			sqls[i++] = sql;
-			sql = sql_statements_insert;
-		}
-
-		if (preliminary.size() > 0) {
-			sql += valuesString(preliminary, theorem);
-			sqls[i++] = sql;
-		}
-
-		return sqls;
-	}
-
-	private static boolean 		allok(int[] oks) {
-
-		boolean allok = true;
-
-		for (int ok : oks) 
-			allok = allok & (ok >= 0);
-
-		return allok;
-	}
-
-	private static ArrayList<ImplicationType> parseToImplicationType(ArrayList<Integer> implications) {
-
-		ArrayList<ImplicationType> types = new ArrayList<ImplicationType>();
-
-		for (Integer type : implications) {
-
-			switch (type) {
-
-			case (1):
-				types.add(ImplicationType.LEFT);
-			break;
-			case (2):
-				types.add(ImplicationType.RIGHT);
-			break;
-			case (3):
-				types.add(ImplicationType.EQUIV);
-			break;
-			case (-1):
-				types.add(null);
-			break;
-			default:
-				if (Toolbox.DEBUGMINIMAL) System.out.println("not reached");
-				break;
-			}
-		}		
-		return types;
-	}
-
 }

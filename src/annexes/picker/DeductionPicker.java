@@ -1,4 +1,4 @@
-package annexes.picker;
+ package annexes.picker;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -24,6 +24,7 @@ import javax.swing.WindowConstants;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
+import control.Session;
 import control.Shortcut;
 import control.Toolbox;
 import control.db.DeductionBase;
@@ -44,7 +45,6 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	
 	private ArrayList<String>	categories 	= new ArrayList<String>();
 	private HashSet<Formal> 	selected 	= new HashSet<Formal>();
-	private DeductionBase 		base;
 	private DeductionFrame		mainframe;
 	private PickerDialog 		dialog;
 
@@ -54,12 +54,11 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	 *
 	 * @param base The data base containing theorems and their constituents.
 	 */	
-	public DeductionPicker(DeductionBase base)  {
+	public DeductionPicker(Session session)  {
 		super("Pick primitives ...");
 		
-		this.base = base;		
-		this.dialog = new PickerDialog(this, base);
-
+		this.session = session;
+		this.dialog = new PickerDialog(this,this.session);
 		
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		setBounds(100, 100, 1090, 800);
@@ -107,7 +106,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	 * @param viewprefix What name to add as prefix when naming the table of primitives.
 	 */
 	public void storeInBase(String viewprefix) {		
-		base.insertPrimitivesTable(selected, viewprefix);
+		session.getBase().insertPrimitivesTable(selected, viewprefix);
 	}
 	
 	/**
@@ -148,7 +147,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	 */
  	public void addToSelected(String viewname) {
 		
-		DoubleArray<Described, Shortcut> bindings = Toolbox.describe(base.fetchPrimitives(viewname));
+		DoubleArray<Described, Shortcut> bindings = Toolbox.describe(session.getBase().fetchPrimitives(viewname));
 		
 		ArrayList<Formal> view = new ArrayList<Formal>();
 
@@ -331,7 +330,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 
 		DPrimitive fresh, old;
 	
-		ArrayList<Integer> codepoints = base.fetchCategory(viewname);
+		ArrayList<Integer> codepoints = session.getBase().fetchCategory(viewname);
 		
 		for (int codepoint : codepoints) {
 						

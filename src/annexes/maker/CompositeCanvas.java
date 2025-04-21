@@ -54,7 +54,7 @@ public class CompositeCanvas extends Canvas implements CursoredCanvas {
 	/**
 	 * Instantiates a new composite canvas.
 	 *
-	 * @param parent The parent panel which keeps the constituents and corresponding buttons.
+	 * @param parentcontainer The parent panel which keeps the constituents and corresponding buttons.
 	 */
 	public CompositeCanvas(CompositePanel parent) {
 

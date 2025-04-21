@@ -6,6 +6,7 @@ import java.awt.Container;
 import javax.swing.JFrame;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
+import control.Session;
 
 
 /**
@@ -14,6 +15,8 @@ import control.DeductionWriter.CustomKeyboardFocusManager;
  */
 public abstract class AbstractFrame extends JFrame {		
 
+	protected Session session;
+	
 	/** The defaultcomponent to focus. */
 	protected Component defaultcomponent;	
 	
@@ -29,21 +32,14 @@ public abstract class AbstractFrame extends JFrame {
 		super(string);
 	}
 
-
+	
 	/**
-	 * Fetches a table (an sql view) of primitives from DeductionBase and sets it up for usage.
-	 * 
-	 * @param columnvalue The name of the table that contain the primitives. That is used when storing it.
+	 * Sets the session that AbstractFrames uses.
+	 * @param session
 	 */
-	public abstract void loadPrimitives(String columnvalue);
-
-	/**
-	 * Fetches a table (an sql view) of composites from DeductionBase and sets it up for usage.
-	 *
-	 * @param columnvalue The name of the table that contain the composites. That is used when storing it.
-	 */
-	public abstract void loadComposites(String columnvalue);
-
+	public void setSession(Session session) {
+		this.session = session;
+	}	
 	
 	/**
 	 * Sets up a new focus traversal manager.

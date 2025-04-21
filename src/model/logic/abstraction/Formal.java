@@ -39,6 +39,11 @@ public interface Formal extends Comparable<Formal> {
 	 */
 	public String 	toString();
 	
+	
+	public default long concistencyNumber() {
+	    	return (long) getCodepoint();
+	    }
+	
 	/**
 	 * Enumeration of the allowed types (categories) of mathematics that can be represented in this application. 
 	 */

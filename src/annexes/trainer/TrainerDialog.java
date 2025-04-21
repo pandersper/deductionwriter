@@ -23,10 +23,10 @@ public class TrainerDialog extends DefaultDialog {
 	 * @param parent 	The main, parent application.
 	 * @param base		The data base containing theorems and their parts.
 	 */
-	public TrainerDialog(DeductionTrainer parent, DeductionBase base) {
-		super(parent.getFrame(), base);
+	public TrainerDialog(DeductionTrainer trainer, DeductionBase base) {
+		super(trainer.getFrame(), null);
 				
-		this.trainer = parent;
+		this.trainer = trainer;
 	}
 
 	/**
@@ -50,7 +50,7 @@ public class TrainerDialog extends DefaultDialog {
 	 */
 	protected int updateMenu()  {
 
-		ArrayList<String> fromdb = base.fetchNames("Primivestables");
+		ArrayList<String> fromdb = session.getBase().fetchNames("Primivestables");
 
 		fromdb.removeAll(Collections.list(menu.elements()));
 
@@ -67,7 +67,7 @@ public class TrainerDialog extends DefaultDialog {
 	 */
 	public void load(String name) {
 				
-		DoubleArray<Formal, Shortcut> bindings = base.fetchPrimitives(name);
+		DoubleArray<Formal, Shortcut> bindings = session.getBase().fetchPrimitives(name);
 		
 		trainer.setPrimitives(Toolbox.describe(bindings));
 		

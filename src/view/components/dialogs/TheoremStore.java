@@ -7,6 +7,7 @@ import java.util.Collections;
 
 import javax.swing.JOptionPane;
 
+import control.Session;
 import control.Toolbox;
 import control.db.DeductionBase;
 import model.description.DTheorem;
@@ -26,8 +27,8 @@ public class TheoremStore extends DefaultDialog {
 	 * @param parent 	The frame that opens this dialogue.
 	 * @param base		The base from wich to fetch theorems.
 	 */
-	public TheoremStore(DeductionFrame parent, DeductionBase base) {
-		super(parent, base);		
+	public TheoremStore(DeductionFrame parent, Session session) {
+		super(parent, session);		
 	}
 
 	
@@ -54,7 +55,7 @@ public class TheoremStore extends DefaultDialog {
 
 		menu.clear();
 		
-		ArrayList<String> fromdb = base.fetchTheoremNames();
+		ArrayList<String> fromdb = session.getBase().fetchTheoremNames();
 		fromdb.removeAll(Collections.list(menu.elements()));
 
 		if (! fromdb.isEmpty())
@@ -97,13 +98,13 @@ public class TheoremStore extends DefaultDialog {
 			
 			columnvalue = list.getSelectedValue();	
 
-			DTheorem theorem = base.fetchTheorem(columnvalue);
+			DTheorem theorem = session.getBase().fetchTheorem(columnvalue);
 			DeductionFrame frame = (DeductionFrame) parent;
 			
 			frame.setAndDescribeTheorem(theorem);
-			frame.getCanvas().newCursor();
 			
 			Toolbox.switchContainer(parent, this);
+			
 		}
 	}
 
@@ -112,7 +113,9 @@ public class TheoremStore extends DefaultDialog {
 		
 		String theoremname = txfName.getText();
 		
-		DTheorem theorem = ((DeductionFrame) parent).currentTheorem();
+		DTheorem theorem = session.getCurrentCanvas().getTheorem();
+		
+		DeductionBase base = session.getBase();
 		
 		theorem.setName(theoremname);
 		
@@ -123,11 +126,11 @@ public class TheoremStore extends DefaultDialog {
 				boolean overwrite = JOptionPane.showConfirmDialog(parent , "Theorem exists, overwrite?") == JOptionPane.OK_OPTION;
 
 				if (overwrite) 					
-					done = base.insert(theorem, overwrite) != -1;
+					done = base.insert(theorem, overwrite,session.primitivestable,session.compositestable) != -1;
 				else System.out.println("Skipping.");
 			
 			} else 				
-				done = base.insert(theorem, false) != -1;
+				done = base.insert(theorem, false,session.primitivestable,session.compositestable) != -1;
 	
 		} else JOptionPane.showMessageDialog(parent, "Bad naming, try again.");
 		
@@ -143,6 +146,8 @@ public class TheoremStore extends DefaultDialog {
 
 			columnvalue = list.getSelectedValue();
 
+			DeductionBase base = session.getBase();
+			
 			if (base.contains(columnvalue, "Theorems", "name")) {						
 				base.delete("Theorems", "name", columnvalue);
 				base.delete("Statements", "theorem", columnvalue);			

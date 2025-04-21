@@ -1,4 +1,4 @@
- package view;
+ package view.components;
 
 import java.awt.Canvas;
 import java.awt.Color;
@@ -21,6 +21,13 @@ import view.abstraction.DisplayTools;
 
 /**
  * The canvas upon which to draw theorems.
+ * 
+ * The canvas is particularly 'view part of the application' but
+ * <b>Remark:</b><i> it encapsulates and shields a core part of the model</i>
+ * namely the {@see DTheorem} which is created in it and should be acceses
+ * through either this {@see DisplayCanvas} which lays out and draws the theorem
+ * or via the {@see Session} which stores all theorems, the theorems being
+ * contained in their respective {@see Canvas}. 
  */
 public class DisplayCanvas extends Canvas implements CursoredCanvas {
 
@@ -45,12 +52,29 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 	
 	/**
 	 * Instantiates a new empty canvas for drawing fantastic math theorems upon.
+	 * Every canvas holds one and only one theorem and is the only direct holder of that theorem.
+	 * If no theorem is provided it creates an empty one.
 	 */
  	public DisplayCanvas() {		
+ 		this("empty");
+ 	}
+ 	
+	public DisplayCanvas(String name) {
+ 		this.theorem = new DTheorem(name);
+ 		this.reset();	
+	}
+
+	/**
+	 * Instantiates a new canvas for drawing fantastic math theorems upon.
+	 * Every canvas holds one and only one theorem and is the only direct holder of that theorem.
+	 * @param theorem The theorem that is described by this canvas.
+	 */
+ 	public DisplayCanvas(DTheorem theorem) {		
+ 		this.theorem = theorem;
  		this.reset();	
  	}
 
-
+ 	
 	/** {@inheritDoc} */
  	public void fillCursor(Described formal, boolean paint, Described erased) {
 		
@@ -87,6 +111,16 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		this.redescribeAll();
 	}
 
+	
+
+	/** 
+	 * The theorem worked on in this canvas. Try to export the theorem only frmo its canvas. They are a couple.
+	 * 
+	 * @return The theorem beloning to this canvas and only this canvas. Sessions consists of many canvas-theorem pairs.
+	 **/
+	public DTheorem getTheorem() {
+		return theorem;
+	}
 	
 	/** 
 	 * Returns the current cursor.
@@ -321,7 +355,7 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
  	 */
 	public void reset() {
 
- 		Described startcursor = this.startCursor();
+ 		Described startcursor = DisplayCanvas.startCursor();
 
  		this.setWritepoint(startcursor);
 		

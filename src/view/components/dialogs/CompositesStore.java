@@ -4,16 +4,16 @@ import java.util.Collections;
 
 import javax.swing.JOptionPane;
 
+import control.Session;
 import control.Toolbox;
 import control.db.DeductionBase;
-import view.DeductionFrame;
 import view.abstraction.AbstractFrame;
 
 /**
  * Dialog for loading a set of primitives into the application.
  * @see DefaultDialog
  */
-public class CompositesLoader extends DefaultDialog {
+public class CompositesStore extends DefaultDialog {
 
 	
 	/**
@@ -22,8 +22,8 @@ public class CompositesLoader extends DefaultDialog {
 	 * @param grandparent 	The grandparent container ince it is launched by the parent the controlpanel.
 	 * @param base 			The base of theorems, primitives and composites.
 	 */
-	public CompositesLoader(AbstractFrame grandparent, DeductionBase base) {
-		super(grandparent, base);
+	public CompositesStore(AbstractFrame grandparent, Session session) {
+		super(grandparent, session);
 	}
 
 	
@@ -32,7 +32,7 @@ public class CompositesLoader extends DefaultDialog {
 
 		menu.clear();
 
-		ArrayList<String> fromdb = base.fetchNames("Compositetables");
+		ArrayList<String> fromdb = session.getBase().fetchNames("Compositetables");
 
 		fromdb.removeAll(Collections.list(menu.elements()));
 
@@ -49,7 +49,7 @@ public class CompositesLoader extends DefaultDialog {
 
 			columnvalue = list.getSelectedValue();	
 
-			((DeductionFrame) parent).loadComposites(columnvalue);			
+			session.loadComposites(columnvalue);			
 
 			Toolbox.switchContainer(parent, this);
 		}
@@ -59,6 +59,8 @@ public class CompositesLoader extends DefaultDialog {
 	public void store(String name) {
 
 		done = false;
+		
+		DeductionBase base = session.getBase();
 
 		if (Toolbox.isOkName(name)) {	
 
@@ -71,7 +73,7 @@ public class CompositesLoader extends DefaultDialog {
 					base.delete("Compositestables", "tablename", name);
 					base.delete("Composites", "tablename", name);			
 
-					((DeductionFrame) parent).storeComposites(name);
+					session.storeComposites(name);
 
 					done = true;															System.out.println("Composite table " + name + " is overwritten.");
 
@@ -79,7 +81,7 @@ public class CompositesLoader extends DefaultDialog {
 
 			} else {
 
-				((DeductionFrame) parent).storeComposites(name);
+				session.storeComposites(name);
 
 				done = true;																System.out.println("Composite table " + name + " is inserted.");					
 			}
@@ -98,6 +100,8 @@ public class CompositesLoader extends DefaultDialog {
 
 			columnvalue = list.getSelectedValue();
 
+			DeductionBase base = session.getBase();
+			
 			if (base.contains(columnvalue, "Composites", "tablename")) {						
 				base.delete("Composites", "tablename", columnvalue);
 				System.out.println("Deleted table of composites: " + columnvalue + ".");

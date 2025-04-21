@@ -1,4 +1,5 @@
 package view.components.dialogs;
+import control.Session;
 import control.Toolbox;
 import control.db.DeductionBase;
 import view.abstraction.AbstractFrame;
@@ -14,10 +15,10 @@ public class PrimitivesLoader extends DefaultDialog {
 	  * Instantiates a new primitives loader.
 	  *
 	  * @param grandparent The grandparent container ince it is launched by the parent the controlpanel.
-	  * @param base The base of theorems.
+	  * @param session The base of theorems.
 	  */
-	public PrimitivesLoader(AbstractFrame grandparent, DeductionBase base) {
-		super(grandparent, base);
+	public PrimitivesLoader(AbstractFrame grandparent, Session session) {
+		super(grandparent, session);
 		
 		super.remove("store");
 		super.remove("delete");
@@ -32,9 +33,7 @@ public class PrimitivesLoader extends DefaultDialog {
 			
 			columnvalue = list.getSelectedValue();	
 			
-			AbstractFrame frame = (AbstractFrame) parent;
-
-			frame.loadPrimitives(columnvalue);			
+			session.loadPrimitives(columnvalue);			
 
 			Toolbox.switchContainer(parent, this);
 		}
@@ -48,6 +47,8 @@ public class PrimitivesLoader extends DefaultDialog {
 	/** Not used. */
 	public void delete(String deleted) {
 
+		DeductionBase base = session.getBase();
+		
 		if (!list.isSelectionEmpty()) {
 
 			columnvalue = list.getSelectedValue();

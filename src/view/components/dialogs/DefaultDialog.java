@@ -24,6 +24,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
+import control.Session;
 import control.Toolbox;
 import control.db.DeductionBase;
 
@@ -37,7 +38,7 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 	protected Container 		parent;
 	
 	/** The base used for storage. */
-	protected DeductionBase 	base;																																
+	protected Session 			session;																																
 	
 	/** The menu used for selecting items from the data base or for removal from the data base. */
 	protected DefaultListModel<String> menu  = new DefaultListModel<String>();																										
@@ -68,19 +69,20 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 	/** Simple state variable form maintaining name of selected item. */
 	protected String columnvalue;
 	
+	
 	/**
 	 * Instantiates a new default dialog.
 	 *
 	 * @param parent 	The parent of this dialogue to which to return to.
-	 * @param base 		The base with the applications data.
+	 * @param session TODO
 	 */
-	protected DefaultDialog(Container parent, DeductionBase base) {
+	protected DefaultDialog(Container parent, Session session) {
 
 		this.parent = parent;
-		this.base = base;
+		this.session = session;
 			
 		setTitle("Load and store your primitives table");
-		setBounds(100, 100, 332, 250);
+		setBounds(100, 100, 500, 300);
 	
 		getContentPane().setLayout(new BorderLayout());		
 		getContentPane().add(contentpanel, BorderLayout.CENTER);
@@ -96,13 +98,13 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 	
 		JScrollPane scroller = new JScrollPane();
 
-		scroller.setBounds(10, 11, 296, 84);
+		scroller.setBounds(10, 11, 468, 140);
 		scroller.setViewportView(list);
 		
 		contentpanel.add(scroller);
 		
 		buttonspanel.setBorder(new LineBorder(new Color(0, 0, 0)));
-		buttonspanel.setBounds(10, 106, 296, 97);
+		buttonspanel.setBounds(12, 163, 468, 95);
 
 		contentpanel.add(buttonspanel);
 		
@@ -116,10 +118,12 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 		makeLabels();
 																																				///(8608)
 		GridBagConstraints gbc_txfName = new GridBagConstraints();
+		gbc_txfName.gridwidth = 2;
+		gbc_txfName.anchor = GridBagConstraints.SOUTH;
 		gbc_txfName.weighty = 1.0;
 		gbc_txfName.weightx = 1.0;
 		gbc_txfName.ipadx = 5;
-		gbc_txfName.fill = GridBagConstraints.BOTH;
+		gbc_txfName.fill = GridBagConstraints.HORIZONTAL;
 		gbc_txfName.insets = new Insets(5, 0, 5, 5);
 		gbc_txfName.gridx = 1;
 		gbc_txfName.gridy = 1;
@@ -131,6 +135,7 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 		makeButtons();
 	}
 
+	
 	/**
 	 * Action performed with cases for 'cancel', 'load', 'store' and 'delete' where the three last ones have corresponding
 	 * abstract methods. 
@@ -208,7 +213,7 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 
 		menu.clear();
 		
-		ArrayList<String> fromdb = base.fetchNames("Primitivetables");
+		ArrayList<String> fromdb = session.getBase().fetchNames("Primitivetables");
 		
 		fromdb.removeAll(Collections.list(menu.elements()));
 
@@ -277,9 +282,8 @@ public abstract class DefaultDialog extends JDialog implements ActionListener {
 																																				///(F850)
 		GridBagConstraints gbc_lblRead = new GridBagConstraints();
 		gbc_lblRead.insets 		= new Insets(0, 0, 0, 5);
-		gbc_lblRead.gridwidth 	= 2;
 		gbc_lblRead.anchor 		= GridBagConstraints.SOUTHWEST;
-		gbc_lblRead.gridx 		= 3;							gbc_lblRead.gridy 		= 0;
+		gbc_lblRead.gridx 		= 4;							gbc_lblRead.gridy 		= 0;
 		lblLoad.setName("loadlabel");		
 		buttonspanel.add(lblLoad, gbc_lblRead);
 	}	

@@ -1,11 +1,12 @@
 package view;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.DefaultKeyboardFocusManager;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -18,9 +19,12 @@ import javax.swing.ActionMap;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
-import javax.swing.border.TitledBorder;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.SoftBevelBorder;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
 import control.Shortcut;
@@ -28,7 +32,6 @@ import control.Toolbox;
 import model.description.DComposite;
 import model.description.DEditableStatement;
 import model.description.DPrimitive;
-import model.description.DTheorem;
 import model.description.abstraction.Described;
 import model.independent.DoubleArray;
 import model.independent.DoubleArray.Tuple;
@@ -37,15 +40,16 @@ import model.logic.Implication.ImplicationType;
 import model.logic.abstraction.Formal;
 import view.abstraction.TraversablePanel;
 import view.components.DButton;
+import view.components.DisplayCanvas;
 import view.components.DButton.DisplayAction;
+
 
 /**
  * Panel containing the primitives written with. 
  */
-public class PrimitivesPanel extends TraversablePanel implements KeyListener {
+public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
 	private HashMap<Formal, DButton> 	buttons  = new HashMap<Formal, DButton>();
-	private DTheorem 					theorem;	
 
 	private static final int INSERTPRIMITIVE = 0, NEWSTATEMENT = 1, KEYBOARD = 2;
 	
@@ -59,44 +63,68 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 	 * the preliminary statement as done (ctrl + arrow key). It also handles focus traversal while also
 	 * lets space key click ordinary buttons.
 	 * 
-	 * @param parent	The frame containing this primitives panel.
+	 * @param parentcontainer	The frame containing this primitives panel.
 	 * @param display	The canvas this primitives panel uses to draw on.
 	 */
-	public PrimitivesPanel(DeductionFrame parent, DisplayCanvas display) {
+	public GlyphsPanel(DeductionFrame parent) {
 
-		this.frame = parent;
-		this.canvas = display;
+		this.parent = parent;
 		this.panel = this;
-
+		
 		this.olddispatcher = new DefaultKeyboardFocusManager();
 		this.dispatcher = new CustomDispatcher();
 
 		this.setInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, inputmap);
 
-		this.setLayout(gridbag);
-
-		gridbag.columnWeights = new double[]{0, 1.0, 0};
-		gridbag.rowWeights = new double[]{0, 0.4, 0, 0.5};
-
-		pnlPrimitives.setLayout(new FlowLayout(FlowLayout.CENTER, 1, 1));
-		pnlComposites.setLayout(new FlowLayout(FlowLayout.LEADING, 1, 1));
-
-		pnlPrimitives.setBorder(new TitledBorder("primitives"));
-		pnlComposites.setBorder(new TitledBorder("composites"));
-
 		this.makeLayout();
 	}
 
 	
-	/**
-	 *  Set the working theorem of this primitives panel.
-	 *
-	 * @param theorem The new theorem to replace the old one with.
-	 */
- 	public void setTheorem(DTheorem theorem) {
-		this.theorem = theorem;		
+	
+	public void newGlyph() {
+
+		DisplayCanvas canvas = this.getCanvas();
+		Described drawn = canvas.getDrawn();
+		
+		if (drawn == null) return;
+		if (drawn.value() instanceof Implication) return;
+		
+		if (isEditing(drawn)) {
+
+			DEditableStatement edit = canvas.getTheorem().getEditing();
+
+			//Described old = null;
+
+			if (edit.current().isDummy()) 
+
+				if (drawn.isDummy()) {}					// drawn == null
+					//old = edit.deleteCurrent();
+				else {
+					//old = edit.replaceCurrent(drawn);
+					drawn.underline(true);				///(46B5)
+					edit.togglePrompting();
+					
+				}
+			else {
+				//old = edit.replaceCurrent(drawn);
+				drawn.underline(true);					// in chosen	
+			}
+
+			canvas.redescribeTail(edit.whole());
+			canvas.setWritepoint(edit.next());			// update display
+			canvas.setPaintMode(false,false,false);
+			canvas.paint(canvas.getGraphics());
+
+		} else {
+
+			if (drawn != null)	canvas.newPrimitive();						
+														// do nothing if editing or nothing to draw to insert
+			canvas.setPaintMode(true,false,false);
+			canvas.paint(canvas.getGraphics());
+		}
 	}
- 	
+
+	
 	/**
 	 * Sets the map of mappings (keyboard key -> key object) and the map of mappings (key object -> action) 
 	 * used to push this panels buttons. The key objects are strings. 
@@ -115,7 +143,14 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 		this.setInputMap(JComponent.WHEN_FOCUSED, inputmap);
 	}
 
-   	   	
+
+   	public void updateButtonsListener(DisplayCanvas canvas) {
+   		
+   		for (DButton button : buttons.values()) {
+   			button.getDisplayAction().putValue("canvas", canvas);   			
+   		}
+   	}
+   	
    	/**
    	 * Update the binding for a particular formal. The formal is unique and is found in a unique button.
    	 * 
@@ -255,7 +290,7 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 	 * When the user accepts a formal and proceeds the theorem <i>(space key)</i> or accepts the preliminary statement 
 	 * as done <i>(ctrl + arrow key)</i>. It also handles focus traversal while also lets space key click ordinary buttons.
 	 * <br><br>
-	 * Beware that if you alter this method in the future, it is very delivate when to consume and when to not cunsume the
+	 * Beware that if you alter this method in the future, it is very delicate when to consume and when to not cunsume the
 	 * keyboard key event because the are sent around a lot. Sometimes they must be consumed and sometimes the may not be 
 	 * consumed and sometimes it does not matter much.
 	 */
@@ -266,48 +301,16 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 
 		int gear = isFocusModifier(modifiers) + isStatementModifier(modifiers);
 
+		DisplayCanvas canvas = this.getCanvas();
+
 		switch (gear) {												// ALL HERE IS PROGRAM RESERVED 
 
 			case (INSERTPRIMITIVE): 								// new primitive gear
 	
 				if (codepoint == KeyEvent.VK_SPACE) {
-	
-					Described drawn = this.canvas.getDrawn();
-	
-					if (isEditing(drawn)) {
-	
-						DEditableStatement edit = theorem.getEditing();
-	
-						Described old = null;
-	
-						if (edit.current().isDummy()) 
-	
-							if (drawn.isDummy())					// drawn == null
-								old = edit.deleteCurrent();
-							else {
-								old = edit.replaceCurrent(drawn);
-								drawn.underline(true);				///(46B5)
-								edit.togglePrompting();
-								
-							}
-						else {
-							old = edit.replaceCurrent(drawn);
-							drawn.underline(true);					// in chosen	
-						}
-	
-						canvas.redescribeTail(edit.whole());
-						canvas.setWritepoint(edit.next());	// update display
-						canvas.setPaintMode(false,false,false);
-						canvas.paint(canvas.getGraphics());
-	
-					} else {
-	
-						if (drawn != null)	canvas.newPrimitive();						
-																	// do nothing if editing or nothing to draw to insert
-						canvas.setPaintMode(true,false,false);
-						canvas.paint(canvas.getGraphics());
-					}
-	
+					
+					newGlyph();
+					
 					e.consume();									// new primitive highest priority, could not be something else, so end chain
 					break;
 				}
@@ -316,37 +319,7 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 	
 			case(NEWSTATEMENT):										// new statement gear
 	
-				if (theorem.getPreliminary().size() > 0) {
-	
-					Described last;
-	
-					switch (codepoint) {
-																	// they are also reconstructed in theorem and statement constructors
-						case (KeyEvent.VK_LEFT):	
-		
-							last = new DPrimitive(Implication.makeValue(ImplicationType.LEFT));	
-							canvas.fillCursor(last, true, null);
-							canvas.newStatement(last);						
-							break;
-		
-						case (KeyEvent.VK_UP):				
-		
-							last = new DPrimitive(Implication.makeValue(ImplicationType.EQUIV));	
-							canvas.fillCursor(last, true, null);
-							canvas.newStatement(last);						
-							break;
-		
-						case (KeyEvent.VK_RIGHT):			
-		
-							last = new DPrimitive(Implication.makeValue(ImplicationType.RIGHT));	
-							canvas.fillCursor(last, true, null);
-							canvas.newStatement(last);						
-							break;
-	
-						default:
-							break;					
-					}	
-				}
+				newStatement(codepoint);
 	
 				e.consume();										// new statement keys are not overloaded so end chain				
 				canvas.setPaintMode(false,true,false);
@@ -376,8 +349,47 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 		}		
 
 		canvas.repaint();
-		theorem.printout();
+		this.getTheorem().printout();
 		return;
+	}
+
+
+
+	public void newStatement(int codepoint) {
+
+		DisplayCanvas canvas = this.getCanvas();
+		
+		if (this.getTheorem().getPreliminary().size() > 0) {
+
+			Described last;
+
+			switch (codepoint) {
+															// they are also reconstructed in theorem and statement constructors
+				case (KeyEvent.VK_LEFT):	
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.LEFT));	
+					canvas.fillCursor(last, true, null);
+					canvas.newStatement(last);						
+					break;
+
+				case (KeyEvent.VK_UP):				
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.EQUIV));	
+					canvas.fillCursor(last, true, null);
+					canvas.newStatement(last);						
+					break;
+
+				case (KeyEvent.VK_RIGHT):			
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.RIGHT));	
+					canvas.fillCursor(last, true, null);
+					canvas.newStatement(last);						
+					break;
+
+				default:
+					break;					
+			}	
+		}
 	}
 
 	/**
@@ -396,7 +408,7 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 
 	
 	private boolean isEditing(Described drawn) {
-		return (canvas.isPrompting() || theorem.isEdited()) && drawn != null;
+		return (this.parent.getSession().getCurrentCanvas().isPrompting() || this.getTheorem().isEdited()) && drawn != null;
 	}
 
 	/**
@@ -474,12 +486,12 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
  	/** {@inheritDoc} */
 	public void windowGainedFocus(WindowEvent e) {
 
-		if (e.getSource() == frame) {
+		if (e.getSource() == parent) {
 
 			manager.removeKeyEventDispatcher(olddispatcher);							
 			manager.addKeyEventDispatcher(dispatcher);								
 
-			frame.requestFocusInWindow();																									///(6FA2)
+			parent.requestFocusInWindow();																									///(6FA2)
 
 		} else 
 			manager.removeKeyEventDispatcher(dispatcher);	
@@ -489,7 +501,7 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
  	/** {@inheritDoc} */
 	public void windowLostFocus(WindowEvent e) {
 
-		if (e.getSource() == frame) {
+		if (e.getSource() == parent) {
 
 			manager.removeKeyEventDispatcher(dispatcher);	
 			manager.addKeyEventDispatcher(olddispatcher);						
@@ -509,7 +521,7 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 		DButton button = new DButton(described);    			
 
 		DisplayAction displayaction = (DisplayAction) button.getAction();
-		displayaction.setCanvas(canvas);
+		displayaction.setCanvas(this.parent.getSession().getCurrentCanvas());
 		displayaction.setFocusrestore(this);
 
 		if (binding != null) {
@@ -535,33 +547,53 @@ public class PrimitivesPanel extends TraversablePanel implements KeyListener {
 	
 	private void makeLayout() {
 
-		cnstrUpper.fill = GridBagConstraints.BOTH;
-		cnstrUpper.insets = new Insets(0, 0, 1, 1);
-		cnstrUpper.gridx = 1;
-		cnstrUpper.gridy = 1;
+		setSize(new Dimension(327, 438));
+		setLayout(new GridLayout(0, 1, 0, 0));
 		
-		this.add(pnlPrimitives, cnstrUpper);
+		JDesktopPane dpnGlyphs = new JDesktopPane();
+		
+		dpnGlyphs.setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
 
-		cnstrLower.fill = GridBagConstraints.BOTH;
-		cnstrLower.insets = new Insets(0, 0, 1, 1);
-		cnstrLower.gridx = 1;
-		cnstrLower.gridy = 3;
+		this.add(dpnGlyphs);
 
-		this.add(pnlComposites, cnstrLower);
+		JInternalFrame ifrmPrimitives = new JInternalFrame("Primitives");
+		JInternalFrame ifrmComposites = new JInternalFrame("Composites");
 
-		for (DButton button : buttons.values()) 
-			
-			if (button.getDescribed() instanceof DComposite)
-				pnlComposites.add(button);
-			else
-				pnlPrimitives.add(button);		
+		ifrmPrimitives.getContentPane().setLayout(null);
+		ifrmComposites.getContentPane().setLayout(null);
+		
+		ifrmPrimitives.getContentPane().add(pnlPrimitives);
+		ifrmComposites.getContentPane().add(pnlComposites);
+
+		ifrmPrimitives.addComponentListener(pnlResizer(pnlPrimitives));		
+		ifrmComposites.addComponentListener(pnlResizer(pnlComposites));				
+
+		ifrmPrimitives.setResizable(true);		ifrmPrimitives.setIconifiable(true);	ifrmPrimitives.setMaximizable(true);
+		ifrmComposites.setResizable(true);		ifrmComposites.setIconifiable(true);	ifrmComposites.setMaximizable(true);
+
+		dpnGlyphs.add(ifrmPrimitives);		
+		dpnGlyphs.add(ifrmComposites);
+	
+		ifrmComposites.setBackground(new Color(143, 188, 143));
+		ifrmPrimitives.setBackground(new Color(143, 188, 143));
+		
+		ifrmPrimitives.setBounds(12, 12, 149, 230);
+		ifrmComposites.setBounds(12, 297, 217, 86);
+		
+		ifrmComposites.setVisible(true);
+		ifrmPrimitives.setVisible(true);
+
 	}
 
-	
-	private GridBagLayout 		gridbag 	= new GridBagLayout();
-
-	private GridBagConstraints 	cnstrUpper = new GridBagConstraints();
-	private GridBagConstraints 	cnstrLower = new GridBagConstraints();
+	private ComponentAdapter pnlResizer(JPanel pnl) {
+		
+		return (new ComponentAdapter() {			
+			public void componentResized(ComponentEvent e) {
+				Dimension d = e.getComponent().getSize();
+				pnl.setBounds(0,0,d.width,d.height);				
+			}
+		});
+	}
 
 	private ActionMap 	actionmap; 
 	private InputMap 	inputmap;
