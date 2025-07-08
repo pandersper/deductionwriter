@@ -1,17 +1,13 @@
 package annexes.trainer;
 
 import java.awt.BorderLayout;
-import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.Insets;
-import java.awt.event.InputEvent;
+import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -22,53 +18,88 @@ import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.border.MatteBorder;
+import javax.swing.JSlider;
+import javax.swing.JLabel;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
+import java.awt.SystemColor;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
-import control.Shortcut;
+import control.session.Shortcut;
+import control.statics.ViewStatics;
+import model.description.DPrimitive;
 import model.description.abstraction.Described;
+import model.independent.CyclicAccessList;
+import model.independent.DoubleArray;
+import model.independent.DoubleArray.Tuple;
 import view.abstraction.AbstractFrame;
+import view.components.DButton;
+
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 /**
  * The frame of the sub application DeductionTrainer.
  * @see DeductionTrainer
  */
-public class TrainerFrame extends AbstractFrame {
+public class TrainerFrame extends AbstractFrame implements ChangeListener {
 
 	private int counter = 0;
 	private final int countermax = 6;
 	private Described displayed;
-
+	private DeductionTrainer parent;
+	
+	private CyclicAccessList<Described> keyqueue;
+	private BindingsViewDialog dialog;
+	
 	/**
 	 * Instantiates a new trainer frame.
 	 */
-	public TrainerFrame() {
+	public TrainerFrame(BindingsViewDialog dialog) {
 		super("Trainer frame ...");
 
+		this.keyqueue = new CyclicAccessList<Described>();		
+
+		this.dialog = dialog;
+		
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-		setBounds(100, 100, 602, 405);
+		setBounds(100, 100, 800, 450);
 
 		contentPane = new JPanel();
-		contentPane.setBorder(new LineBorder(new Color(72, 61, 139), 2, true));
+		contentPane.setBorder(new LineBorder(SystemColor.windowBorder, 1, true));
 		contentPane.setLayout(new BorderLayout(20, 20));
 
 		setContentPane(contentPane);
+		
+		btnStart = new JButton("start/stop");	btnDone = new JButton("quit");	
+		btnReset = new JButton("reset");		btnClear = new JButton("clear");
+		btnStore = new JButton("store");
+
+		buttons = new JButton[] { btnStart, btnDone, btnReset, btnClear, btnStore };			
 
 		makeGlyphPanel();
-		makeDataPanel();
 		makeControlPanel();
 		makeInfoPanel();
 		makeTitle();
 
 		setActionCommands();
+	}
 
-		buttons = new JButton[] { btnStart, btnDone, btnStore, btnReset, btnClear };			
+	
+	public Described displayNext() {
+		//long t = 0; System.out.println(t - System.currentTimeMillis());
+		displayed = keyqueue.moveMiddle(1);
+
+		this.setArrayAndInfo();					
+		this.requestFocusInWindow();
+		//t = System.currentTimeMillis();
+		return displayed;
 	}
 
 	/**
 	 * Resets then count down timer.
 	 */
-	public void reset() {
+	private void reset() {
 		counter = 0;
 	}
 	/**
@@ -76,48 +107,90 @@ public class TrainerFrame extends AbstractFrame {
 	 *
 	 * @return True when time's up. False at other countings.
 	 */
-	public boolean countdown() {
+	public boolean periodEnded() {
 
 		if (counter == 0) 
 			counter = countermax;
 		else
 			counter--;
 
-		txfCountdown.setText(""+counter);
-
 		return counter == 0;
 	}
-	/**
-	 * Changes displayed codepoint when new binding is made and also updates the info text area.
-	 *
-	 * @param binding The binding to display.
-	 * @param occupiedstring String to fill the information area with.
-	 */
-	public void changeCodepoint(Shortcut binding, String occupiedstring) {
-	
-		txfCodepoint.setText((char) (int) binding.keycode + InputEvent.getModifiersExText(binding.modifiers));
-	
-		txaInfo.setText(occupiedstring);
-	
+
+	public CyclicAccessList<Described> getKeyqueue() {
+		return keyqueue;
 	}
-	/**
-	 * Sets the currently displayed described primitive.
-	 *
-	 * @param displayed The new described primitive.
-	 */
-	public void setDisplayed(Described displayed) {
-		this.displayed = displayed;
+	
+	public void setArrayAndInfo() {
+	
+		DoubleArray<Described, Shortcut> bindings = dialog.getBindings();
+		
+		String occupied 	= dialog.occupiedString();
+		String unoccupied 	= dialog.unoccupiedString();
+
+		ArrayList<Described> 		array = keyqueue.getCenterArray(2);
+		
+		Tuple<Described,Shortcut> 	binding = bindings.getByFirst(array.get(2));
+
+		Shortcut middle;
+		String codepoint = "?";		// no binding for the glyph
+		
+		if (binding != null) {		// binding exists
+		
+			middle =  binding.second();
+
+			codepoint = ViewStatics.bindingString(middle);		
+		}
+		
+		setGlyphArray(array,bindings);	
+
+		// update fields and repaint
+		txfCodepoint.setText(codepoint);
+		txaSet.setText(occupied);
+		txaNotSet.setText(unoccupied);
 		pnlGlyph.repaint();
 	}
-	/**
-	 * Sets the information text field.
-	 *
-	 * @param string The new info to display.
-	 */
-	public void setInfo(String string) {
-		txaInfo.setText(string);
+
+	private void setGlyphArray(ArrayList<Described> array, DoubleArray<Described, Shortcut> bindings) {
+		
+		for (int i = 0; i < buttonarray.length; i++) 
+			buttonarray[i].setIcon(ViewStatics.describedIcon(array.get(i)));		
+		
+		String codepoint; 
+		Shortcut bound;
+		Tuple<Described,Shortcut> binding;
+		
+		for (int i = 0; i < labelarray.length; i++) {
+
+			binding = bindings.getByFirst(array.get(i));
+
+			if (binding != null) {
+				bound = binding.second();			
+				codepoint = ViewStatics.bindingString(bound);
+			} else
+				codepoint = "?";
+			
+			labelarray[i].setText(codepoint);		
+		}
 	}
 
+	
+	public void stateChanged(ChangeEvent e) {
+
+		if (!keyqueue.isEmpty()) {
+
+			int value = slider.getValue();
+	
+			int newmiddle = (int) ((double) value) / (keyqueue.size());
+	
+			if (slider.getValueIsAdjusting() && newmiddle != 0) keyqueue.moveMiddle(newmiddle); 
+			else 							
+				slider.setValue(0);
+						
+			setArrayAndInfo();
+		}
+	}
+	
 	/**
 	 * Not in use.
 	 * @param columnvalue	Not used.
@@ -125,7 +198,6 @@ public class TrainerFrame extends AbstractFrame {
 	public void loadPrimitives(String columnvalue) {
 		// NOT IN USE		
 	}
-
 	/**
 	 * Not in use.
 	 * @param columnvalue	Not used.
@@ -133,6 +205,7 @@ public class TrainerFrame extends AbstractFrame {
 	public void loadComposites(String columnvalue) {
 		// NOT IN USE		
 	}
+	
 	/**
 	 * Adds the listener.
 	 *
@@ -161,7 +234,7 @@ public class TrainerFrame extends AbstractFrame {
 
 	/** {@inheritDoc} */
 	public Component[][] focusCycleNodes() {
-		return new Component[][] { new Component[] { btnStart, btnLoad, btnStore }};
+		return new Component[][] { new Component[] { btnStart, btnStore }};
 	}
 
 	/** {@inheritDoc} */
@@ -178,162 +251,197 @@ public class TrainerFrame extends AbstractFrame {
 		this.defaultcomponent = contentPane;		
 	}
 
-	/** AWT AND SWING **/
 	
-	private class GlyphPanel extends JPanel {
+	//start_win_var_init
 
-		private class GlyphCanvas extends Canvas {
-
-			private Image glyph;
-			private int x, y;
-
-			public void update(Graphics g) {
-
-				if (displayed != null) {
-
-					glyph = displayed.description().getImage();
-
-					x = (this.getWidth() - glyph.getWidth(null)) / 2;
-					y = (this.getHeight() - glyph.getHeight(null)) / 2;
-
-					this.paint(g);
-
-				}
-			}
-
-			/** {@inheritDoc} */
-			public void paint(Graphics g) {
-
-				g.drawImage(glyph, x, y, null);
-			}
-		}
-
-		private GlyphCanvas canvas = new GlyphCanvas();
-
-		/**
-		 * Instantiates a new glyph panel.
-		 */
-		public GlyphPanel() {
-			this.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
-			this.setBackground(new Color(216, 216, 216));
-			this.setLayout(new FlowLayout());
-			this.add(canvas);
-			canvas.setPreferredSize(new Dimension(100,100));
-			canvas.setBackground(Color.CYAN);
-		}
-
-		/** {@inheritDoc} */
-		protected void paintComponent(Graphics g) {
-			super.paintComponent(g);
-
-			canvas.repaint();
-		}
-
-	}
+	private static final 	EtchedBorder 	BORDERTXA 	= new EtchedBorder(EtchedBorder.LOWERED, null, null);
+	private static final 	Dimension 		SIZETXF 	= new Dimension(35, 35);
 
 	private JPanel 			contentPane;
-	private JPanel 			pnlGlyph, pnlData, pnlControl, pnlInfo;
-	private JTextField 		txfTitle, txfCountdown, txfCodepoint;
-	private JTextArea 		txaInfo;
-	private JButton 		btnStart, btnDone, btnLoad, btnStore, btnReset, btnClear;
+	
+	private JPanel 			pnlGlyph, pnlSequence, pnlBindings, pnlControl, pnlInfo;
 
+	private JSlider 		slider;	
+
+	private JTextArea 		txaNotSet, txaSet;
+	private JTextField 		txfTitle, txfCodepoint;
+	
+	private JButton 		btnStart, btnDone, btnStore, btnReset, btnClear;
 	private JButton[] 		buttons;
+	
+	private DButton 		btnBefore2, btnBefore1, btnNow, btnAfter1, btnAfter2;
+	private DButton[]		buttonarray;
 
+	private DButton 		lbtnBefore2, lbtnBefore1, lbtnNow, lbtnAfter1, lbtnAfter2;
+	private DButton[]		labelarray;
+	
+	
 	private void makeTitle() {
+		
 		txfTitle = new JTextField();
-		txfTitle.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
-		txfTitle.setBackground(new Color(100, 149, 237));
-		txfTitle.setFont(new Font("Rachana", Font.BOLD, 24));
-		txfTitle.setHorizontalAlignment(SwingConstants.CENTER);
-		txfTitle.setText("Map short cut keys to primitives");
-		txfTitle.setColumns(5);		
 		txfTitle.setEditable(false);
+		
+		txfTitle.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+		txfTitle.setBorder(new EmptyBorder(10, 0, 0, 10));
+		txfTitle.setBackground(UIManager.getColor("windowBorder"));
+		txfTitle.setFont(new Font("Dialog", Font.PLAIN, 24));
+		txfTitle.setHorizontalAlignment(SwingConstants.RIGHT);
+		txfTitle.setText("Map short cut keys to primitives");
+		
 		contentPane.add(txfTitle, BorderLayout.NORTH);
 	}
 	
 	private void makeGlyphPanel() {
-		pnlGlyph = new GlyphPanel();
-		contentPane.add(pnlGlyph, BorderLayout.CENTER);
-	}
-	
-	private void makeDataPanel() {
-		pnlData = new JPanel();
-		pnlData.setPreferredSize(new Dimension(160, 600));
-		pnlData.setSize(new Dimension(160, 600));
-		pnlData.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
-		pnlData.setBackground(new Color(176, 180, 185));
-		pnlData.setLayout(null);
-		contentPane.add(pnlData, BorderLayout.WEST);
 
-		btnStore = new JButton("store mapping");
-		btnStore.setBounds(12, 12, 138, 25);
-		pnlData.add(btnStore);
+		pnlGlyph 	= new JPanel();
+		pnlSequence = new JPanel();
+		pnlBindings = new JPanel();
+		pnlBindings.setVerifyInputWhenFocusTarget(false);
+		pnlBindings.setRequestFocusEnabled(false);
+		pnlBindings.setOpaque(false);
+		pnlBindings.setFocusable(false);
+		pnlBindings.setDoubleBuffered(false);
+		slider 		= new JSlider();
+		slider.setBackground(UIManager.getColor("Slider.background"));
+		slider.setPaintTrack(false);
+		slider.addChangeListener(this);
+		
+		pnlGlyph.setBorder(new LineBorder(SystemColor.windowBorder, 1, true));
+		pnlGlyph.setLayout(new BoxLayout(pnlGlyph, BoxLayout.Y_AXIS));
+
+		contentPane.add(pnlGlyph, BorderLayout.CENTER);
+		
+		slider.setMinimum(-25);		slider.setMaximum(25);	slider.setValue(0);
+		pnlGlyph.add(slider);
+		
+		pnlSequence.setBorder(new EmptyBorder(20, 50, 20, 50));
+		pnlSequence.setLayout(new BoxLayout(pnlSequence, BoxLayout.X_AXIS));
+
+		pnlBindings.setBorder(null);
+		pnlBindings.setLayout(new BoxLayout(pnlBindings, BoxLayout.X_AXIS));
+
+		pnlGlyph.add(pnlSequence);
+		pnlGlyph.add(pnlBindings);
+		
+		btnBefore2 	= new DButton(new DPrimitive((int)'Z'));	btnBefore1 	= new DButton(new DPrimitive((int)'Å'));
+		btnNow 		= new DButton(new DPrimitive((int)'Ä'));			
+		btnAfter1 	= new DButton(new DPrimitive((int)'Ö'));	btnAfter2 	= new DButton(new DPrimitive((int)'!'));
+
+		lbtnBefore2 	= new DButton(new DPrimitive((int)'z'));	lbtnBefore1 = new DButton(new DPrimitive((int)'å'));
+		lbtnNow 		= new DButton(new DPrimitive((int)'ä'));			
+		lbtnAfter1 		= new DButton(new DPrimitive((int)'ö'));	lbtnAfter2 	= new DButton(new DPrimitive((int)'?'));
+				
+		buttonarray = new DButton[] {btnBefore2, btnBefore1, btnNow, btnAfter1, btnAfter2};
+		labelarray  = new DButton[] {lbtnBefore2, lbtnBefore1, lbtnNow, lbtnAfter1, lbtnAfter2};
+
+		for (DButton button : buttonarray) {
+			button.setBorder(new LineBorder(Color.gray,2));
+			button.setEnabled(false);
+		}
+		
+		Dimension lblSize = new Dimension(60,18);
+		
+		for (DButton button : labelarray) {
+			button.setIcon(null);
+			button.setBackground(ViewStatics.floralwhite);
+			button.setMinimumSize(lblSize);
+			button.setMaximumSize(lblSize);
+			button.setPreferredSize(lblSize);
+			button.setSize(lblSize);
+			button.setFocusable(false);
+			button.setBorderPainted(false);
+			button.setRolloverEnabled(false);
+			button.setPressedIcon(null);
+			button.setSelectedIcon(null);
+			button.setRolloverSelectedIcon(null);
+		}
+
+		pnlSequence.add(btnBefore2);	pnlSequence.add(btnBefore1);			
+		pnlSequence.add(btnNow);
+		pnlSequence.add(btnAfter1);		pnlSequence.add(btnAfter2);
+
+		pnlBindings.add(lbtnBefore2);	pnlBindings.add(lbtnBefore1);
+		pnlBindings.add(lbtnNow);
+		pnlBindings.add(lbtnAfter1);	pnlBindings.add(lbtnAfter2);
+		
+		btnNow.setBorder(new LineBorder(Color.red,3));
+		btnNow.setPressedIcon(null);
+		btnNow.setSelectedIcon(null);
+		btnNow.setRolloverSelectedIcon(null);
+		btnNow.setEnabled(true);
 	}
-	
+		
 	private void makeControlPanel() {
+
 		pnlControl = new JPanel();
+		
 		pnlControl.setPreferredSize(new Dimension(135, 600));
 		pnlControl.setSize(new Dimension(200, 600));
-		pnlControl.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
-		pnlControl.setBackground(new Color(176, 180, 185));
-		contentPane.add(pnlControl, BorderLayout.EAST);
+		pnlControl.setBorder(new LineBorder(SystemColor.windowBorder, 1, true));
+		pnlControl.setBackground(UIManager.getColor("Panel.background"));
 		pnlControl.setLayout(null);
 
-		btnStart = new JButton("start/stop");
-		btnDone = new JButton("quit");
-		btnReset = new JButton("reset");
-		btnClear = new JButton("clear");
+		contentPane.add(pnlControl, BorderLayout.EAST);
+
+		for (JButton button : buttons) {
+			button.setForeground(UIManager.getColor("Button.foreground"));
+			button.setBackground(SystemColor.control);
+		}
+		
 		btnStart.setBounds(13, 12, 110, 25);		
-		btnDone.setBounds(13, 100, 110, 25);
+		btnDone.setBounds(13, 163, 110, 25);
 		btnReset.setBounds(13, 43, 110, 25);
 		btnClear.setBounds(13, 75, 110, 25);
+		btnStore.setBounds(13, 108, 110, 25);
+		
 		pnlControl.add(btnStart);
 		pnlControl.add(btnReset);
 		pnlControl.add(btnClear);
-		pnlControl.add(btnDone);		
+		pnlControl.add(btnDone);				
+		pnlControl.add(btnStore);
 	}
 
 	private void makeInfoPanel() {
+		
 		pnlInfo = new JPanel();
-		pnlInfo.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
-		contentPane.add(pnlInfo, BorderLayout.SOUTH);
+		txaSet = new JTextArea();
+		txaNotSet = new JTextArea();
+		txfCodepoint = new JTextField();
+		
+		pnlInfo.setBackground(SystemColor.window);
+		pnlInfo.setBorder(new LineBorder(UIManager.getColor("Table.gridColor"), 1, true));
 		pnlInfo.setLayout(new BoxLayout(pnlInfo, BoxLayout.X_AXIS));
 
-		txfCodepoint = new JTextField();
-		txfCodepoint.setBorder(new EtchedBorder(EtchedBorder.RAISED, null, null));
+		contentPane.add(pnlInfo, BorderLayout.SOUTH);
+		
+		JLabel lblSet = new JLabel("Set: ");
+		lblSet.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+		lblSet.setLabelFor(txaSet);
+		
+		JLabel lblNotSet = new JLabel("Not set: ");
+		lblNotSet.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+		lblNotSet.setLabelFor(txaNotSet);
+
+		txaSet.setBorder(BORDERTXA);		txaSet.setRows(5);			txaSet.setColumns(50);
+		txaNotSet.setBorder(BORDERTXA);		txaNotSet.setRows(5);		txaNotSet.setColumns(50);
+
+		txfCodepoint.setBorder(new EmptyBorder(3, 5, 3, 5));
 		txfCodepoint.setText("UTF-8");
-		txfCodepoint.setSize(new Dimension(35, 35));
-		txfCodepoint.setPreferredSize(new Dimension(35, 35));
-		txfCodepoint.setMaximumSize(new Dimension(35, 35));
+		txfCodepoint.setSize(SIZETXF);		txfCodepoint.setPreferredSize(SIZETXF);		txfCodepoint.setMaximumSize(SIZETXF);
 		txfCodepoint.setMargin(new Insets(5, 0, 0, 0));
 		txfCodepoint.setHorizontalAlignment(SwingConstants.CENTER);
-		txfCodepoint.setFont(new Font("Rachana", Font.BOLD, 22));
-		txfCodepoint.setEditable(false);
+		txfCodepoint.setFont(new Font("Dialog", Font.ITALIC, 22));
 		txfCodepoint.setColumns(8);
-		txfCodepoint.setBackground(new Color(70, 130, 180));
-		txfCodepoint.setAutoscrolls(false);
+		txfCodepoint.setBackground(SystemColor.info);
+		txfCodepoint.setAutoscrolls(false);	
 
-		txaInfo = new JTextArea();
-		txaInfo.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		txaInfo.setRows(5);
-		txaInfo.setColumns(50);
-
-		txfCountdown = new JTextField();
-		txfCountdown.setAutoscrolls(false);
-		txfCountdown.setMargin(new Insets(5, 0, 0, 0));
-		txfCountdown.setBorder(new EtchedBorder(EtchedBorder.RAISED, null, null));
-		txfCountdown.setEditable(false);
-		txfCountdown.setHorizontalAlignment(SwingConstants.CENTER);
-		txfCountdown.setMaximumSize(new Dimension(35, 35));
-		txfCountdown.setPreferredSize(new Dimension(35, 35));
-		txfCountdown.setSize(new Dimension(35, 35));
-		txfCountdown.setFont(new Font("Rachana", Font.BOLD, 22));
-		txfCountdown.setBackground(new Color(70, 130, 180));
-		txfCountdown.setText("0");
-		txfCountdown.setColumns(3);		
-
+		pnlInfo.add(lblSet);				
+		pnlInfo.add(txaSet);
+		pnlInfo.add(lblNotSet);
+		pnlInfo.add(txaNotSet);		
 		pnlInfo.add(txfCodepoint);
-		pnlInfo.add(txaInfo);
-		pnlInfo.add(txfCountdown);
 	}
+
+	//end_win_var_init
+
 }

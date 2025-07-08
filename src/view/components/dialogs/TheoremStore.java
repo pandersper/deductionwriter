@@ -1,57 +1,49 @@
 package view.components.dialogs;
 
 
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import javax.swing.JOptionPane;
-
-import control.Session;
-import control.Toolbox;
 import control.db.DeductionBase;
-import model.description.DTheorem;
-import view.DeductionFrame;
+import control.session.Session;
+import control.statics.ViewStatics;
+import view.abstraction.InitiableContainer;
 
 /**
  * Dialog taking care of theorem storage using a data base.
  * 
  * @see DeductionBase
  */
-public class TheoremStore extends DefaultDialog {		
+public class TheoremStore<C extends Container & InitiableContainer> extends DefaultDialog<C> {		
 
 	
 	/**
 	 * Instantiates a new theorem store.
 	 * 
-	 * @param parent 	The frame that opens this dialogue.
+	 * @param elder 	The frame that opens this dialogue.
 	 * @param base		The base from wich to fetch theorems.
 	 */
-	public TheoremStore(DeductionFrame parent, Session session) {
+	public TheoremStore(C parent, Session session) {
 		super(parent, session);		
+		this.remove("input");
+		this.remove("store");
+		this.remove("storelabel");
 	}
-
 	
+	/** {@inheritDoc} */
+	public void 	initialise() {
+		updateMenu();
+		list.setSelectedIndex(0);
+	}
+ 
 	/**
-	 * Insert names into the menu.
-	 *
-	 * @param names The names of the items.
-	 * @return the The size of the menu.
-	 */
-	public int insertNames(ArrayList<String> names) {
-		
-		for (String name : names) 
-			menu.addElement(name);
-		
-		return menu.size();
-	}
-	
- 	/**
  	 * Empty and refill menu items from the data base.
 	  *
 	  * @return The size of the menu.
 	  */
-	protected int updateMenu()  {
+	protected int 	updateMenu()  {
 
 		menu.clear();
 		
@@ -63,7 +55,19 @@ public class TheoremStore extends DefaultDialog {
 
 		return menu.size();
 	}
-
+	/**
+	 * Insert names into the menu.
+	 *
+	 * @param names The names of the items.
+	 * @return the The size of the menu.
+	 */
+	public int 		insertNames(ArrayList<String> names) {
+		
+		for (String name : names) 
+			menu.addElement(name);
+		
+		return menu.size();
+	}
 	
 	/** {@inheritDoc} */
 	public void actionPerformed(ActionEvent e) {
@@ -72,7 +76,7 @@ public class TheoremStore extends DefaultDialog {
 		
 		switch (e.getActionCommand()) {
 				
-			case "cancel": Toolbox.switchContainer(parent, this); break;
+			case "cancel": ViewStatics.switchContainer(elder, this); break;
 
 			case "load": load(columnvalue); break;
 
@@ -82,65 +86,24 @@ public class TheoremStore extends DefaultDialog {
 
 			default: break;
 		}
-	}
-	
-	
-	/** {@inheritDoc} */
-	public void initialise() {
-		updateMenu();
-		list.setSelectedIndex(0);
-	}
+	}	
+
 	
 	/** {@inheritDoc} */
-	public void load(String loaded) {
+	public void 	load(String loaded) {
 
 		if (!list.isSelectionEmpty()) {
 			
 			columnvalue = list.getSelectedValue();	
 
-			DTheorem theorem = session.getBase().fetchTheorem(columnvalue);
-			DeductionFrame frame = (DeductionFrame) parent;
-			
-			frame.setAndDescribeTheorem(theorem);
-			
-			Toolbox.switchContainer(parent, this);
-			
+			session.openWork(columnvalue);
+						
+			ViewStatics.switchContainer(elder, this);
 		}
 	}
 
 	/** {@inheritDoc} */
-	public void store(String stored) {
-		
-		String theoremname = txfName.getText();
-		
-		DTheorem theorem = session.getCurrentCanvas().getTheorem();
-		
-		DeductionBase base = session.getBase();
-		
-		theorem.setName(theoremname);
-		
-		if (Toolbox.isOkName(theorem.getName())) {	
-				
-			if (base.contains(theorem.getName(), "Theorems", "name")) {							
-
-				boolean overwrite = JOptionPane.showConfirmDialog(parent , "Theorem exists, overwrite?") == JOptionPane.OK_OPTION;
-
-				if (overwrite) 					
-					done = base.insert(theorem, overwrite,session.primitivestable,session.compositestable) != -1;
-				else System.out.println("Skipping.");
-			
-			} else 				
-				done = base.insert(theorem, false,session.primitivestable,session.compositestable) != -1;
-	
-		} else JOptionPane.showMessageDialog(parent, "Bad naming, try again.");
-		
-		updateMenu();
-		
-		if (done) Toolbox.switchContainer(parent, this);
-	}
-
-	/** {@inheritDoc} */
-	public void delete(String deleted) {
+	public void 	delete(String deleted) {
 		
 		if (!list.isSelectionEmpty()) {
 
@@ -148,13 +111,20 @@ public class TheoremStore extends DefaultDialog {
 
 			DeductionBase base = session.getBase();
 			
-			if (base.contains(columnvalue, "Theorems", "name")) {						
-				base.delete("Theorems", "name", columnvalue);
-				base.delete("Statements", "theorem", columnvalue);			
-				System.out.println("Deleted theorem " + columnvalue + " but not its primitives.");
+			boolean occupied = base.contains(columnvalue, "Theorems", "name");
+
+			if (occupied) {						
+				base.delete(columnvalue, "Theorems", "name");
+				base.delete(columnvalue, "Statements", "theorem");			
 			}
 			
 			updateMenu();	
 		}
 	}
+
+	/** Not used **/
+	public void 	store(String name) {
+		// not used		
+	}
+
 }

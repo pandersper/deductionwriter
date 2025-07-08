@@ -1,5 +1,6 @@
 package view.components;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.image.FilteredImageSource;
@@ -11,11 +12,11 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.KeyStroke;
 
-import control.Shortcut;
-import control.Toolbox;
+import control.session.Shortcut;
+import control.statics.ViewStatics;
+import control.statics.ViewStatics.Mode;
 import model.description.DComposite;
 import model.description.abstraction.Described;
-import view.GlyphsPanel;
 import view.abstraction.CursoredCanvas;
 
 /**
@@ -29,37 +30,37 @@ public class DButton extends JButton {
 	private KeyStroke 	key;    
 
 	private int 		width,height;	
-
+	public 	int			id;
+	
 	/**
 	 * An action that buttons use to fill in their formal's description into the canvas cursor. All by themselves. 
 	 */
 	public class DisplayAction extends AbstractAction {
 
-
 		/**
 		 * Instantiates a new display action.
-		 *
+		 * 
 		 * @param formal The primitive that it displays in the connected cursored canvas.
 		 */
 		public DisplayAction(Described formal) { this.putValue("formal", formal); }
 
 		/**
 		 * Sets the cursored canvas that the action display on.
-		 *
+		 * 
 		 * @param canvas the new canvas
 		 */
 		public void setCanvas(CursoredCanvas canvas) { this.putValue("canvas", canvas);	}
 		
 		/**
 		 * Sets the component that should re-receive the focus after displaying.
-		 *
+		 * 
 		 * @param primitivesPanel The component (currently a PrimitivesPanel) to focus after displaying.
 		 */
  		public void setFocusrestore(GlyphsPanel primitivesPanel) { this.putValue("focusrestore", primitivesPanel); }   		
 
 		/**
 		 * Action performed.
-		 *
+		 * 
 		 * @param e The action event most often coming from the keyboard.
 		 */
 		public void actionPerformed(ActionEvent e) {
@@ -68,17 +69,17 @@ public class DButton extends JButton {
 
 			if (canvas != null) {
 
-				GlyphsPanel 	focus  = (GlyphsPanel) this.getValue("focusrestore");
-				Described 		formal = (Described) this.getValue("formal");
+				GlyphsPanel focus  = (GlyphsPanel) this.getValue("focusrestore");
+				Described 	formal = (Described) this.getValue("formal");
 
 				Described newformal = formal.clone();
 				
-				canvas.fillCursor(newformal, true, null);
+				canvas.fillCursor(newformal, null, Mode.PAINT);
 				
 				if (newformal instanceof DComposite) 
 					((DComposite) newformal).setCodepoint(formal.getCodepoint());
 				
- 				focus.restoreFocus();
+ 				focus.restoreFocus(); 				
 			}
 		}
 	}
@@ -90,15 +91,22 @@ public class DButton extends JButton {
 	 */
  	public DButton(Described formal) {
 
-		DisplayAction displayaction = new DisplayAction(formal);
+ 		this.formal = formal;
 
-		this.formal = formal;
-		this.setName(formal.getName());
-		this.setAction(displayaction);
-		this.makeIcons();
-		this.setPreferredSize(new Dimension(width,height));  
+ 		this.setName(this.formal.getName());
+				
+		this.setAction(new DisplayAction(this.formal));
+	
+		this.makeAppearence();
+ 	}
+
+ 	public DButton(Described formal, int id) {
+ 		this(formal);
+ 		
+ 		this.id = id; 		
 	}
 
+ 	
 	/**
 	 * Returns the described primitive this button displays or outputs in some way. 
 	 *
@@ -110,6 +118,7 @@ public class DButton extends JButton {
 
 	/**
 	 * Retreives the display action of this button.
+	 * 
 	 * @return This button's display action.
 	 */
 	public DisplayAction getDisplayAction() {
@@ -134,25 +143,28 @@ public class DButton extends JButton {
 	 *
 	 * @return The action displaying the description of the primitive.
 	 */
-	private void makeIcons() {
+	private void makeAppearence() {
 
 		Icon icon, selected, pressed;
 
-		icon = new ImageIcon(formal.description().getImage());
+		icon = new ImageIcon(formal.getImage());
 
 		this.setIcon(icon);
 
 		width  = icon.getIconWidth();
 		height = icon.getIconHeight();
 
-		ImageProducer producer = formal.description().getImage().getSource();
+		ImageProducer producer = formal.getImage().getSource();
 
-		Toolbox.SelectedFilter selectedfilter = new Toolbox.SelectedFilter();
+		ViewStatics.SelectedFilter selectedfilter = new ViewStatics.SelectedFilter();
 		selected = new ImageIcon(this.createImage(new FilteredImageSource(producer, selectedfilter)));
 		this.setSelectedIcon(selected);
 
-		Toolbox.PressedFilter pressedfilter = new Toolbox.PressedFilter();
+		ViewStatics.PressedFilter pressedfilter = new ViewStatics.PressedFilter();
 		pressed = new ImageIcon(this.createImage(new FilteredImageSource(producer, pressedfilter)));
 		this.setPressedIcon(pressed);
+		
+		this.setBackground(Color.white);
+		this.setPreferredSize(new Dimension(width,height));  
 	}
 }

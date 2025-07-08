@@ -3,12 +3,8 @@ package view;
 import java.awt.AWTKeyStroke;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.Dimension;
 import java.awt.KeyboardFocusManager;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Vector;
+import java.awt.event.WindowEvent;
 
 import javax.swing.ActionMap;
 import javax.swing.BoxLayout;
@@ -19,21 +15,27 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Vector;
+
 import annexes.picker.DeductionPicker;
 import annexes.trainer.DeductionTrainer;
 import control.DeductionWriter.CustomKeyboardFocusManager;
-import control.Session;
-import control.db.DeductionBase;
+import control.session.Session;
 import model.description.DTheorem;
 import view.abstraction.AbstractFrame;
 import view.abstraction.CustomTraversalPolicy;
+import view.components.ConcludePanel;
 import view.components.DeductionMenuBar;
 import view.components.DisplayCanvas;
-import view.components.ViewConstants;
+import view.components.GlyphsPanel;
+import view.components.NavigatePanel;
 
 
 /**
- * The class DeductionFrame contains the applications panels and is furthermost an intermediary betwen all other components.<br><br>
+ * The class DeductionFrame contains the application's panels and is furthermost an intermediary betwen all other components.<br><br>
  * 
  * This design choice have been a good one and remained throughout the project. As has most of the modell-view-control
  * design pattern. The components in the view part has also worked ok allng the way with some small adjustments. One such is 
@@ -43,116 +45,124 @@ import view.components.ViewConstants;
  */
 public class DeductionFrame extends AbstractFrame {
 
-	 
+
 	private DeductionMenuBar 	menuBar;
+	
 	private	MainPanel 			pnlMain;
 	private SidePanel 			pnlSide;
 	private GlyphsPanel			pnlGlyphs;
 
 	private JPanel 				content;
-
+	
+	private DeductionTrainer 	thread;
+	
 	private CustomTraversalPolicy 		policy;
 
  	private ActionMap 	actionmap 	= new ActionMap();
 	private InputMap 	inputmap 	= new InputMap();
 
 	private Vector<Container> 			roots = new Vector<Container>();
-	private Vector<Vector<Component>> 	nodes = new Vector<Vector<Component>>();
- 	
+	private Vector<Vector<Component>> 	nodes = new Vector<Vector<Component>>(); 	
 	
 	/**
 	 * Instantiates a new frame containing this application's different panels.
 	 *
-	 * @param base 		The database for storage.
 	 * @param trainer 	The DeductionTrainer module for setting keyboard key bindings to primitives.
-	 * @param picker 	The DeductionPicker module for choosing primitives to use in the current theorem.
+	 * @param picker 	The DeductionPickerOld module for choosing primitives to use in the current theorem.
 	 */
- 	public DeductionFrame(DeductionTrainer trainer, DeductionPicker picker, Session session) {    	    	
+ 	public DeductionFrame(DeductionTrainer trainer, DeductionPicker<?> picker, Session session) {    	    	
 		super("Deduction frame ...");
 
-		this.session = session;
-		
-		setTitle("DeductionWriter");
+		setTitle("DeductionWriter");				
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		makePanels(this.session.getBase());		
+		this.session = session;
+		this.thread = trainer;
 
-		this.addWindowListener(pnlGlyphs);
-		this.addWindowStateListener(pnlGlyphs);
-		this.addWindowFocusListener(pnlGlyphs);
+		pnlGlyphs = this.session.makeGlypsPanel(this); 
+				
+		makePanels();		
 
-		trainer.setMainFrame(this);
-		picker.setMainFrame(this);
-		
-		setNames();
+		connectToAnnexes(trainer, picker);
+		setupListeners();		
+		setNames();		
 	}
-
-
-	public Session getSession() {
-		return session;
-	}
-
+ 	
 	/**
-	 * Returns the theorem in use.
-	 *
-	 * @return The theorem.
-	 */
-		/**
 	 * Sets the theorem of the whole application and redescribes it relative to the canvas.
 	 *
 	 * @param theorem The new theorem to fit into the application.
 	 */
-	public void setAndDescribeTheorem(DTheorem theorem) {
+	public void 	setAndDescribeTheorem(DTheorem theorem) {
 
-		// canvas layouts the theorem so have to put it right first
-		DisplayCanvas canvas = session.getCurrentCanvas();
+		DisplayCanvas canvas = session.getCurrentCanvas();		// canvas layouts the theorem so have to put it right first
 
 		canvas.reset();
-		canvas.setAndDescribeTheorem(theorem);	
+		canvas.setTheorem(theorem);	
+		canvas.describeTheorem();	
 		canvas.newCursor();
-		
-		pnlMain.stateChanged(null);
-		
+				
 		theorem.printout();
 	}
-	
-	/**
-	 * Redo the layout of this frame. It is needed because parts like the primitives panel are relocated between
-	 * different frames and are not allowed to be displayed at multiple places in javax.swing. 
-	 * 
-	 * See {@link Container#addImpl(Component, Object, int)} used by various add-methods.
-	 */
-	public void redoLayout() {
 
-		content.add(pnlGlyphs, 3);	
-		pnlGlyphs.setBounds(5, 420, 600, 280);
-	}
-
-		
-			
 	/**
-	 * Gets the primitives panel. As the primitives panel manages a central part of the program's
-	 * functionality it has to be exported now and then.
-	 *
+	 * The panel of glyphs is transfered to break-out applications neatly but all buttons's 
+	 * actions need to be reset as well.
+ 	 * 
 	 * @return The primitives panel of this application's frame.
 	 */
-	public GlyphsPanel getGlyphsPanel() {
+	public GlyphsPanel 	getGlyphsPanel() {
 		return pnlGlyphs;
 	}
-	
-
-
-	
-	/**
-	 * For now, just exits and leaves everything to vm.
-	 */
-	public static void cleanAndExit() {
-		System.exit(0);
+ 	/**
+ 	 * The panel of glyphs is transfered to break-out applications neatly. This method can reset it
+ 	 * but all buttons actions need to be reset as well.
+ 	 *   
+ 	 * @param glyphspanel
+ 	 */
+	public void 		setGlyphsPanel(GlyphsPanel glyphspanel) {
+		this.pnlGlyphs = glyphspanel;
+		this.pnlSide.add(this.pnlGlyphs);
 	}
 
+ 	/**
+ 	 * Return the session currently in use. The session serves as a centraliser and capsule of work 
+ 	 * but is still needed at quiet a lot of places. This frame distributes the session to its panels. 
+ 	 * 
+ 	 * @return
+ 	 */
+	public Session 	getSession() {
+		return session;
+	}
+
+	public void 	newSession() {
+
+		this.session.clearSesssion();
+	}
+	
+	public boolean 	storeSession(String name) {
+		
+		session.changeSessionName(name);
+		
+		return session.saveSession(); 
+	}
+	
+	
+	/*  event related  */
+ 	/** Delegates to windowadapter. */
+	public void windowClosing(WindowEvent e) {
+		cleanAndExit();
+	}
+
+	/** Delegates to windowadapter. */
+	public void windowClosed(WindowEvent e) {
+
+		thread.halt();
+
+		System.exit(0);
+	}
 	
 	/*  focus related  */
-	
 	/**
 	 * Sets up the traversal policy of this appliction.
 	 * 
@@ -173,14 +183,13 @@ public class DeductionFrame extends AbstractFrame {
 		policy.addComponents(roots, nodes);
 		policy.setAllDefaults();	
 		policy.setDefaultComponent(content, pnlGlyphs);		// no default component member, se to it that 
-																	// primitivesPanel is it's node in policy
-	}
-	
+															// primitivesPanel is it's node in policy
+	}	
 	/** {@inheritDoc} */
 	public void setFocusTraversal(CustomKeyboardFocusManager manager) {
 
-		this.manager 			= manager;
-		this.policy 			= (CustomTraversalPolicy) manager.getDefaultFocusTraversalPolicy();
+		this.manager = manager;
+		this.policy = (CustomTraversalPolicy) manager.getDefaultFocusTraversalPolicy();
 
 		HashSet<AWTKeyStroke> keys = new HashSet<AWTKeyStroke>();
 
@@ -188,10 +197,11 @@ public class DeductionFrame extends AbstractFrame {
 		manager.setDefaultFocusTraversalKeys(KeyboardFocusManager.UP_CYCLE_TRAVERSAL_KEYS, keys);
 
 		keys = new HashSet<AWTKeyStroke>();
+
 		keys.add(AWTKeyStroke.getAWTKeyStroke("alt shift released D"));
 		manager.setDefaultFocusTraversalKeys(KeyboardFocusManager.DOWN_CYCLE_TRAVERSAL_KEYS, keys);
 
-		content.setFocusTraversalPolicy(policy);																							///(EG5E)
+		content.setFocusTraversalPolicy(policy);														///(EG5E)
 		content.setFocusable(true);
 		content.setFocusCycleRoot(true);
 
@@ -201,11 +211,11 @@ public class DeductionFrame extends AbstractFrame {
 		pnlGlyphs.setFocusTraversal(this.manager);
 		pnlSide.setFocusTraversal(this.manager);		
 
-		pnlMain.setFocusTraversal(null);																									///(BFB4)
+		pnlMain.setFocusTraversal(null);																///(BFB4)
 		pnlSide.setFocusTraversal(null);
 	}
 	
-	/** {@inheritDoc} */
+	
 	public Container[] focusCycleRoots() { 
 
 		return new Container[] { content, pnlSide, pnlGlyphs };
@@ -215,18 +225,19 @@ public class DeductionFrame extends AbstractFrame {
 	public Component[][] focusCycleNodes() { 
 
 		ArrayList<ArrayList<Component>> allnodes = new ArrayList<ArrayList<Component>>();
+
 		ArrayList<Component> nodes;
 
 		nodes = new ArrayList<Component>();	
-		nodes.addAll(Arrays.asList(new Component[] {content, pnlSide, pnlGlyphs}));	 											///(F8G0)
+		nodes.addAll(Arrays.asList(new Container[] { content, pnlSide, pnlGlyphs }));	 					///(F8G0)
 		allnodes.add(nodes);
 
 		nodes = new ArrayList<Component>();
-		nodes.addAll(Arrays.asList(pnlSide.focusCycleNodes()[0]));																		///(5GC5)
+		nodes.addAll(Arrays.asList(pnlSide.focusCycleNodes()[0]));										///(5GC5)
 		allnodes.add(nodes);
 
 		nodes = new ArrayList<Component>();
-		nodes.addAll(Arrays.asList(pnlGlyphs.focusCycleNodes()[0]));																		///(47F2)
+		nodes.addAll(Arrays.asList(pnlGlyphs.focusCycleNodes()[0]));									///(47F2)
 		allnodes.add(nodes);
 
 		Component[][] allnodesarray = new Component[allnodes.size()][];
@@ -244,26 +255,10 @@ public class DeductionFrame extends AbstractFrame {
 		return allnodesarray;
 	}
 
-	
-	/**
-	 * Calls super.repaint() and thereafter repaints all.
-	 * 
-	 * @see java.awt.Component#repaint()
-	 */
-	public void repaint() {
 		
-		session.getCurrentCanvas().setPaintMode(false, false, false);
-		session.getCurrentCanvas().repaint();
-		
-		pnlMain.stateChanged(null);
-		
-		super.repaint();		
-	}
-
-	
 	/*  awt and swing */
 	
-	private void setNames() {					// if container have null layout focusability don't work
+	private void setNames() {		// if container have null layout focusability don't work
 
 		this.setName("main frame");
 		content.setName("content pane");
@@ -272,62 +267,69 @@ public class DeductionFrame extends AbstractFrame {
 		pnlSide.setName("side panel");
 	}
 
-	private void makePanels(DeductionBase base) {
+	private void setupListeners() {
+		
+		this.addWindowListener(this);
+		this.addWindowStateListener(this);
+		this.addWindowFocusListener(pnlGlyphs);
+	}	
+
+	private void connectToAnnexes(DeductionTrainer trainer, DeductionPicker<?> picker) {
+		trainer.setMainFrame(this);
+		picker.setMainFrame(this);
+	}
+
+	private void makePanels() {
 
 		content = new JPanel();
+
+		content.setLayout(new BoxLayout(content, BoxLayout.X_AXIS));		
 		content.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		setContentPane(content);
-
-		pnlMain = new MainPanel(this);
-
+		
 		NavigatePanel navigatePanel = new NavigatePanel(this);
 		ConcludePanel concludePanel = new ConcludePanel();
 
-		DisplayCanvas current = session.getCurrentCanvas();
-		
-		pnlGlyphs 	= new GlyphsPanel(this);
 		pnlSide 	= new SidePanel(this,pnlGlyphs,navigatePanel,concludePanel);
+		pnlMain 	= new MainPanel(this);
 
-		navigatePanel.registerButtons(pnlSide);
-		concludePanel.registerButtons(pnlSide);
-
-		JPanel pnlWrite = new JPanel();
-
-		pnlGlyphs.addKeyListener(pnlGlyphs);			
+		JPanel 		pnlWrite = new JPanel();
 		
-		pnlWrite.add(pnlMain);
+		pnlWrite.setLayout(new BoxLayout(pnlWrite, BoxLayout.X_AXIS));
+		pnlWrite.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		pnlWrite.add(pnlMain);		
+		
 		JScrollPane scrWrite = new JScrollPane();
 		scrWrite.setViewportView(pnlWrite);
 
-		content.setLayout(new BoxLayout(content, BoxLayout.X_AXIS));		
 		content.add(pnlSide);
-		content.add(scrWrite);	// viewport is pnlMain
-
-		navigatePanel.setMaximumSize(new Dimension(225,150));
-		concludePanel.setMaximumSize(new Dimension(225,300));
-		navigatePanel.setMinimumSize(new Dimension(225,150));
-		concludePanel.setMinimumSize(new Dimension(225,300));
-
+		content.add(scrWrite);			// viewport is pnlMain
 		pnlSide.add(navigatePanel);
 		pnlSide.add(concludePanel);		
 		pnlSide.add(pnlGlyphs);
-
-		pnlSide.setLayout(new BoxLayout(pnlSide, BoxLayout.Y_AXIS));
-		pnlWrite.setLayout(new BoxLayout(pnlWrite, BoxLayout.X_AXIS));
-
-		pnlSide.setAlignmentX(Component.LEFT_ALIGNMENT);
-		pnlWrite.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		
-		pnlSide.setPreferredSize(new Dimension(350, 3*ViewConstants.a4height));
-		pnlMain.setPreferredSize(new Dimension(3*ViewConstants.a4width, 3*ViewConstants.a4height));
-
 		pnlGlyphs.setMaps(inputmap, actionmap);
 
 		content.setActionMap(actionmap);
 		content.setInputMap(JComponent.WHEN_FOCUSED, inputmap);
 	}
+	
+	/**
+	 * For now, just exits and leaves everything to vm.
+	 */
+	public void cleanAndExit() {
+		
+		session.closeSession();
+		
+		DeductionFrame.this.dispose();
+	}
 
+	public void setAllVisible() {
 
-
+		pnlMain.setVisible(true);
+		pnlSide.setVisible(true);
+		
+		this.setVisible(true);
+	}
 }

@@ -1,145 +1,67 @@
 package view;
 
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
-import javax.swing.Box;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Rectangle;
+
+import javax.swing.JPanel;
 import javax.swing.JButton;
-import javax.swing.JOptionPane;
-
-import java.awt.Component;
 import javax.swing.border.LineBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
-import control.Session;
-import view.abstraction.TraversablePanel;
-import view.components.DisplayCanvas;
-import view.components.ViewConstants;
-
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultSingleSelectionModel;
 
-public class MainPanel extends TraversablePanel implements ChangeListener {
+import control.session.Session;
+import control.session.WorkList;
+import control.statics.ViewStatics;
+import view.abstraction.TraversablePanel;
+
+
+public class MainPanel extends TraversablePanel  {
 	
-	private JTabbedPane tabs;
 	/**
-	 * @param parent 
+	 * The main center pane where the theorems are drawn.
 	 * 
+	 * @param elder The outermst fram of the application.
 	 */
 	public MainPanel(DeductionFrame parent) {
 		
-		this.parent = parent;
+		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+		this.setBorder(new LineBorder(new Color(0, 0, 0)));
+		this.setPreferredSize(new Dimension(3*ViewStatics.a4width, 3*ViewStatics.a4height));
 		
-		makeSubpanels();
-		
-		tabs.addTab(this.getTheorem().getName(), this.getCanvas());
-
-		DefaultSingleSelectionModel model = new DefaultSingleSelectionModel();
-		
-		model.addChangeListener(this);
+		makeSubpanels(parent);
+	}		
+	
+	private void makeSubpanels(DeductionFrame parent) {
 				
-		tabs.setModel(model);
-	}
+		Session session = parent.getSession();
+		WorkList works 	= session.getWorks();
 		
-	private void makeSubpanels() {
+		Rectangle tabs = new Rectangle();
 		
-		setBorder(new LineBorder(new Color(0, 0, 0)));
+		tabs.setSize(ViewStatics.canvasdimension);
+		tabs.grow(0,15);
 		
-		JPanel panel = new JPanel();
-		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-		add(panel);
+		works.setSize(tabs.getSize());
+		works.setMaximumSize(tabs.getSize());
+						
+		add(works);
 		
-		tabs = new JTabbedPane(JTabbedPane.TOP);
-		panel.add(tabs);
-
-		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-								
-		Box boxAdm = Box.createHorizontalBox();
-		panel.add(boxAdm);
+		JPanel boxAdm = new JPanel();
+		add(boxAdm);
 		
 		JButton btnDel = new JButton("-");		
-		JButton btnNew = new JButton("+");
-		JButton btnStore = new JButton("store");
-
-		btnDel.addActionListener(tabRemover(tabs));
-		btnNew.addActionListener(tabAdder(tabs));
+		btnDel.setBackground(Color.LIGHT_GRAY);
 		
-		Component strutleft 	= Box.createHorizontalStrut(50);
-		Component strutmiddle	= Box.createHorizontalStrut(100);
-
-		boxAdm.add(strutleft);		boxAdm.add(btnDel);		boxAdm.add(btnNew);		
-		boxAdm.add(strutmiddle);	boxAdm.add(btnStore);
+		JButton btnNew = new JButton("+");		
+		btnNew.setBackground(Color.LIGHT_GRAY);
 		
-		boxAdm.setMaximumSize(new Dimension(ViewConstants.a4width,200));
-		boxAdm.setMinimumSize(new Dimension(ViewConstants.a4width,200));
-
-		panel.setMaximumSize(new Dimension(3*ViewConstants.a4width,3*ViewConstants.a4height));
-		panel.setMinimumSize(new Dimension(3*ViewConstants.a4width,3*ViewConstants.a4height));
+		boxAdm.setLayout(new BoxLayout(boxAdm, BoxLayout.X_AXIS));		
+		boxAdm.add(btnDel);		
+		boxAdm.add(btnNew);
+				
+		btnDel.addActionListener(session);
+		btnDel.setActionCommand("remove");
+		btnNew.addActionListener(session);
+		btnNew.setActionCommand("new");
 	}
-
-	
-	private	ActionListener tabRemover(JTabbedPane pane){
-						return(new ActionListener() {
-									public void actionPerformed(ActionEvent e) {
-
-										if (tabs.getTabCount() > 1) {
-
-											Session session = parent.getSession();										
-											
-											int tabindex = tabs.getSelectedIndex();
-											
-											tabs.remove(tabindex);
-											
-											tabindex = session.removeWork(tabindex);																					
-											
-											tabs.setSelectedIndex(tabindex);
-										} 
-									}
-						});
-	}
-	
-	private ActionListener tabAdder(JTabbedPane pane) {
-						return(new ActionListener() {
-									public void actionPerformed(ActionEvent e) {
-
-										Session session = parent.getSession();
-										
-										String name = JOptionPane.showInputDialog("Name of new theorem?");
-										
-										pane.addTab(name, session.newWork(name));
-										pane.setSelectedIndex(session.index());										
-										pane.setTitleAt(session.index(), name);
-										
-										parent.getGlyphsPanel().updateButtonsListener(session.getCurrentCanvas());
-									}
-						});
-	}
-
-
-	public void stateChanged(ChangeEvent ce) {
-
-		int selected = tabs.getModel().getSelectedIndex();
-		
-		if (selected == -1) {
-			tabs.setSelectedIndex(0);
-			selected = 0;			
-		}
-		
-		parent.getSession().setWork(selected);
-			
-		DisplayCanvas currentcanvas = parent.getSession().getCurrentCanvas();
-			
-		parent.getGlyphsPanel().updateButtonsListener(currentcanvas);
-	
-		currentcanvas.newCursor();
-			
-		currentcanvas.setPaintMode(false, false, false);		
-			
-		tabs.setTitleAt(selected, currentcanvas.getTheorem().getName());	
-	}
-
 }

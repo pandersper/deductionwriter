@@ -1,0 +1,68 @@
+
+																	2025-07-08
+
+<<< CLONING IS PERHAPS DIFFICULT - START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		 	
+Since each glyph is special and every glyph is constructed in relation to an 
+'average baseline' changing the scale in each subglyph makes them slightly 
+different (smaller). The types or rather classes are also very recursively 
+dependent and worse it will become if composites may contain sub composites.
+
+Now the cloning is made quite reduntantly, trying to avoid default constructors in 
+all classes. So most objects are created faulty and then their fields are 
+overwritten directly, sometimes again with cloned fields.
+
+Have to work more on this. Dont think code estethics and typography estethics are 
+on even ends in this so I think a field-by-field copying method for cloning is the 
+only that will be correct since regenerating them on different scales really are 
+impossible. Don't see the reason yet, if it is pixel density, floats precision or 
+non-square resolution that is the problem. See how I will manage readability, it 
+is not big data at least.
+
+One reflection is that since there can be rectangular to polar change of coordinate 
+maps, it would be feasible to solve such a typography problem I reckon. 
+The difficult fact to relate to is, which or what is an typographical average? 
+Guess there is no such or one for each font or font familly.
+
+Now again, I think I am completely wrong - same baseline should result in the same 
+glyph everywhere och every scale. So then the code has to be rewritten. There are 
+four frame objects among one has to be chosen as gauge.
+
+The first rectangle frame (not gauge), the first averaged dcursor (not gauge),
+the second specific dcursor (gauge) or the image generated (should be the same).
+These all give different baselines and now some remnants of them when
+exporting to and from maker makes them different. Rewrite. But not now.
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CLONING IS PERHAPS DIFFICULT - END >>>
+
+
+**********************************************************************************
+Todo list 2025-07-08
+**********************************************************************************
+
+ ** Proper cloning
+
+ ** Write efficient debug methods for central types: All rectangulars, theorem,
+   statement and perhaps canvases. And for font and char gauges.
+ 
+ 
+   
+ * What with the transparent surroundings?
+ 
+ * Redo and correct focus system.
+ 
+ * Correct navigation again. It has deteriorated totally after new draw-by-object
+   instead of paint-mode design.
+ 
+ * All embellishments has been removed for clarity of code but now it is perhaps
+   time to make it look better again. Good for work atmosphere. 
+   
+ * Adjustable margins.
+ 
+ * Text comments. Colors. 
+ 
+ * MathML, xml and json export.
+ 
+   and a lot more ...
+
+**********************************************************************************

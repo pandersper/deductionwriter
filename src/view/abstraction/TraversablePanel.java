@@ -4,41 +4,30 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
-import java.awt.event.WindowListener;
-import java.awt.event.WindowStateListener;
-
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
-import control.Shortcut;
-import control.Toolbox;
+import control.session.Shortcut;
 import model.description.DTheorem;
 import model.independent.DoubleArray;
 import model.independent.DoubleArray.Tuple;
 import model.logic.abstraction.Formal;
 import view.DeductionFrame;
-import view.GlyphsPanel;
 import view.components.DisplayCanvas;
+import view.components.GlyphsPanel;
 
 /**
  * A JPanel object that handles the most common window events and window listening. An important distinction to make is that between this
- * panel's components focus traversal and this panel's parent frame's focus traversal.
+ * panel's components focus traversal and this panel's elder frame's focus traversal.
  *
  * @see WindowFocusListener
  * @see java.awt.event.FocusListener 
  */
-public abstract class TraversablePanel extends JPanel implements WindowListener, WindowStateListener, WindowFocusListener  {		
+public abstract class TraversablePanel extends JPanel implements InitiableContainer  {		
 
 	
-	/** Still just a plain WindowAdapter and nothing else. */
-	public class CustomAdapter extends WindowAdapter { }
-
-
-
 	/** Filters key events to those that concerns the bindings in use in the application and then dispatches them again. */
 	public class CustomDispatcher implements KeyEventDispatcher {
 																																				/**(251A)**/
@@ -81,9 +70,10 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 		private Tuple<Formal, Shortcut> findByKeystroke(DoubleArray<Formal, Shortcut> bindings, KeyStroke stroke) {
 
 			for (Tuple<Formal, Shortcut> binding : bindings) 
-				if (binding.second().keycode == stroke.getKeyCode() && binding.second().modifiers == stroke.getModifiers())
+				if (binding.second()!= null && binding.second().keycode == stroke.getKeyCode() && binding.second().modifiers == stroke.getModifiers())
 					return binding;
-
+			
+			
 			return null;
 		}	
 	}
@@ -93,7 +83,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	protected DoubleArray<Formal, Shortcut> 	bindings = new  DoubleArray<Formal, Shortcut>() ;
 
 	
-	/** Often the parent or grand parent container of this panel. */
+	/** Often the elder or grand elder container of this panel. */
 	protected DeductionFrame 					parent;
 
 	/** The panel containing the buttons for typing primitives. */																																			
@@ -115,10 +105,6 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 
 	/** The dispatcher that filter key events to only thos that are relevant, that are bound to primitives. */
 	protected CustomDispatcher 		dispatcher;
-
-	/** Still just a plain window adapter. {@link WindowAdapter}. */
-	protected CustomAdapter			adapter = new CustomAdapter();
-
 	
 
  	public DTheorem getTheorem() {
@@ -139,8 +125,6 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 		return this.bindings;
 	}
 
-	public DeductionFrame getFrame() { return parent; }
-	
 	/**
 	 * Sets up essential focus traversal components.
 	 * 
@@ -155,6 +139,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	 * Sets the default component to focus.
 	 */
 	public void setDefaultComponent() {}
+
 	
 	/**
 	 * Returns the containers serving as focus cycle roots in this panels focus cycle.
@@ -162,6 +147,7 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	 * @return The roots in the focus cycle.
 	 */
 	public Container[] focusCycleRoots() { return null; }
+	
 	/**
 	 * Returns an array of arrays containing the components that are traversed in each root's focus travesal cycle.
 	 * The root itself can but does not have to be included in it's cycle and array.
@@ -170,63 +156,5 @@ public abstract class TraversablePanel extends JPanel implements WindowListener,
 	 */
 	public Component[][] focusCycleNodes() { return null; }
 	
-	/** 
-	 * Calls windowActivated. 
-	 * @see #windowActivated(WindowEvent)
-	 */
-	public void windowOpened(WindowEvent e) {
 
-		if (Toolbox.DEBUGVERBOSE) System.out.println("window opened");
-
-		this.parent.getSession().getCurrentCanvas().setPaintMode(false, false, false);
-		panel.restoreFocus();
-
-	}
-	/** Delegates to adapter. */
-	public void windowClosing(WindowEvent e) {
-		adapter.windowClosing(e);
-	}
-	/** Delegates to adapter. */
-	public void windowClosed(WindowEvent e) {
-		adapter.windowClosed(e);
-	}
-	/** Delegates to adapter. */
-	public void windowIconified(WindowEvent e) {
-		adapter.windowIconified(e);
-	}
-	/** Delegates to adapter. */
-	public void windowDeiconified(WindowEvent e) {
-		adapter.windowDeiconified(e);
-	}
-	/** 
-	 * Repaints all and restores focus to the panel of buttons. 
-	 * 
-	 *	@see view.components.DisplayCanvas#setPaintMode(boolean, boolean, boolean) 
-	 */
-	public void windowActivated(WindowEvent e) {
-
-		if (Toolbox.DEBUGVERBOSE) System.out.println("window activated - repainting all");
-
-		this.parent.getSession().getCurrentCanvas().setPaintMode(false, false, false);
-		
-		panel.restoreFocus();
-	}
-	/** Delegates to adapter. */
-	public void windowDeactivated(WindowEvent e) {
-		adapter.windowDeactivated(e);
-	}
-	/** Delegates to adapter. */
-	public void windowStateChanged(WindowEvent e) {
-		adapter.windowStateChanged(e);
-	}
-	/** Delegates to adapter. */
-	public void windowGainedFocus(WindowEvent e) {
-		System.out.println("window gained focus");
-		adapter.windowGainedFocus(e);
-	}
-	/** Delegates to adapter. */
-	public void windowLostFocus(WindowEvent e) {
-		adapter.windowLostFocus(e);
-	}
-	
 }

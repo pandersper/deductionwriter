@@ -1,6 +1,8 @@
 package model.description;
 
+import java.awt.Graphics;
 import java.awt.Shape;
+import java.awt.geom.Rectangle2D;
 import java.util.Stack;
 
 import model.description.abstraction.Described;
@@ -36,6 +38,10 @@ public class DEditableStatement {
 		index = 0;
 	}
 	
+
+	public void draw(Graphics g) {
+		g.create();
+	}
 	
 	/**
 	 * The current state of the edited statement.
@@ -54,7 +60,6 @@ public class DEditableStatement {
 	public Shape getBounds() {
 		 return statement.getBounds();
 	 }
-
 	
 	/**
 	 * The described formal currently navigated to.
@@ -64,7 +69,6 @@ public class DEditableStatement {
 	public Described current() {
 		return lowest.size() == 0 ? statement.get(index) : lowest.peek();
 	}
-	
 	/**
 	 * Circularly steps to the next (or first) described formal in this statement and then returns it.
 	 *
@@ -79,9 +83,8 @@ public class DEditableStatement {
 			return statement.get(index);
 		
 		} else 								// something in lowest											
-			return lowest.peek().next();					
-	}
-	
+			return lowest.peek().nextPlaceholder().described();					
+	}	
 	/**
 	 * Circularly backs to the previous (or last) described primitive in this statement and returns it.
 	 *
@@ -96,7 +99,7 @@ public class DEditableStatement {
 			return statement.get(index);
 		
 		} else 								// something in lowest											
-			return lowest.peek().previous();					
+			return lowest.peek().previousPlaceholder().described();					
 	}
 
 	/**
@@ -122,7 +125,6 @@ public class DEditableStatement {
 		System.err.println("Shoud not be reached in DEditableStatement:descend");
 		return null;
 	}
-
 	/**
 	 * Ascends up from the composite the cursor in is or does nothing if it is already on
 	 * topmost level.
@@ -132,7 +134,6 @@ public class DEditableStatement {
  	public DComposite ascend() {
 		return (lowest.size() == 0) ? null : lowest.pop();		
 	}
-
  	
 	/**
 	 * Replaces the described formal at the current position.
@@ -147,7 +148,6 @@ public class DEditableStatement {
 
 		return statement.set(index, replacing);
 	}
-
 	/**
 	 * Delete the current described formal.
 	 *
@@ -165,7 +165,6 @@ public class DEditableStatement {
 		
 		return removed;
 	}
-	
 	/**
 	 * Insert a described primitive at the current position, shifting every following described 
 	 * formal a step forward.
@@ -185,6 +184,14 @@ public class DEditableStatement {
 		return statement.size();
 	}
 
+	public void insertDummy() {
+
+		Described dummy = DPrimitive.DUMMY.clone();
+
+		dummy.setWritepoint(current().getWritepoint());
+
+		insertBeforeCurrent(dummy);
+	}
 	
 	/**
 	 * Checks if this statement is empty.
@@ -194,7 +201,6 @@ public class DEditableStatement {
 	public boolean isEmpty() {
 		return size == 0;
 	}
-	
 	/**
 	 * Checks if this statement contains only one last formal.
 	 *
@@ -203,7 +209,6 @@ public class DEditableStatement {
 	public boolean isSingleton() {
 		return size == 1;
 	}
-
 	/**
 	 * Confirms that the current position is <b>inside a composite</b>.
 	 *
@@ -212,16 +217,7 @@ public class DEditableStatement {
 	public boolean isSublevel() {
 		return lowest.size() > 0;
 	}
-	
-	/**
-	 * Confirms that the current position is <b>at a composite</b>.
-	 *
-	 * @return 	True if inside a composite, otherwise false.
-	 */
-	public boolean currentIsComposite() {
-		return (this.current() instanceof DComposite);
-	}
-	
+		
 	
 	/**
 	 * Turn of asking for input.
@@ -235,4 +231,20 @@ public class DEditableStatement {
 	
 	 }
 
+
+	public Rectangle2D.Double bounds() {
+		
+		if (statement.isClosed()) {
+
+			Described implication = statement.removeLast();
+		
+			Rectangle2D.Double bounds =  statement.getBounds();
+			
+			statement.addLast(implication);
+			
+			return bounds;
+		
+		} else 
+			return statement.getBounds();
+	}
 }

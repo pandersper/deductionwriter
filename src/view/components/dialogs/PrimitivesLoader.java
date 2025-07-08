@@ -1,23 +1,25 @@
 package view.components.dialogs;
-import control.Session;
-import control.Toolbox;
+import java.awt.Container;
+
 import control.db.DeductionBase;
-import view.abstraction.AbstractFrame;
+import control.session.Session;
+import control.statics.ViewStatics;
+import view.abstraction.InitiableContainer;
 
 /**
  * Dialog for loading a set of primitives into the application.
  * @see DefaultDialog
  */
-public class PrimitivesLoader extends DefaultDialog {
+public class PrimitivesLoader<C extends Container & InitiableContainer> extends DefaultDialog<C> {
 	
 	
  	/**
 	  * Instantiates a new primitives loader.
 	  *
-	  * @param grandparent The grandparent container ince it is launched by the parent the controlpanel.
+	  * @param grandparent The grandparent container ince it is launched by the elder the controlpanel.
 	  * @param session The base of theorems.
 	  */
-	public PrimitivesLoader(AbstractFrame grandparent, Session session) {
+	public PrimitivesLoader(C grandparent, Session session) {
 		super(grandparent, session);
 		
 		super.remove("store");
@@ -25,7 +27,6 @@ public class PrimitivesLoader extends DefaultDialog {
 		super.remove("input");
 	 }
 
-	
 	/** {@inheritDoc} */
 	public void load(String loaded) {
  		
@@ -35,7 +36,7 @@ public class PrimitivesLoader extends DefaultDialog {
 			
 			session.loadPrimitives(columnvalue);			
 
-			Toolbox.switchContainer(parent, this);
+			ViewStatics.switchContainer(elder, this);
 		}
  	}
 
@@ -55,7 +56,7 @@ public class PrimitivesLoader extends DefaultDialog {
 
 			if (base.contains(columnvalue, "Primitives", "tablename")) {						
 	
-				base.delete("Primitives", "name", columnvalue);
+				base.delete(columnvalue, "Primitives", "name");
 				
 				System.out.println("Deleted primitives belonging to " + columnvalue + ".");
 			}

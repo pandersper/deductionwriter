@@ -1,4 +1,4 @@
-package control;
+package control.session;
 
 import javax.swing.KeyStroke;
 
@@ -15,7 +15,6 @@ public class Shortcut implements Comparable<Shortcut> {
 	 * @see java.awt.AWTKeyStroke 
 	 */
 	public Integer keycode;
-
 	/** The modifiers mask.
 	 * 
 	 * @see java.awt.AWTKeyStroke 
@@ -52,7 +51,6 @@ public class Shortcut implements Comparable<Shortcut> {
 	 * @param second The new key and modifier given as another binding.
 	 */
 	public void setKeyAndModifier(Shortcut second) {
-
 		this.keycode = second.keycode;
 		this.modifiers = second.modifiers;
 	}	

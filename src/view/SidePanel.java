@@ -1,19 +1,28 @@
 package view;
 
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.BoxLayout;
+
 import control.DeductionWriter.CustomKeyboardFocusManager;
+import control.statics.ViewStatics;
+import control.statics.ViewStatics.Mode;
 import model.description.DComposite;
 import model.description.DEditableStatement;
+import model.description.DTheorem;
 import model.description.abstraction.Described;
 import model.description.abstraction.Placeholder;
 import model.logic.Implication;
-import view.ConcludePanel.ImplicationToggle;
-import view.ConcludePanel.ToggleGroup;
 import view.abstraction.TraversablePanel;
+import view.components.ConcludePanel;
 import view.components.DisplayCanvas;
+import view.components.GlyphsPanel;
+import view.components.NavigatePanel;
+import view.components.ConcludePanel.ImplicationToggle;
+import view.components.ConcludePanel.ToggleGroup;
 
 /**
  * This panel is used for editing the theorem.
@@ -27,11 +36,10 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 	
 	private ToggleGroup 	toggles;
 	
-
 	/**
 	 * Instantiates a new deduction panel.
 	 *
-	 * @param canvas The canvas that draws the theorem.
+	 * @param original The canvas that draws the theorem.
 	 * @param glyphs Panel containing the primitives used in the theorem.
 	 */
  	public SidePanel(DeductionFrame parent, GlyphsPanel glyphs, NavigatePanel navigation, ConcludePanel conclude) {
@@ -40,9 +48,15 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 		this.pnlGlyphs = glyphs;
  		this.pnlNavigate = navigation;
  		this.pnlConclude = conclude;
-				
+
+ 		this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		this.setAlignmentX(Component.LEFT_ALIGNMENT);
+		this.setPreferredSize(new Dimension(350, 3*ViewStatics.a4height));
+
+		navigation.registerButtons(this);
+		conclude.registerButtons(this);
+
 		pnlConclude.addKeyListener(this.pnlGlyphs);
-		
 	}
  	
 	/**
@@ -51,6 +65,8 @@ public class SidePanel extends TraversablePanel implements ActionListener {
  	public void actionPerformed(ActionEvent e) {
 
  		DisplayCanvas canvas = this.getCanvas();
+ 		
+ 		DTheorem theorem = canvas.getTheorem();
  		
 		switch (e.getActionCommand()) {		
 			
@@ -63,66 +79,60 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 
 			case "edit down":
 				
-				if (getTheorem().getChosen() != null) { 																							///(G2CC)
-					
-					if (getTheorem().isEdited()) {																								///(E0D9)
+				if (theorem.getChosen() != null) { 																							///(G2CC)
+				
+					if (theorem.isEdited()) {																								///(E0D9)
 						
-						DEditableStatement edit = getTheorem().getEditing();
+						DEditableStatement edit = theorem.getEditing();
 						
-						Described descend = edit.descend();
+						Described composite = edit.descend();
 						
-						if (descend != null) {																								///(1B8G)
+						if (composite != null) {																								///(1B8G)
 							
-							Placeholder last = ((DComposite)descend).lastPlaceholder();
+							Placeholder placeholder = ((DComposite)composite).currentPlaceholder();
 							
-							canvas.setWritepoint(last.described(), descend.getGlobalReference(), last.baseline().getLocalReferencepoint());					
-							canvas.fillCursor(last.described(), true, descend);
+							Described primitive = placeholder.described();
+							
+							canvas.setWritecursor(primitive.description(), composite.getWritepoint(), primitive.getLocalReference());					
+							canvas.fillCursor(primitive, composite, Mode.PAINT);
 
-						} else 	
-							canvas.setPaintMode(true, false, true);																			///(AA1G)
-					} else {
+						} else {}
+					} else 
 						canvas.toggleEditingMode();																							///(A207)
-						canvas.setPaintMode(false, false, false);
-					}
 				}
 				
 				break;
 
 			case "edit up":
 				
-				if (getTheorem().isEdited()) { 																									///(968E)
+				if (theorem.isEdited()) { 																									///(968E)
 					
-					DEditableStatement edit = getTheorem().getEditing();
+					DEditableStatement edit = theorem.getEditing();
 
 					Described ascend = edit.ascend();
 					
 					if (ascend != null)	{																									///(C018)
-						canvas.setWritepoint(ascend);
-						canvas.fillCursor(ascend, true, null);
+						canvas.setWritecursor(ascend.description());
+						canvas.fillCursor(ascend, null, Mode.PAINT);
 
-					} else {	
-						canvas.toggleEditingMode();																							///(8F71)
-						canvas.setPaintMode(false, false, false);
-					}
+					} else 
+						canvas.toggleEditingMode();						///(8F71)
 				} 
 																																			///(D4A2)
 				break;
 
 			case "insert":																													///(25CA)
 				
-				DEditableStatement edit = getTheorem().getEditing();
+				DEditableStatement edit = theorem.getEditing();
 
-				if (getTheorem().isEdited() && !edit.current().isDummy()) { 	
+				if (theorem.isEdited() && !edit.current().isDummy()) { 	
 
-					pnlNavigate.insertDummy(edit);
-
+					edit.insertDummy();
 					edit.togglePrompting();																									///(D748)
 
-					canvas.redescribeTail(edit.whole());	
+					canvas.describeTheoremTail(edit.whole());	
 					
-					canvas.setPaintMode(false, false, false);
-
-				} else { return; } 																											///(24BB)
+				} else { break; } 																											///(24BB)
 
 				break;
 				
@@ -130,12 +140,10 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 				
 				if (canvas.isPrompting()) break;
 
-				if (getTheorem().isEdited()) 																										///(4BBB)
-					pnlNavigate.editDelete(getTheorem().getEditing());
+				if (theorem.isEdited()) 																								///(4BBB)
+					pnlNavigate.editDelete(theorem.getEditing());
 				else 																														///(59FG)
 					pnlNavigate.ordinaryDelete();
-				
-				canvas.setPaintMode(false, false, false);
 				
 				break;
 			
@@ -153,14 +161,12 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 				break;
 		}
 
-		canvas.paint(canvas.getGraphics());
+		canvas.repaint();
 
 		getTheorem().printout();
 		
 		pnlGlyphs.restoreFocus();
-		
-	}
-	
+	}	
  	 	
 	/**
 	 * Sets the default component to focus when receiving focus.
@@ -172,12 +178,12 @@ public class SidePanel extends TraversablePanel implements ActionListener {
  	public void shareToggles(ConcludePanel.ToggleGroup toggles) {
 		this.toggles = toggles;	
 	}
-
  	
  	/** {@inheritDoc} */
  	public void setFocusTraversal(CustomKeyboardFocusManager manager) {
 
  		this.manager = manager;	
+
  		this.setFocusable(true);
  		this.setFocusCycleRoot(false);
 
@@ -188,5 +194,4 @@ public class SidePanel extends TraversablePanel implements ActionListener {
  	public Component[][] focusCycleNodes() {
  		return new Component[][] { new Component[] { this.getParent() } }; 
  	}
-	
 }

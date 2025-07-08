@@ -3,28 +3,29 @@ import java.awt.Container;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import control.Shortcut;
-import control.Toolbox;
-import control.db.DeductionBase;
+import control.session.Session;
+import control.session.Shortcut;
+import control.statics.Toolbox;
+import control.statics.ViewStatics;
 import model.independent.DoubleArray;
 import model.logic.abstraction.Formal;
+import view.abstraction.InitiableContainer;
 import view.components.dialogs.DefaultDialog;
 
 /**
  * A dialog for loading new primitives into the trainer application.
  */
-public class TrainerDialog extends DefaultDialog {
+public class TrainerDialog<C extends Container & InitiableContainer>  extends DefaultDialog<C>{
 
 	private DeductionTrainer trainer;
 	
 	/**
 	 * Instantiates a new trainer dialog.
-	 *
-	 * @param parent 	The main, parent application.
-	 * @param base		The data base containing theorems and their parts.
+	 * @param session TODO
+	 * @param elder 	The main, elder application.
 	 */
-	public TrainerDialog(DeductionTrainer trainer, DeductionBase base) {
-		super(trainer.getFrame(), null);
+	public TrainerDialog(DeductionTrainer trainer, Session session) {
+		super((C)trainer.getFrame(), session);
 				
 		this.trainer = trainer;
 	}
@@ -40,7 +41,7 @@ public class TrainerDialog extends DefaultDialog {
 		
 		list.setSelectedIndex(0);		
 		
-		Toolbox.switchContainer(this, opener);
+		ViewStatics.switchContainer(this, opener);
 	}
 	
 	/**
@@ -71,9 +72,8 @@ public class TrainerDialog extends DefaultDialog {
 		
 		trainer.setPrimitives(Toolbox.describe(bindings));
 		
-		Toolbox.switchContainer(parent, this);
+		ViewStatics.switchContainer(elder, this);
 	}
-	
 	/**
 	 * NOT IMPLEMENTED
 	 *
@@ -82,7 +82,6 @@ public class TrainerDialog extends DefaultDialog {
 	public void store(String name) {
 		System.err.println("Not implemented method in " + this.getClass());
 	}
-	
 	/**
 	 * NOT IMPLEMENTED
 	 *

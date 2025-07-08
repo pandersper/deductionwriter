@@ -1,18 +1,20 @@
-package control.db;
+package control.statics;
 
+import java.awt.geom.Point2D;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-import control.Toolbox;
 import model.description.DComposite;
 import model.description.DStatement;
 import model.description.DTheorem;
+import model.description.abstraction.Described;
+import model.description.abstraction.Placeholder;
 import model.logic.Theorem;
 import model.logic.Implication.ImplicationType;
 import model.logic.abstraction.Formal;
 
-public final class StaticSQL {
+public final class SQLStatics {
 	
 	
 	public static final String 
@@ -25,7 +27,9 @@ public final class StaticSQL {
 	
 	primitives_insert 	= "INSERT INTO Primitives(glyphtablename, codepoint, keycode, modifiers) VALUES",
 	
-	composites_insert 	= "INSERT INTO Composites(glyphtablename, codepoint, codepoints, baselines, keycode, modifiers) VALUES";
+	composites_insert 	= "INSERT INTO Composites(glyphtablename, codepoint, keycode, modifiers) VALUES",
+
+	components_insert 	= "INSERT INTO Componentsets(componentset, codepoint, advance, refx, refy, height, depth) VALUES";
 
 	
 	public static final String 
@@ -45,46 +49,64 @@ public final class StaticSQL {
 	primitives_setup = "CREATE TABLE IF NOT EXISTS Primitives(" + 
 														"glyphtablename  VARCHAR(30) NOT NULL, codepoint  INT NOT NULL, " + 
 														"keycode  INT, modifiers  INT, PRIMARY KEY (glyphtablename, codepoint));",
-														
+																
 	composites_setup = "CREATE TABLE IF NOT EXISTS Composites(" + 
-														"glyphtablename  VARCHAR(30) NOT NULL, codepoint  INT NOT NULL, codepoints  VARCHAR(500) NOT NULL, " +
-														"baselines  VARCHAR(2000) NOT NULL, keycode  INT, modifiers  INT, PRIMARY KEY (glyphtablename, codepoint));";	
+														"glyphtablename  VARCHAR(30) NOT NULL, codepoint  INT NOT NULL, keycode  INT, " + 
+														"modifiers  INT, PRIMARY KEY (glyphtablename, codepoint));",	
 
-
-	public static final String
-	
-	theoremnames_view 		= "CREATE VIEW IF NOT EXISTS Theoremnames AS SELECT name FROM Theorems INTERSECT SELECT name FROM Theorems;",
-
-	primitivestables_view	= "CREATE VIEW IF NOT EXISTS Primitivetables AS SELECT glyphtablename FROM Primitives INTERSECT SELECT glyphtablename FROM Primitives;",
-
-	compositestables_view 	= "CREATE VIEW IF NOT EXISTS Compositetables AS SELECT glyphtablename FROM Composites INTERSECT SELECT glyphtablename FROM Composites;";
-	
+	componentsets_setup = "CREATE TABLE IF NOT EXISTS Componentsets(" + 
+														"componentset  INT NOT NULL, codepoint INT NOT NULL, advance REAL NOT NULL, refx REAL NOT NULL, refy REAL NOT NULL," +
+														"height REAL NOT NULL, depth INT NOT NULL, PRIMARY KEY (componentset, codepoint, depth));";
 	
 	public static String valuesString(Formal primitive, String viewname) {
+		
 		String result = "(";
-		result += "'" + viewname + "', " ;
-		result += primitive.getCodepoint() + ",";
-		result += "0, 0);";
+	
+		result += "'" + viewname 				+ "', " ;
+		result += primitive.getCodepoint()	 	+ ", 0, 0);";
+
 		return result;
 	}
 
 	public static String valuesString(DComposite composite, String viewname) {
+
 		String result = "(";
-		result += "'" + viewname + "', " ;
-		result += "'" + composite.getCodepoint() + "', ";
-		result += "'" + composite.codepointsString() + "', ";
-		result += "'" + composite.baselinesString() + "', ";
-		result += "0, 0);";
+	
+		result += "'" + viewname 				+ "', " ;
+		result += "" + composite.getCodepoint() + ", 0, 0);";
+		
+		return result;
+	}
+	
+	public static String valuesString(Placeholder holder, int set) {
+
+		Described formal = holder.described();
+		Point2D.Double writepoint = holder.getGlobalReference();
+		
+		String result = "(";
+		
+		result += "" + set + ", " ;
+		result += "" + formal.getCodepoint() + ", ";
+		result += "" + formal.getAdvance() 				+ ", ";
+		result += "" + writepoint.x 					+ ", ";
+		result += "" + writepoint.y 					+ ", ";
+		result += "" + formal.description().height 		+ ", ";
+		result += "" + holder.handle().depth 			+ ");";
+
 		return result;
 	}
 
-	public static String valuesString(DStatement statement, Theorem parent) {
+	public static String valuesString(DStatement statement, Theorem theorem) {
+	
 		String formals = statement.formalsString();
+		
 		String result = "(";
-		result += "'" + statement.getID() + "', ";
-		result += "'" + parent.getName() + "', ";
-		result += "'" + formals + "', ";
+		
+		result += "'" + statement.getID() 	+ "', ";
+		result += "'" + theorem.getName() 	+ "', ";
+		result += "'" + formals 			+ "', ";
 		result += statement.implicationID() + ");";
+		
 		return result;
 	}	
 	
@@ -95,17 +117,17 @@ public final class StaticSQL {
 
 		String[] sqls = new String[theorem.lengthInStatements()];
 
-		String sql = StaticSQL.statements_insert;
+		String sql = SQLStatics.statements_insert;
 
 		int i = 0;
 		for (DStatement s : theorem) {								///(0B1D)
-			sql += StaticSQL.valuesString(s, theorem);
+			sql += SQLStatics.valuesString(s, theorem);
 			sqls[i++] = sql;
-			sql = StaticSQL.statements_insert;
+			sql = SQLStatics.statements_insert;
 		}
 
 		if (preliminary.size() > 0) {
-			sql += StaticSQL.valuesString(preliminary, theorem);
+			sql += SQLStatics.valuesString(preliminary, theorem);
 			sqls[i++] = sql;
 		}
 
@@ -143,7 +165,6 @@ public final class StaticSQL {
 				types.add(null);
 				break;
 			default:
-				Toolbox.output("not reached",null);
 				break;
 			}
 		}		
@@ -185,5 +206,4 @@ public final class StaticSQL {
 		System.out.println("stored procedures:\t\t" + connection.getMetaData().supportsStoredProcedures()+"\n");
 		System.out.println("schemas in procedure calls:\t" + connection.getMetaData().supportsSchemasInProcedureCalls());
 	}
-
 }

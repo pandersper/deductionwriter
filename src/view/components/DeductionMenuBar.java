@@ -3,8 +3,6 @@ package view.components;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
-import java.awt.HeadlessException;
-import java.util.ArrayList;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -12,41 +10,45 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 
+import java.util.ArrayList;
+
 import annexes.maker.CompositeMaker;
 import annexes.picker.DeductionPicker;
 import annexes.trainer.DeductionTrainer;
-import control.Session;
-import control.Shortcut;
-import control.Toolbox;
 import control.db.DeductionBase;
+import control.session.Session;
+import control.session.Shortcut;
+import control.statics.Toolbox;
+import control.statics.ViewStatics;
 import model.description.DTheorem;
 import model.independent.DoubleArray;
 import model.logic.abstraction.Formal;
 import view.components.dialogs.CompositesStore;
 import view.components.dialogs.PrimitivesLoader;
+import view.components.dialogs.SessionLoader;
 import view.components.dialogs.TheoremStore;
-import view.GlyphsPanel;
-import view.MainPanel;
 import view.DeductionFrame;
+import view.abstraction.AbstractFrame;
 
 public class DeductionMenuBar extends JMenuBar implements ActionListener {
 
 	private DeductionFrame 	parent;	
-	private Session			session;
+	public Session			session;
 
-	private final TheoremStore 		lsdialog;
-	private final PrimitivesLoader 	pldialog;
-	private final CompositesStore 	cldialog;
+	private final SessionLoader<AbstractFrame>		ssdialog;
+	private final TheoremStore<AbstractFrame> 		lsdialog;
+	private final PrimitivesLoader<AbstractFrame> 	pldialog;
+	private final CompositesStore<AbstractFrame> 	cldialog;
 	
-	private final DeductionTrainer 	trainer;	
-	private final CompositeMaker 	composite;
-	private final DeductionPicker 	picker;
+	private final DeductionTrainer 		trainer;	
+	private final CompositeMaker 		composite;
+	private final DeductionPicker<?> 	picker;
 
 	
 	protected DoubleArray<Formal, Shortcut> 	bindings = new  DoubleArray<Formal, Shortcut>();
 
 	
-	public DeductionMenuBar(DeductionTrainer trainer, DeductionPicker picker, DeductionFrame parent) {
+	public DeductionMenuBar(DeductionTrainer trainer, DeductionPicker<?> picker, DeductionFrame parent) {
 	
 		this.trainer = trainer;
 		this.picker = picker;
@@ -55,9 +57,10 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		
 		this.composite = new CompositeMaker(this.parent);
 		
-		lsdialog = new TheoremStore(this.parent, this.session);
-		pldialog = new PrimitivesLoader(this.parent, this.session);
-		cldialog = new CompositesStore(this.parent, this.session);
+		lsdialog = new TheoremStore<AbstractFrame>(this.parent, this.session);
+		pldialog = new PrimitivesLoader<AbstractFrame>(this.parent, this.session);
+		cldialog = new CompositesStore<AbstractFrame>(this.parent, this.session);
+		ssdialog = new SessionLoader<AbstractFrame>(this.parent,this.session);
 
 		makeMenus();
 	}
@@ -96,15 +99,10 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 					int confirm = JOptionPane.showConfirmDialog(this, "Really erase current theorem?");
 							
 					if (confirm == JOptionPane.YES_OPTION) {
-		
-						DisplayCanvas canvas = session.getCurrentCanvas();
 
-						canvas.setAndDescribeTheorem(new DTheorem("empty"));
-						canvas.setPaintMode(false, false, false);
-						canvas.repaint();
-
-						parent.getGlyphsPanel().restoreFocus();
+						session.replaceCurrentWork(new DTheorem("empty"));
 						
+						parent.getGlyphsPanel().restoreFocus();					
 					}
 					
 					parent.repaint();
@@ -113,53 +111,52 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 
 				case "store theorem":
 					
-					DTheorem theorem = session.getCurrentCanvas().getTheorem();
-					DeductionBase base = session.getBase();
+					DTheorem theorem 	= session.getCurrentCanvas().getTheorem();
+					DeductionBase base 	= session.getBase();
 
 					String originalname = theorem.getName();
 					String name = originalname;
-					
-					while (theorem.getName().equals("emptyD") | theorem.getName() == "") {	// another isOkName
-						name = JOptionPane.showInputDialog("Name of theorem to store?");
-						theorem.setName(name);
-					}
-					
+
 					int confirmation;
 					int inserted = -1;
-										
-					if (base.contains(theorem.getName() , "Theorems", "name")) {
+
+					boolean _OVERWRITE = false;
+
+					while (name.equals("empty") | name.equals("")) {
 						
-						confirmation = JOptionPane.showConfirmDialog(this,"Name of theorem exists. Overwrite or other name?");						
-					
-						if (confirmation == JOptionPane.YES_OPTION) inserted = base.insert(theorem, true, session.primitivestable, session.compositestable);
-						else {						
-							if (confirmation == JOptionPane.NO_OPTION) {
+						name = JOptionPane.showInputDialog("Name of theorem to store?");
+						
+						if (base.contains(name,"Theorems","name")) {
 							
-								while (base.contains(name, "Theorems", "name")) {
-								
-									try {
+							confirmation = JOptionPane.showConfirmDialog(this,"Name of theorem exists. Overwrite or other name? (no)");	
+							
+							switch (confirmation) {
+							
+								case (JOptionPane.NO_OPTION):
+									
+									while (base.contains(name,"Theorems","name")) 										
 										name = JOptionPane.showInputDialog("Name exists. Another name for the theorem?");
-										theorem.setName(name);
-									} catch (HeadlessException he) {
-										name = "";
-										if (Toolbox.DEBUGMINIMAL) 
-											System.err.println("Error: input dialog for new name of " + theorem.getName() + " throwed exception."); 
-										break;
-									}
-								}
-								
-								if (name != "")	
-									inserted = base.insert(theorem, false, session.primitivestable, session.compositestable);
-							
-							} else {	// JOptionPane.CANCEL_OPTION
-								theorem.setName(originalname.substring(0,originalname.length()-1));	// must not keep adding "D"
-								return;							
+									continue;
+									
+								case (JOptionPane.YES_OPTION): 	
+									
+									_OVERWRITE = true;				
+									break;	
+									
+								case (JOptionPane.CANCEL_OPTION): 	
+									
+									theorem.setName(originalname); 	
+									return;
+									
+								default: System.err.println("Unknow JOptionPane choice."); break; 
 							}
 						}
-					} else 
-						inserted = base.insert(theorem, false, session.primitivestable, session.compositestable);
+					}
+
+					theorem.setName(name);
+					inserted = base.insert(theorem,_OVERWRITE);
 					
-					if (inserted < 1) { if (Toolbox.DEBUGMINIMAL) System.err.println("Error: no insertion or theorem stored with 0 statements?"); }
+					if (inserted < 1) { System.err.println("Error: 0 or less statements in insertion."); }
 	
 					parent.repaint();
 
@@ -169,22 +166,42 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 					
 					lsdialog.initialise();
 					
-					Toolbox.switchContainer(lsdialog, parent);
+					ViewStatics.switchContainer(lsdialog, parent);
 					
 					parent.repaint();
 					
 					break;
 
+				case "new session":
+										
+					parent.newSession();
+					
+					break;
+					
+				case "rename session":
+
+					name = JOptionPane.showInputDialog("Name of session to store?");
+					
+					break;
+					
 				case "store session":
-		
-					session.saveSession();
-		
+
+					ssdialog.initialise();
+					
+					ViewStatics.switchContainer(ssdialog, parent);
+					
+					parent.repaint();
+							
 					break;
 		
-				case "set session":
+				case "open session":
+
+					ssdialog.initialise();
 					
-					session.saveSession();
-		
+					ViewStatics.switchContainer(ssdialog, parent);
+					
+					parent.repaint();
+							
 					break;
 
 				case "session quit":
@@ -193,29 +210,30 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		
 				case "quit":
 		
-					session.closeSession();
-					trainer.cancel();
-					DeductionFrame.cleanAndExit();
+					parent.cleanAndExit();
 		
 					break;
 		
 				case "picker":
 					
-					Toolbox.switchContainer(picker, parent);
+					ViewStatics.switchContainer(picker, parent);
+					
 					break;
 
 				case "storage primitives":
 					
 					pldialog.initialise();
 
-					Toolbox.switchContainer(pldialog, parent);
+					ViewStatics.switchContainer(pldialog, parent);
+					
 					break;	
 				
 				case "storage composites":
 					
 					cldialog.initialise();
 					
-					Toolbox.switchContainer(cldialog, parent);
+					ViewStatics.switchContainer(cldialog, parent);
+					
 					break;
 					
 				case "composer":
@@ -226,11 +244,13 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 						
 						glyphs = parent.getGlyphsPanel();
 
+						glyphs.removeButton(canvas.getDrawn());
+						
 						composite.setGlyphsPanel(glyphs);
 						
-						Toolbox.switchContainer(composite, parent);
+						ViewStatics.switchContainer(composite, parent);
 						
-						composite.initialise(canvas.getDrawn());
+						composite.initialise(canvas.getDrawn().clone());
 					}
 				
 					break;
@@ -243,36 +263,33 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 					
 					trainer.setPrimitives(Toolbox.describe(bindings));
 					
-					Toolbox.switchContainer(trainer.getFrame(), parent);
+					ViewStatics.switchContainer(trainer.getFrame(), parent);
+					
 					break;
 										
 				default:
 		
 					break;
 				}		
-		}
+	}
 
-	
 	private void makeMenus() {
 		
 		JMenu mnTheorem = new JMenu("Theorem");
 		
 		JMenuItem mntmNewTheorem = new JMenuItem("New theorem");					mntmNewTheorem.setActionCommand("new theorem");
 		mntmNewTheorem.addActionListener(this);
-		mntmNewTheorem.setAccelerator(KeyStroke.getKeyStroke('N',InputEvent.CTRL_DOWN_MASK));
 
 		JMenuItem mntmStoreTheorem = new JMenuItem("Store theorem");				mntmStoreTheorem.setActionCommand("store theorem");
 		mntmStoreTheorem.addActionListener(this);
-		mntmStoreTheorem.setAccelerator(KeyStroke.getKeyStroke('S',InputEvent.CTRL_DOWN_MASK));
-		
+				
 		JMenuItem mntmOpenTheorem = new JMenuItem("Open theorem");					mntmOpenTheorem.setActionCommand("open theorem");
 		mntmOpenTheorem.addActionListener(this);
-		mntmOpenTheorem.setAccelerator(KeyStroke.getKeyStroke('O',InputEvent.CTRL_DOWN_MASK));
-
+		
 		JMenuItem mntmSaveSession = new JMenuItem("Save current session");			mntmSaveSession.setActionCommand("store session");
 		mntmSaveSession.addActionListener(this);
 		
-		JMenuItem mntmSetSession = new JMenuItem("Reset to old session");			mntmSetSession.setActionCommand("set session");
+		JMenuItem mntmSetSession = new JMenuItem("Open old session");				mntmSetSession.setActionCommand("open session");
 		mntmSetSession.addActionListener(this);
 
 		JMenuItem mntmSaveSessionAndQuit = new JMenuItem("Save session and quit");	mntmSaveSessionAndQuit.setActionCommand("session quit");
@@ -280,8 +297,7 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		
 		JMenuItem mntmQuitWithoutSaving = new JMenuItem("Quit without saving");		mntmQuitWithoutSaving.setActionCommand("quit");
 		mntmQuitWithoutSaving.addActionListener(this);
-		mntmQuitWithoutSaving.setAccelerator(KeyStroke.getKeyStroke('Q',InputEvent.CTRL_DOWN_MASK));
-
+		
 		JMenu mnGlyps = new JMenu("Glyphs");
 		
 		JMenuItem mntmSelectPrimitives = new JMenuItem("Pick new primitives");		mntmSelectPrimitives.setActionCommand("picker");
@@ -298,6 +314,11 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		
 		JMenuItem mntmProgramBindings = new JMenuItem("Program bindings");			mntmProgramBindings.setActionCommand("trainer");
 		mntmProgramBindings.addActionListener(this);
+		
+		mntmNewTheorem.setAccelerator(KeyStroke.getKeyStroke('N',InputEvent.CTRL_DOWN_MASK));
+		mntmStoreTheorem.setAccelerator(KeyStroke.getKeyStroke('S',InputEvent.CTRL_DOWN_MASK));
+		mntmOpenTheorem.setAccelerator(KeyStroke.getKeyStroke('O',InputEvent.CTRL_DOWN_MASK));
+		mntmQuitWithoutSaving.setAccelerator(KeyStroke.getKeyStroke('Q',InputEvent.CTRL_DOWN_MASK));
 		
 		this.add(mnTheorem);
 		this.add(mnGlyps);

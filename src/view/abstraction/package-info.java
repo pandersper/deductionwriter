@@ -1,6 +1,6 @@
 /**
  * Constains off-loading abstract classes for the panels and frames in the view package. 
- * Also {@link DisplayTools} contains almost all static painting methods.<br><br>
+ * Also {@link PaintStatics} contains almost all static painting methods.<br><br>
  * 
  * Keep apart from the {@link Toolbox} class in the control package. 
  * 
@@ -9,4 +9,5 @@
  * @since 2024-07-07
  */
 package view.abstraction;
-import control.Toolbox;
+import control.statics.PaintStatics;
+import control.statics.Toolbox;

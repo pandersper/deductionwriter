@@ -3,7 +3,10 @@ package model.independent;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import control.Toolbox;
+import control.statics.Toolbox;
+import model.description.abstraction.AbstractDComposite;
+import model.description.abstraction.Described;
+import model.description.abstraction.Placeholder;
 
 /**
  * A cyclic list with convenient access to iteration.
@@ -126,7 +129,7 @@ public class CyclicList<T> extends LinkedList<T> {
 	public boolean currentIsLast() {
 		return index == this.size() - 1;
 	}
-
+	
 	/**
 	 * Resets this cyclic lists iteration to the first element.
 	 */
@@ -142,4 +145,17 @@ public class CyclicList<T> extends LinkedList<T> {
 		index = 0;
 	}
 
+	/**
+	 * Replaces a constituent of a composite.
+	 * 
+	 * @param composite		The composite which should have a constituent replaced.
+	 * @param replace		The constituent to replace.
+	 * @param replaced		The constituent to become.
+	 */
+	public static void replaceComponent(AbstractDComposite composite, Described replace, Described replaced) {
+
+		for(Placeholder holder : composite.getConstituents().values()) 			
+			if (holder.described() == replaced)
+				holder.insert(replace);
+	}
 }

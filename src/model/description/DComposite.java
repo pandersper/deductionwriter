@@ -1,22 +1,22 @@
 package model.description;
 
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.ArrayList;
 
-import control.Toolbox;
+import control.statics.PaintStatics;
+import control.statics.PaintStatics.Size2D;
+import control.statics.Toolbox;
 import model.description.abstraction.AbstractDComposite;
 import model.description.abstraction.Described;
 import model.description.abstraction.Placeholder;
-import model.description.abstraction.Placeholder.Baseline;
-import model.independent.CyclicList;
+import model.description.abstraction.Placeholder.Handle;
+import model.independent.CyclicMap;
 import model.logic.Composite;
 import model.logic.Primitive;
 import model.logic.abstraction.Formal;
+
 
 /**
  * A description of a composite, a composite of primitives.
@@ -27,125 +27,38 @@ public class DComposite extends AbstractDComposite {
 	/**
 	 * Instantiates a new described composite. 
 	 *
-	 * @param components 	The components of this composite together with their baselines and locations.
+	 * @param holders 	The components of this composite together with their baselines and locations.
 	 * @param codepoint		The codepoint assigned to this described composite. That codepoint is decide upon by 
 	 * 						the user but should not conflict with the UTF codepoints.
 	 * @see Placeholder
-	 */
-	public DComposite(List<Placeholder> components, int codepoint) {
+	 */	
+	public DComposite(CyclicMap<Handle, Placeholder> cursors) {
 
-		super.type 			= FormalType.COMPOSITE;
+		super.constituents 		= cursors;
 
-		super.codepoint		= codepoint;
+		super.codepoint			= Toolbox.nextCompositeId();	
+		super.type 				= FormalType.COMPOSITE;
 		
-		super.constituents 	= new CyclicList<Placeholder>(components);	
+		super.frameholder 		= Toolbox.findFrame(this.constituents);
+		super.name 				= Composite.makeCompositeName(this.constituents.values());		
+
+		Composite instance 			= Composite.makeValue(toFormals(this.constituents.values()), this.codepoint);
+		BufferedImage iconimage		= PaintStatics.makeCompositeGlyph(this.constituents);
+		
+		this.composition = instance.getComposition();
+		
+		super.description 			= new DRectangle(instance, this.frameholder, iconimage);	
+		super.description.reference = this.frameholder.getLocalReference();	
+		super.current 				= this.frameholder;				
+ 	}
 	
-		super.name 			= makeCompositeName(this.constituents);		
+	public DComposite(CyclicMap<Handle, Placeholder> components, int codepoint) {
+		this(components);
 		
-		super.frame 		= super.constituents.get(0);
-		
-		Composite value 	= Composite.makeValue(toFormals(this.constituents), codepoint);
-		
-		super.description 	= new DRectangle(value, this.frame.baseline().length);	
-		
-		this.renderAndMount();	
-
-	}
-
-	/**
-	 * Instantiates a new described composite from a composite formal.  
-	 *
-	 * @param formal 	The composite formal to make a default description of. If other than composite formal is 
-	 * 					given as parameter it will for now just give an error message on stderr.
-	 */
-	public DComposite(Formal formal) {
-
-		if (formal instanceof Composite) {
-
-			Composite composite = (Composite) formal;
-			
-			super.type 			= composite.getType();
-			super.codepoint		= composite.getCodepoint();
-
-			Composite value = Composite.makeValue(Arrays.asList(composite.toArray()), this.codepoint);
-			
-			super.description 	= new DRectangle(value);
-			
-			super.constituents 	= DComposite.emptyDescription((Composite) this.description.getValue());
-			
-			super.name 			= makeCompositeName(this.constituents);		
-
-			this.renderAndMount();	
-			
-		} else 
-			System.err.println("Make described Composite from non-composite?");
+		this.codepoint = codepoint;
 	}
 	
-
-	/** {@inheritDoc} **/
-	public DRectangle renderAndMount() {
-
-		BufferedImage whole = new BufferedImage(this.description.width, this.description.height, BufferedImage.TYPE_INT_ARGB);
-
-		Graphics2D gcopy = whole.createGraphics();
-
-		Placeholder first = constituents.removeFirst();
-
-		Described 		described 		= first.described();
-		Baseline 		baseline 		= first.baseline();
-		BufferedImage 	subglyph		= described.description().getImage();
-		Point 			imageoffset		= described.description().getReference();
-				
-		gcopy.drawImage(subglyph, null, 0, 0);
-
-		Point globalorigo = first.baseline().getLocalReferencepoint();		
-		
-		if (Toolbox.DEBUGVERBOSE) {
-			System.out.println("Rendered frame baseline : (" + globalorigo.x + "," + globalorigo.y + "," + baseline.length + ")");
-			System.out.println("subframe : (" + first.bounds().x + "," + first.bounds().y + ")");
-			System.out.println("location : (" + 0 + "," + 0 + ")");
-		}
-
-		Point refoffset = first.described().getLocalReference();
-		
-		globalorigo.translate(refoffset.x, refoffset.y);
-		
-		int x, y;
-		
-		for (Placeholder component : constituents) {
-
-			baseline 	= component.baseline();
-			described 	= component.described();
-			subglyph 	= described.description().getImage();			
-			imageoffset = described.description().getReference();
-			
-			x = globalorigo.x + baseline.x - imageoffset.x;
-			y = globalorigo.y + baseline.y - imageoffset.y;
-			
-			gcopy.drawImage(subglyph, null, x, y);
-
-			if (Toolbox.DEBUGVERBOSE) {
-				System.out.println("Rendered subframe baseline : (" + baseline.x + "," + baseline.y + "," + baseline.length + ")");
-				System.out.println("subframe : (" + component.bounds().x + "," + component.bounds().y + ")");
-				System.out.println("location : (" + x + "," + y + ")");
-			}
-		}	
-
-		this.constituents.addFirst(first);		
-		this.description.setImage(whole); 
-			
-		return this.description();
-	}
-
-	/** {@inheritDoc} **/
-	public DComposite clone() {
-				
-		DComposite clone = new DComposite(super.constituents, Toolbox.nextCompositeId());
-		
-		return clone;
-	}
 	
-		
 	/**
 	 * Constructs a list of placeholders from two text strings, the placeholder should be used for constructing a composite. 
 	 * 
@@ -156,87 +69,117 @@ public class DComposite extends AbstractDComposite {
 	 * 
 	 * @see Placeholder
 	 */
-	public static LinkedList<Placeholder> 	parseComponents(String codepoints, String baselines) {
+	public static CyclicMap<Handle, Placeholder> 	parseComponents(String codepoints, String baselines) {
 
-		LinkedList<Placeholder> components = new LinkedList<Placeholder>();
+		ArrayList<Placeholder> components = new ArrayList<Placeholder>();
 
 		String[] cps = codepoints.split(" ");
 		String[] bls = baselines.split(" ");
 
-		String[] bl = new String[3];
-
-		DPrimitive primitive;
-		Rectangle frame;
 		Placeholder holder;
 		
-		int x, y, baseline, codepoint;
-
 		for (int i = 0; i < cps.length; i++) {
 
-			bl = bls[i].split(":");
-
-			x = Integer.parseInt(bl[0]); y = Integer.parseInt(bl[1]); baseline = Integer.parseInt(bl[2]);
-			
-			codepoint = Integer.parseInt(cps[i]);
-
-			codepoint = codepoint != -1 ? codepoint : Toolbox.DUMMY.getCodepoint(); 
-
-			primitive   = new DPrimitive(codepoint, baseline);
-			
-			frame 		= primitive.description().getBounds();
-			frame.translate(x, y);
-			
-			holder 		= new Placeholder(frame);
-			
-			holder.fill(primitive);
+			holder = parsePlaceholder(cps[i], bls[i]);
 			
 			components.add(holder);			
 		}
 
-		return components;
+		return Toolbox.cyclicMap(components);
 	}
 
-	
-	private static CyclicList<Placeholder> 	emptyDescription(Composite value) {
-
-		CyclicList<Placeholder> describeds = new CyclicList<Placeholder>();
+	private static Placeholder parsePlaceholder(String codepointsstring, String baselinestring) {
 		
-		for (Formal formal : value.toArray()) {
-			
-			Point offset = new Point(0,0);
-			
+		String[] bl;
+		DPrimitive primitive;
+		Rectangle2D.Double frame;
+		Placeholder holder;
+
+		int x, y, baseline, codepoint;
+		
+		bl = baselinestring.split(":");
+
+		x = Integer.parseInt(bl[0]); 	y = Integer.parseInt(bl[1]); 	baseline = Integer.parseInt(bl[2]);
+		
+		codepoint = Integer.parseInt(codepointsstring);
+
+		primitive = (codepoint != -1) ? new DPrimitive(codepoint, baseline) : DPrimitive.DUMMY.scaledClone(baseline,true);
+		
+		frame 		= primitive.getBounds();
+		
+		frame.setFrame(new Point2D.Double(frame.x,frame.y), new Size2D(frame));
+		
+		holder 		= new Placeholder(new DCursor(frame));
+		
+		holder.insert(primitive);
+
+		return holder;
+	}
+	
+	private static CyclicMap<Handle, Placeholder> 	emptyDescription(Composite value) {
+
+		
+		CyclicMap<Handle, Placeholder> describeds = new CyclicMap<Handle, Placeholder>();
+	
+		for (Formal formal : value.getComposition()) {
+						
 			Described stddescription = null;
 			
 			if (formal instanceof Primitive)
 				stddescription = new DPrimitive(formal);
 			else
-				if (formal instanceof Composite)
-					stddescription = new DComposite(emptyDescription(value), formal.getCodepoint());											///(42EB)
-									
+				if (formal instanceof Composite) {
+					
+					CyclicMap<Handle, Placeholder> empty = emptyDescription(value);
+					
+					Placeholder emptyframe = Toolbox.findFrame(empty);		// must assume first is frame
+					
+					stddescription = new DComposite(empty);											///(42EB)
+				}
+			
 			if (stddescription != null) {
 
-				Placeholder holder = new Placeholder(stddescription.description().getBounds());
+				Placeholder holder = new Placeholder(stddescription.description());
 
-				holder.fill(stddescription);
-				describeds.add(holder);
-			}
-			else
+				holder.insert(stddescription);
+				describeds.insertElement(holder.handle().depth, holder.handle(),holder);
+			
+			} else
 				System.err.println("Unknown component in composite (emptyDescription");
-		}
-		
+		}	
 		return describeds;
 	}
-	
-	private static String 					makeCompositeName(Iterable<Placeholder> components) {
 
-		String sequence = "";
-
-		for (Placeholder component : components) 			
-			sequence += (char) component.described().getCodepoint() + ",";
-
-		sequence = sequence.substring(0, sequence.length()-1);
-
-		return "[" + sequence + "]";
+	/** {@inheritDoc} **/
+	public DComposite clone() {
+				
+		/* CLONING IS PERHAPS DIFFICULT - SEE TODO FILE	*/	
+		
+		CyclicMap<Handle, Placeholder> clonedconstituents = new CyclicMap<Handle, Placeholder>();
+		
+		for (Placeholder holder : this.constituents.sortedValues()) {
+			
+			Placeholder holderclone = holder.clone();
+			
+			clonedconstituents.put(holderclone.handle(), holderclone);
+		}
+		
+		DComposite clone = new DComposite(clonedconstituents);
+		
+		clone.description = this.description.clone();
+				
+		clone.setWritepoint(this.getWritepoint());
+		
+		return this;
+		
 	}
 
+	public Described scaledClone(double baseline, boolean transparent) {
+		System.err.println("DComposite resize clone not implemented yet");
+		return null;
+	}
+
+	public double getAdvance() {
+		return description.advance;
+	}
 }

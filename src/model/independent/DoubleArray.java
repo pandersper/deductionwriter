@@ -79,7 +79,7 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 	 * 
 	 * @param t	The value of the second coordinate to find.
 	 * 
-	 * @return The tuple with first coordinate t.
+	 * @return 	The tuple with first coordinate t.
 	 */
 	public Tuple<S,T> getBySecond(T t) {
 		
@@ -117,7 +117,7 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 	 * @param s Domain value used for finding.
 	 * @param t Range value to update.
 	 * 
-	 * @return The inserted new tuple consisting of the found together with the updated value. 
+	 * @return 	The inserted new tuple consisting of the found together with the updated value. 
 	 */
 	public Tuple<S, T> updateByFirst(S s, T t) {
 
@@ -152,7 +152,7 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 	 * @param s Domain value to update.
 	 * @param t Range value used for finding.
 	 * 
-	 * @return The inserted new tuple consisting of the updated together with the found value. 
+	 * @return 	The inserted new tuple consisting of the updated together with the found value. 
 	 */
 	public Tuple<S, T> updateBySecond(S s, T t) {
 
@@ -184,9 +184,9 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 	/**
 	 * Remove the correspondance with a specific first coordinate.
 	 * 
-	 * @param s 	The element to indicate which pair to remove.
+	 * @param s The element to indicate which pair to remove.
 	 * 
-	 * @return		The pair removed.
+	 * @return	The pair removed.
 	 */
 	public Tuple<S, T> removeByFirst(S s) {
 
@@ -215,6 +215,7 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 
 	/**
 	 * The range of this bijection.
+	 * 
 	 * @return	A collection of all the elements in the range.
 	 */
 	public Collection<T> range() {

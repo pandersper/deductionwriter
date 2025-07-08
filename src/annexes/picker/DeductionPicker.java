@@ -1,33 +1,40 @@
- package annexes.picker;
+package annexes.picker;
+
+import java.awt.FlowLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.SystemColor;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.UIManager;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.border.TitledBorder;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.WindowConstants;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
-
-import control.Session;
-import control.Shortcut;
-import control.Toolbox;
-import control.db.DeductionBase;
+import control.session.Session;
+import control.session.Shortcut;
+import control.statics.PaintStatics;
+import control.statics.Toolbox;
+import control.statics.ViewStatics;
 import model.description.DPrimitive;
 import model.description.abstraction.Described;
 import model.independent.DoubleArray;
@@ -35,95 +42,282 @@ import model.independent.DoubleArray.Tuple;
 import model.logic.abstraction.Formal;
 import view.DeductionFrame;
 import view.abstraction.AbstractFrame;
+import view.abstraction.InitiableContainer;
 import view.components.DButton;
 
-/**
- * The class DeductionPicker is a sub application for putting together glyphs for writing
- * mathematics and other deductions.
- */
-public class DeductionPicker extends AbstractFrame implements ActionListener, ItemListener {
-	
-	private ArrayList<String>	categories 	= new ArrayList<String>();
-	private HashSet<Formal> 	selected 	= new HashSet<Formal>();
-	private DeductionFrame		mainframe;
-	private PickerDialog 		dialog;
+public class DeductionPicker<C extends Container & InitiableContainer> extends AbstractFrame implements ActionListener, ItemListener {
 
+	private DeductionFrame		mainframe;
+	private PickerDialog<C>		summarydialog;
+	private UTFDialog			utfdialog;
 	
+	private HashSet<Formal> selected = new HashSet<Formal>();	
+
+	//start_win_var_init
+	private final JPanel 		pnlUpper 		= new JPanel();
+	private final JPanel 		pnlControl 		= new JPanel();
+	private final JPanel 		pnlCategories	= new JPanel();	
+	private final JScrollPane 	scrCategories 	= new JScrollPane();
+	
+	private JButton btnExport, btnQuit, btnReset;
+
+	private final JMenuBar 	mnuBar 			= new JMenuBar();
+	private final JMenu 	mnuCategories	= new JMenu("Glyph categories");
+	private final JMenu 	mnuCodepoint	= new JMenu("Custom UTF codes");
+
+	private final JMenuItem itmCodepoint 	= new JMenuItem("Add by code ...");
+
+	private final ArrayList<JCheckBoxMenuItem> 	 categories 		= new ArrayList<JCheckBoxMenuItem>();
+	private final ArrayList<String> 			 categorynames 		= new ArrayList<String>();
+	private final ArrayList<JPanel> 			 categorypanels 	= new ArrayList<JPanel>();
+	private final ArrayList<JScrollPane>		 categoryscrollers	= new ArrayList<JScrollPane>();
+	private final ArrayList<JCheckBoxMenuItem> 	 categorychkbxs 	= new ArrayList<JCheckBoxMenuItem>();
+
+	private void makeUpper(JScrollPane scrOverview) {
+		
+		scrOverview.setMinimumSize(ViewStatics.pckpnlminsize);
+		scrOverview.setMaximumSize(ViewStatics.pckpnlmaxsize);
+
+		scrOverview.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrOverview.setViewportView(pnlUpper);
+
+		pnlUpper.setMaximumSize(ViewStatics.pckpnlmaxsize); 
+		pnlUpper.setMinimumSize(ViewStatics.pckpnlminsize); 		
+		pnlUpper.setPreferredSize(ViewStatics.pckpnlminsize);
+
+		TitledBorder titledBorder = new TitledBorder(UIManager.getBorder("ScrollPane.border"), "chosen", 
+														TitledBorder.CENTER, TitledBorder.TOP, null, new Color(51, 51, 51)); 	
+		pnlUpper.setBorder(titledBorder);
+		pnlUpper.setBackground(ViewStatics.floralwhite);
+	}
+
+	private void makeLower(JPanel pnlLower) {
+
+		pnlCategories.setLayout(new BoxLayout(pnlCategories, BoxLayout.Y_AXIS));
+
+		scrCategories.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrCategories.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		
+		scrCategories.setViewportView(pnlCategories);
+		
+		pnlControl.setLayout(new BoxLayout(pnlControl,BoxLayout.Y_AXIS));	
+		pnlControl.setBackground(SystemColor.control);
+
+		pnlLower.setLayout(new BoxLayout(pnlLower, BoxLayout.LINE_AXIS));
+		pnlLower.add(scrCategories);
+		pnlLower.add(pnlControl);
+	}
+
+	private void makeAndAddButtons() {
+
+		btnReset 	= DeductionPicker.makeControlButton("reset","reset",this);		
+		btnExport 	= DeductionPicker.makeControlButton("store","store-load-add",this);
+		btnQuit 	= DeductionPicker.makeControlButton("quit","quit",this);		
+				
+		pnlControl.add(btnReset);
+		pnlControl.add(btnExport);
+		pnlControl.add(btnQuit);
+	}
+
+	private void makePanesAndPanels() {
+
+		for (int i = 0; i < categories.size(); i++) {
+
+			JScrollPane pane = makeScrollPane(i);
+			categoryscrollers.add(pane);
+		}
+	}
+
+	private JScrollPane makeScrollPane(int index) {
+		
+		JScrollPane scroller = new JScrollPane();
+		JPanel 		panel 	 = new JPanel();
+
+		scroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);		
+		String name = categorynames.get(index);
+	
+		scroller.setName("scr" + name);	
+		panel.setName("pnl" + name);
+			
+		panel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), 
+										 name, TitledBorder.CENTER, TitledBorder.TOP, 
+										 null, new Color(0, 0, 0)));
+		panel.setBackground(ViewStatics.floralwhite);
+		panel.setLayout(new FlowLayout());
+		
+
+		panel.setPreferredSize(new Dimension(400,240));
+		
+		categorypanels.add(panel);
+
+		scroller.setPreferredSize(new Dimension(400,160));
+		scroller.setMinimumSize(new Dimension(50,80));
+
+		scroller.setViewportView(panel);		
+		
+		return scroller;
+	}
+
+	private void makeAndAddCheckBoxes(ArrayList<String> names) {
+
+		String name;
+		JCheckBoxMenuItem item;
+		
+		for (int i = 0; i < names.size(); i++) {
+
+			name = names.get(i);
+			item = new JCheckBoxMenuItem(name);
+			
+			item.setActionCommand(name);
+			item.setName(name);
+			item.addItemListener(this);
+			
+			categories.add(item);
+			mnuCategories.add(item);
+			categorychkbxs.add(item);
+		}
+	}
+
+	//end_win_var_init
+
 	/**
-	 * A DeductionWriter sub application for choosing which mathematics primitives and glyphs to use when writing theorems.
-	 *
-	 * @param base The data base containing theorems and their constituents.
-	 */	
-	public DeductionPicker(Session session)  {
+	 * Sub application for choosing glyphs out of the UTF-8 character set to
+	 * use in the main application DeductionWriter.
+	 */
+	public DeductionPicker(Session session) {
 		super("Pick primitives ...");
 		
 		this.session = session;
-		this.dialog = new PickerDialog(this,this.session);
+		this.categorynames.addAll(ViewStatics.CATEGORIES);	
+		this.summarydialog  = new PickerDialog<C>(this,this.session);
+		this.utfdialog = new UTFDialog(this);
 		
-		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-		setBounds(100, 100, 1090, 800);
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setBounds(100, 100, 640, 560);	
+
 		
-		contentPane.setBorder(new TitledBorder("Pick your primitives for further use in deductions"));
-		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.Y_AXIS));
-		setContentPane(contentPane);		
+		JPanel 		pnlLower 	= new JPanel();
+		JPanel 		contentPane = new JPanel();		
+		JMenuBar 	menuBar 	= new JMenuBar();
+		JScrollPane scrOverview = new JScrollPane();
+
+		this.setJMenuBar(menuBar);
+		menuBar.add(mnuCategories);
+		menuBar.add(mnuCodepoint);
+
+		itmCodepoint.addActionListener(this);
+		itmCodepoint.setActionCommand("custom");
 		
-		makeScrollPane(-1);				// overview panel
+		mnuCodepoint.add(itmCodepoint);
 		
-		mnuBar.add(overview);
-		mnuBar.add(mnuCategories);
-		contentPane.add(mnuBar);
-						
-		categories.add("default");
-		categories.add("lowercase");
-		categories.add("uppercase");
-		categories.add("algebra");
-		categories.add("logic");
-		categories.add("fundamental_sets");	
-						
-		makeAndAddCheckBoxes();
+		makeAndAddCheckBoxes(categorynames);		
+		makeUpper(scrOverview);				
+		makeLower(pnlLower);
 		makeAndAddButtons();
-		makePanesAndPanels();
 		
-		fillPaneByPrimitivesView("default", 0);
-		fillPaneByPrimitivesView("lowercase", 1);
-		fillPaneByPrimitivesView("uppercase", 2); 
-		fillPaneByPrimitivesView("algebra", 3);
-		fillPaneByPrimitivesView("logic", 4);
-		fillPaneByPrimitivesView("fundamental_sets", 5); 
+		this.setContentPane(contentPane);		
 		
-		checkboxes.get(0).setSelected(true);
-		checkboxes.get(1).setSelected(false);
-		checkboxes.get(2).setSelected(true);		
+		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.PAGE_AXIS));	
+		contentPane.add(scrOverview);	
+		contentPane.add(pnlLower);
+		contentPane.setBorder(new EmptyBorder(2, 2, 2, 2));
 
-		contentPane.doLayout();
-		contentPane.revalidate();
+		this.makePanesAndPanels();
+		this.setupCategoryPanes();		
 	}
 
 	
-	/**
-	 * Store selected primitives in the data base.
-	 *
-	 * @param viewprefix What name to add as prefix when naming the table of primitives.
-	 */
-	public void storeInBase(String viewprefix) {		
-		session.getBase().insertPrimitivesTable(selected, viewprefix);
+	public void actionPerformed(ActionEvent e) {
+		Object sender = e.getSource();
+
+		if (sender instanceof DButton) {
+
+			DButton button = (DButton) e.getSource();
+
+			Formal value = button.getDescribed().value();
+
+			if (selected.contains(value))
+				selected.remove(value);
+			else
+
+			toggleInPanels(value);
+			selected.add(value);
+
+			updateOverview();
+
+		} else {
+
+			switch (e.getActionCommand()) {
+
+				case "store-load-add":
+					summarydialog.initialise();
+					ViewStatics.switchContainer(summarydialog, this);
+					break;
+	
+				case "custom":
+						ViewStatics.switchContainer(utfdialog, this);
+						break;
+				case "reset":
+					this.setSelectedAll(false);
+					this.clearSelected();
+					break;
+	
+				case "quit":
+					ViewStatics.switchContainer(mainframe, this);
+					break;
+	
+				default:
+					break;
+			}
+		}
 	}
 	
-	/**
-	 * Sets the sibling main frame of this sub application. Used in initialisation.
-	 *
-	 * @param mainframe The main DeductionWriter frame.
-	 */
-	public void setMainFrame(DeductionFrame mainframe) {
-		this.mainframe = mainframe;
-	}
+	public void itemStateChanged(ItemEvent e) {
+
+		JMenuItem item = (JMenuItem) e.getItem();
+		
+		String command = item.getActionCommand();
+		
+		int index = indexOf(command, categorynames);
+
+		if (item.isSelected()) 			
+			pnlCategories.add(categoryscrollers.get(index));
+		else
+			pnlCategories.remove(categoryscrollers.get(index));
+
+		pnlCategories.doLayout();
+		pnlCategories.revalidate();
+	}	
+
 	
+
+	public void addCustomGLyph(int codepoint) {
+
+		DPrimitive fresh = new DPrimitive(codepoint);
+		DPrimitive old;
+		
+		if (!PaintStatics.GLYPHDICTIONARY.containsValue(fresh))
+			old = PaintStatics.GLYPHDICTIONARY.put((char) codepoint, fresh);
+		else 
+			old = null;
+				
+		
+		DButton button = new DButton(fresh);
+
+		button.addActionListener(this);
+		button.setBorderPainted(false);
+					
+		int index = categorynames.indexOf("custom");
+
+		categorypanels.get(index).add(button);			
+	}
 	/**
 	 * Update the overview panel and all structures it depends on.
 	 */
 	public void updateOverview() {
 		
-		overview.removeAll();
+		pnlUpper.removeAll();
 		
 		for (Formal formal : selected) {
 			
@@ -133,13 +327,21 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 			button.setSelected(true);
 			button.setBorderPainted(true);
 
-			overview.add(button);
+			pnlUpper.add(button);
 		}
 		
-		overview.revalidate();
-		overview.repaint();
+		pnlUpper.revalidate();
+		pnlUpper.repaint();
 	}
 	
+	/**
+	 * Store selected primitives in the data base.
+	 *
+	 * @param viewprefix What name to add as prefix when naming the table of primitives.
+	 */
+	public void storeInBase(String viewprefix) {		
+		session.getBase().insert(new ArrayList<Formal>(selected), viewprefix);
+	}
 	/**
 	 * Adds a database table of primitives to the currently selected primitives.
 	 *
@@ -156,71 +358,69 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 		
 		this.addToSelected(view);
 	}
+	/**
+	 * Sets the sibling main frame of this sub application. Used in initialisation.
+	 *
+	 * @param mainframe The main DeductionWriter frame.
+	 */
+	public void setMainFrame(DeductionFrame mainframe) {
+		this.mainframe = mainframe;
+	}
+		
+	private void setupCategoryPanes() {
+		
+		int i = 0;
+
+		for (String category : categorynames)
+			fillPaneByPrimitivesView(category, i++);
+		
+		categorychkbxs.get(0).setSelected(true);
+		categorychkbxs.get(1).setSelected(false);
+		categorychkbxs.get(2).setSelected(true);	
+	}
+	/**
+	 * Fill a pane with primitives from a particular sql view.
+	 *
+	 * @param viewname 	The view (table) of primitives.
+	 * @param paneindex Index of the pane to fill.
+	 */
+
+	private void fillPaneByPrimitivesView(String viewname, int paneindex) {
+
+		DPrimitive fresh, old;
+	
+		ArrayList<Integer> codepoints = session.getBase().fetchCategory(viewname);
+		
+		for (int codepoint : codepoints) {
+						
+			fresh = new DPrimitive(codepoint);									// DOES NOT SET TYPE
+						
+			if (!PaintStatics.GLYPHDICTIONARY.containsValue(fresh))
+				old = PaintStatics.GLYPHDICTIONARY.put((char) codepoint, fresh);
+			else 
+				old = null;
+				
+			DButton button = new DButton(fresh);
+
+			button.addActionListener(this);
+			button.setBorderPainted(false);
+						
+			categorypanels.get(paneindex).add(button);			
+		}			
+
+	}
 	
 	/**
 	 * Clear selected primitives and everything it depends on.
 	 */
-	public void clearSelected() {
+	private void clearSelected() {
 
 		selected.clear();
 		
-		overview.removeAll();
-		overview.revalidate();
-		overview.repaint();
-	}
-
-	/**
-	 * Action performed. Receives buttons by their events, adds and removes them and also handles all other 
-	 * button-triggered functionality. 
-	 * 
-	 * @param e	The action event.
-	 */
-	public void actionPerformed(ActionEvent e) {
-
-		Object sender = e.getSource();
-		
-		if (sender instanceof DButton) {
-			
-			DButton button = (DButton) e.getSource();
-			
-			Formal value = button.getDescribed().value();
-										 
-			boolean removed = false; 
-
-			if (selected.contains(value))  	
-				removed = selected.remove(value);
-			else 			
-				selected.add(value);
-
-			toggleInPanels(value);
-
-			updateOverview();		
-			
-		} else {
-
-			switch (e.getActionCommand()) {
-			
-				case "load-store":
-					dialog.initialise();
-					Toolbox.switchContainer(dialog, this);
-					break;
-		
-				case "reset":
-					this.setSelectedAll(false);
-					this.clearSelected();
-					break;
-		
-				case "quit":
-					Toolbox.switchContainer(mainframe, this);
-					break;
-	
-				default:					
-					break;
-			}
-		}
-		
-	}
-	
+		pnlUpper.removeAll();
+		pnlUpper.revalidate();
+		pnlUpper.repaint();
+	}	 	
 	/**
 	 * Adds a collection of formals to the set of currently selected.
 	 *
@@ -228,7 +428,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	 */
 	private void addToSelected(Collection<Formal> addition) {
 		
-		for (JScrollPane sp : scrollers) {
+		for (JScrollPane sp : categoryscrollers) {
 			
 			Component component = sp.getViewport().getView();
 			
@@ -258,7 +458,6 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 				System.err.println("Unknown component in JScrollPane");	
 		}		
 	}
-
 	/**
 	 * Set all buttons selected state.
 	 *
@@ -266,7 +465,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	 */
 	private void setSelectedAll(boolean selected) {
 		
-		for (JPanel p : panels) {
+		for (JPanel p : categorypanels) {
 			
 			Component[] buttons = p.getComponents();
 			
@@ -275,6 +474,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 				if (c instanceof DButton) {
 					
 					DButton b = (DButton) c;
+					
 					b.setSelected(selected);
 					b.setBorderPainted(selected);
 					
@@ -286,13 +486,13 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	}
 	
 	/**
-	 * Toggle a particular primitive's button in all panels in this sub application.
+	 * Toggle a particular primitive's button in all categorypanels in this sub application.
 	 *
 	 * @param primitive The primitive who's button to toggle everywhere it occurs.
 	 */
 	private void toggleInPanels(Formal primitive) {
 		
-		for (JScrollPane sp : scrollers) {
+		for (JScrollPane sp : categoryscrollers) {
 			
 			Component component = sp.getViewport().getView();
 			
@@ -320,158 +520,7 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 		}
 	}
 	
-	/**
-	 * Fill a pane with primitives from a particular sql view.
-	 *
-	 * @param viewname 	The view (table) of primitives.
-	 * @param paneindex Index of the pane to fill.
-	 */
-	private void fillPaneByPrimitivesView(String viewname, int paneindex) {
-
-		DPrimitive fresh, old;
 	
-		ArrayList<Integer> codepoints = session.getBase().fetchCategory(viewname);
-		
-		for (int codepoint : codepoints) {
-						
-			fresh = new DPrimitive(codepoint);									// DOES NOT SET TYPE
-						
-			if (!Toolbox.GLYPHDICTIONARY.containsValue(fresh))
-				old = Toolbox.GLYPHDICTIONARY.put((char) codepoint, fresh);
-			else 
-				old = null;
-			
-			
-			if (old != null) {
-				if (Toolbox.DEBUGVERBOSE) System.out.println("Replaced " + old.getCodepoint() + " with " + fresh.getCodepoint() + " in glyphdictionary.");
-			}
-			
-			DButton button = new DButton(fresh);
-
-			button.addActionListener(this);
-			button.setBorderPainted(false);
-						
-			panels.get(paneindex).add(button);			
-		}			
-	}
-
-	
-	/* * * * * * * * * * AWT & SWING * * * * * * * * * */
-	
-	private JPanel 					contentPane = new JPanel();		
-			
-	private 		JPanel						 overview;
-	private final	ArrayList<JPanel> 			 panels 		= new ArrayList<JPanel>();
-	private final	ArrayList<JScrollPane>		 scrollers		= new ArrayList<JScrollPane>();
-	private final 	ArrayList<JCheckBoxMenuItem> checkboxes 	= new ArrayList<JCheckBoxMenuItem>();
- 
-	private final JMenuBar 	mnuBar 			= new JMenuBar();	
-	private final JMenu 	mnuCategories 	= new JMenu("Categories");
-
-	private JButton btnExport, btnQuit, btnReset;
-	
-
-	/**
-	 * Responds to changes in the menu.
-	 * 
-	 * @param e	Event generated by menu when changed.
-	 */
-	public void itemStateChanged(ItemEvent e) {
-
-		JMenuItem item = (JMenuItem) e.getItem();
-
-		int index = indexOf(item.getActionCommand(), categories);
-
-		if (item.isSelected())			
-			contentPane.add(scrollers.get(index));
-		else
-			contentPane.remove(scrollers.get(index));
-
-		contentPane.doLayout();
-		contentPane.revalidate();
-	}
-
-	
-	private JScrollPane makeScrollPane(int index) {
-		
-		JScrollPane scroller = new JScrollPane();
-		
-		String name;
-		
-		if (index != -1) 
-			name = categories.get(index);
-		else
-			name = "selected";
-		
-		int width  = contentPane.getWidth();
-		int height = this.getHeight() / 4;
-	
-		scroller.setName("scr" + name);
-		
-		JPanel panel = new JPanel();
-		panel.setName("pnl" + name);
-	
-		EtchedBorder etchedBorder = new EtchedBorder(EtchedBorder.LOWERED, null, null);
-		
-		panel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), 
-										 name, TitledBorder.CENTER, TitledBorder.TOP, 
-										 null, new Color(0, 0, 0)));
-		panel.setBackground(Color.WHITE);
-		panel.setLayout(new FlowLayout());
-		panel.setPreferredSize(new Dimension(width - 40, 4 * height));
-		
-		if (index != -1)
-			panels.add(panel);
-		else
-			this.overview = panel;
-			
-		scroller.setPreferredSize(new Dimension(width - 20, height));
-		scroller.setViewportView(panel);		
-		
-		return scroller;
-	}
-
-	private void makeAndAddButtons() {
-
-		btnExport = new JButton("Add or store");		
-		btnExport.setActionCommand("load-store");
-		btnExport.addActionListener(this);
-		mnuBar.add(btnExport);
-
-		btnReset = new JButton("Reset selection");		
-		btnReset.setActionCommand("reset");
-		btnReset.addActionListener(this);
-		mnuBar.add(btnReset);
-
-		btnQuit = new JButton("Quit");		
-		btnQuit.setActionCommand("quit");
-		btnQuit.addActionListener(this);
-		mnuBar.add(btnQuit);
-	}
-
-	private void makePanesAndPanels() {
-
-		for (int i = 0; i < categories.size(); i++) {
-
-			JScrollPane pane = makeScrollPane(i);
-			scrollers.add(pane);
-		}
-	}
-
-	private void makeAndAddCheckBoxes() {
-
-		for (int i = 0; i < categories.size(); i++) {
-
-			JCheckBoxMenuItem item = new JCheckBoxMenuItem(categories.get(i));
-			item.addItemListener(this);
-			item.setActionCommand(categories.get(i));
-			item.setName(categories.get(i));
-			mnuCategories.add(item);
-			checkboxes.add(item);
-		}
-	}
-
-
 	private static int indexOf(String string, ArrayList<String> strings) {
 
 		for (int i = 0; i < strings.size(); i++) {
@@ -481,7 +530,6 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 
 		return -1;
 	}
-
 	
 	/* * * * * * * * * * FOCUS TRAVERSAL * * * * * * * * * */
 	
@@ -489,7 +537,6 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	public Container[] focusCycleRoots() {
 		return new Container[] { this };
 	}
-
 	/** {@inheritDoc} */
 	public Component[][] focusCycleNodes() {
 		return new Component[][] { new Component[] { btnExport, btnReset }};
@@ -497,9 +544,10 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	
 	/** {@inheritDoc} */
 	public void setDefaultComponent() {
-		this.defaultcomponent = overview;		
+		this.defaultcomponent = pnlUpper;		
 	}
 
+	
 	/**
 	 * Not in use.
 	 * 
@@ -508,7 +556,6 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 	public void loadPrimitives(String columnvalue) {
 		// NOT IN USE		
 	}
-
 	/**
 	 * Not in use.
 	 * 
@@ -518,4 +565,19 @@ public class DeductionPicker extends AbstractFrame implements ActionListener, It
 		// NOT IN USE		
 	}
 
+
+	public static JButton makeControlButton(String name, String command, ActionListener listener) {
+		
+		JButton button = new JButton(name);		
+
+		button.setMargin(ViewStatics.btnInset);
+		//button.setBorder(new BevelBorder(BevelBorder.RAISED));
+		button.setBackground(ViewStatics.btnBkgr);
+		button.setFont(ViewStatics.btnFontBold);
+		
+		button.setActionCommand(command);
+		button.addActionListener(listener);
+		
+		return button;		
+	}
 }

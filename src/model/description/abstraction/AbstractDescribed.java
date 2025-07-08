@@ -1,9 +1,15 @@
 package model.description.abstraction;
 
-import java.awt.Point;
+import java.awt.Graphics;
+import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 
-import control.Toolbox;
+import control.statics.PaintStatics.Size2D;
+import model.description.DPrimitive;
 import model.description.DRectangle;
+import model.logic.Primitive;
 import model.logic.abstraction.AbstractFormal;
 import model.logic.abstraction.Formal;				// interface Formal is doubly implemented by AbstractDComposite and AbstractDescribed
 
@@ -16,87 +22,103 @@ import model.logic.abstraction.Formal;				// interface Formal is doubly implemen
 public abstract class AbstractDescribed extends AbstractFormal implements Described {
 
 	/** Baseline length is the basis for scale computation for now. Don't know typography more than so. */
-	protected float 		scale = 1.0f;
-	private boolean 		underlined = false;
-
 	/** {@inheritDoc} */
 	protected DRectangle 	description;
-
 	
-	/** {@inheritDoc} */
-	public Formal		value() {
-		return description.getValue();
-	}
-
-	/** {@inheritDoc} */
-	public DRectangle 	description() {
-		return description;
-	}	
-
-
-	/** {@inheritDoc} */
-	public Point 		getLocalReference() {		
-		return description.getReference();
-	}
-
-	/** {@inheritDoc} */
-	public Point 		getGlobalReference() {
-
-		Point offset = description.getReference();
-		Point upperleft = description.getLocation();
-		upperleft.translate(offset.x, offset.y);
-		
-		return upperleft;
-	}
+	private boolean 		underlined = false;
 	
-	/** {@inheritDoc} */
-	public Point		getLocation() {
-		return description.getLocation();
-	}
 	
-	/** {@inheritDoc} */
-	public void 		setLocation(Point location) {
-		this.description.setLocation(location.getLocation());
-		this.description.translate(Toolbox.negate(this.description.getReference()));
+	public void 		draw(Graphics g) {
+		description.draw(g,underlined);
 	}
 
-	
 	/** {@inheritDoc} */
 	public void 		underline(boolean underline) {
 		this.underlined = underline;
 	}
-
 	/** {@inheritDoc} */
 	public boolean 		isUnderlined() {
 		return underlined;
 	}
-
 	/** {@inheritDoc} */
 	public boolean 		isDummy() {
 
 		int UTFMAX = 10000;
 
-		// Composites can't be dummies.		
-		return (this.codepoint < UTFMAX) ? this.codepoint == Toolbox.DUMMYCURSOR.getCodepoint() : false;
+		return (this.codepoint < UTFMAX) ? this.codepoint == Primitive.DUMMYFORMAL.getCodepoint() : false;
+	}
+	
+	// // //  CONTINUATION  TO DRectanle  - Code reuse has to stand back for interface semantics disciplin // // //
+	/** {@inheritDoc} */
+	public Formal		value() {
+		return description.getValue();
+	}
+	
+	public DRectangle 	description() {	
+		return description;		
 	}
 
 	
+	public Point2D.Double 		getLocalReference() {
+		return description.getLocalReferencepoint();
+	}
+	
+	public Point2D.Double 		getWritepoint() {
+		return description.getWritepoint();
+	}
 	/** {@inheritDoc} */
-	public String 		toString() {
+	public void 				setWritepoint(Double writepoint) {
+
+		description.setWritepoint(writepoint);
+	}
+	
+	public void 				setErase() {
+		description.setErase();
+	}
+	
+	public double 				getAdvance() {
+		return description.getAdvance();
+	}
+	/** {@inheritDoc} */
+	public Rectangle2D.Double 	getBounds() {
+		return (Rectangle2D.Double) description.getBounds2D();
+	}
+
+	// // //  CONTINUATION END  // // //
+
+	
+	public Size2D				getSize() {
+		return new Size2D(description);
+	}
+	
+	
+	public BufferedImage 				getImage() {
+		return description.getImage();
+	}
+	/** {@inheritDoc} */
+	public String 						toString() {
 	
 		return "D[" + this.value().toString() + ", x=" + this.description.x + ", y=" + this.description.y + "]";
 	}
-
 	/** {@inheritDoc} */
-	public abstract AbstractDescribed clone();
+	public abstract AbstractDescribed 	clone();
 	
-	/** {@inheritDoc} */
-	public int 			hashCode() {
-		return System.identityHashCode(this);
+
+	public AbstractDescribed 			scaledClone(double baseline, boolean transparent) {
+		
+		DPrimitive clone =  new DPrimitive(this.getCodepoint(), baseline, transparent);
+
+		clone.setWritepoint(this.getWritepoint());
+	
+		return (AbstractDescribed) clone;
 	}
 
 	/** {@inheritDoc} */
-	public boolean 	  	equals(Object other) {
+	public int 							hashCode() {
+		return System.identityHashCode(this);
+	}
+	/** {@inheritDoc} */
+	public boolean 	  					equals(Object other) {
 
 		if (other instanceof Described)
 			return (((Described) other).hashCode() == this.hashCode());

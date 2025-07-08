@@ -1,14 +1,19 @@
 package model.description;
 
-import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Point;
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-import control.Toolbox;
+import control.statics.CharGauge;
+import control.statics.PaintStatics;
+import model.description.abstraction.Placeholder;
+import model.logic.Composite;
+import model.logic.Primitive;
 import model.logic.abstraction.Formal;
 
 /**
@@ -24,198 +29,136 @@ import model.logic.abstraction.Formal;
  * @see model.description.abstraction.Described#description()
  * @see model.description.abstraction.Described#value()
  */
-public class DRectangle extends Rectangle {
+public class DRectangle extends DCursor {
+	
+	
+	public static final DRectangle DUMMYRECTANGLE = dummyDescription();
+	
+	
+	private	BufferedImage	image, transparent;
 
-	/** This glyphs holds a copy of the formal value it describes. */
-	private Formal	 		value;	
-	/** The glyph image of the description. */
-	private	BufferedImage	image;
-	/** The advancing length in pixels when typing this mathematics. */
-	private	int				advance;
-	/** Point pointing to the start of the base line. */
-	private	Point			reference;		// STORED IN DB.
+	private Rectangle2D.Double	surrounding;			// offset vector plus size
 
+	private boolean background = false;
 	/** For later use: affine transform to further manipulate the glyph. */
 	protected static AffineTransform	transform = null;								
-
-
-    /**
-     * As previous constructor but scales rendering so as to fit onto a baseline.
-     * 
-     * @param primitive	The formal primitive to render an image for.
-     * @param baseline	The length of the rendered glyph's baseline.
-     */
- 	public DRectangle(Formal primitive, int baseline) {
-
- 		this.value 		= primitive;
- 		this.advance 	= baseline;
-
- 		this.image 		= render(baseline, primitive.getCodepoint());
- 		this.reference 	= referencePoint(primitive.getCodepoint(), this.image);
-
- 		int height 		= image.getHeight(null);
- 		int width  		= this.advance;
-
- 		super.setLocation(Toolbox.negate(this.reference));
- 		super.setSize(new Dimension(width, height));
- 	}
- 	
-	/**
+	
+		/**
 	 * A default graphical description (glyph) of a formal mathematics primitive. The glyph is rendered by the 
 	 * typographical standards of UTF.
 	 * 
 	 * @param primitive	The formal primitive to render an image for.
 	 */
     public DRectangle(Formal primitive) {
-		this(primitive, Toolbox.advance((char) primitive.getCodepoint()));
+		this(primitive, new CharGauge(primitive).advance, false);
 	}
-    
-	/**
-	 * An empty graphical description.
-	 */
-    public DRectangle() {
-    	this(Toolbox.DUMMY);
-    }
-
-    
-	/**
-	 * The value that this object describes graphically.
-	 * 
-	 * @return A formal mathematical primitive value.
-	 */
-	public Formal getValue() {
-    	return value;
-    }
-	
-	/**
-	 * This graphical description as an buffered image.
-	 * 
-	 * @return The image with this rectangle's bounds depicting the glyph.
-	 */
-    public BufferedImage getImage() { 
-    	return image; 
-    }
-
-    
     /**
-     * Set the location of this description - it's upper left corner.
+     * As previous constructor but scales rendering so as to fit onto a baseline.
+     * 
+     * @param primitive	The formal primitive to render an image for.
+     * @param baseline	The length of the rendered glyph's baseline.
+     * @param transparent TODO
      */
-    public void setLocation(Point location) {
-    	super.setLocation(location);
-    }
-    
-	/**
-	 * Translates this descriptions image by the vector given. The vector is given as a point.
-	 * 
-	 * @param vector	Translates this description by a the vector. 
-	 */
-    public void translate(Point vector) {
-    	super.translate(vector.x,  vector.y);
-    }
-    
-    
-	/**
-	 * Return the length that this advances the cursor.
-	 * 
-	 * @return 	The number of pixels that this glyph proceed the cursor.
-	 *
-	 * @see java.awt.FontMetrics
-	 */
-	public int getAdvance() {
-		return advance;
-	}
+ 	public DRectangle(Formal primitive, double baseline, boolean transparent) {
+ 		super(primitive, baseline);
 
-	/**
-	 * Gives the typographical reference point of this glyph, that points to the beginning of it's base line.
-	 * 
-	 * @return 	The first point of this glyph's baseline.
-	 * 
-	 * @see java.awt.FontMetrics
-	 */
-	public Point getReference() {
-		return reference;
+ 		this.background 	= transparent;
+ 		this.image 			= PaintStatics.makeGlyph(primitive.getCodepoint(), baseline, this.background);
+ 		this.transparent 	= PaintStatics.transparantSurrounding(this.image);			
+
+ 		this.surrounding 	= new Rectangle2D.Double(-width/2.0,-height/2.0 , 2*width, 2*height); 		
+  	}
+	
+    public DRectangle(Composite value, Placeholder frame, BufferedImage fullglyph) {
+    	super(frame);
+    	
+    	this.value 			= (Formal) value;
+ 		this.image 			= fullglyph;
+ 		
+// 		int width  = this.image.getWidth();
+// 		int height = this.image.getHeight();
+// 		
+ 		this.surrounding 	= new Rectangle2D.Double(-width/2.0d, -height/2.0d , 2*width, 2*height); 		
+ 		this.transparent 	= PaintStatics.transparantSurrounding(this.image);			
 	}
 
 	    
-    /**
-     * Provides the possibility to replace this descriptions image. Will probably be removed.
-     * 
-     * @param image		The image of this description frame. This method exist for the sake of
-     * 					describing composites since they are often rerendered when constructed.
-     * 					It should not be used by primitives which are rendered according standards.
-     */
-	public void setImage(BufferedImage image) {
-		this.image = image;		
-	}
+	public void draw(Graphics g, boolean underlined) {	
+
+		// the surrounding (outer)
+		Graphics2D g2d = (Graphics2D) g.create((int)(x + surrounding.x), (int)(y + surrounding.y), (int)surrounding.width, (int)surrounding.height);
+
+		if (erase) {	
+			g2d.setColor(PaintStatics.BACKGROUND);
+			g2d.fill(this);	
+			erase = false;
+		}
 		
-	/**
-	 * Tells wether this description is rendered or not in its current state.
-	 * 
-	 * @return True or false wether rendered or not.
-	 */
-	public boolean isRendered() {	
-		return image != null;
+		g2d.drawImage(transparent, 0, 0, null, null);
+		
+		// the glyph (inner)
+		g2d = (Graphics2D) g.create((int) x, (int) y, (int) width, (int) height);
+
+		g2d.drawImage(image, 0, 0, null, null);		
+							
+		underline(underlined, g2d, reference, advance);
+		
+		g2d.dispose();		
 	}
 	
+	
+	public BufferedImage getImage() {
+		return image;
+	}
 	
 	/**
 	 * Deep clone except for images.
 	 */
 	public DRectangle clone() {	
  
-		DRectangle clone = new DRectangle(value, getAdvance());
+		DRectangle clone = new DRectangle(value, advance, background);
+    	    	
+		clone.image 		= this.image;
+		clone.transparent 	= this.transparent;
+		clone.advance 		= this.advance;
+		clone.reference 	= (Point2D.Double) this.reference.clone();
+	
+		clone.setFrame(this.getFrame());
+		
+		return clone;
+    }
+	
+	public DCursor cast() {	
+		 
+		DCursor cast = new DCursor(value, advance);
+    			
+       	cast.setWritepoint(this.getWritepoint());
     	
-		clone.image = this.image;
-    	clone.transform = (transform != null) ? (AffineTransform) this.transform.clone() : null;
-
-    	clone.setLocation(this.getLocation());
-    	
-    	return clone;
+    	return cast;
     }
 
 	
-	/**
-	 * Computes the reference point of a glyph. For now only the image are considerd when deciding the
-	 * baseline's offset. Later more exotic fonts could demand that codepoint is taken into account.
-	 * 
-	 * @param codepoint	The codepoint of the symbol represented. *not in use yet*
-	 * @param image		The glyph of the math symbol.
-	 * 
-	 * @return 			Point pointing at the referencepoint, the beginning of the baseline.
-	 */
-    public static Point referencePoint(int codepoint, BufferedImage image) {
+	private static void underline(boolean underlined, Graphics2D gc, Point2D.Double reference, double advance) {
 
-    	int y = image.getHeight();
-    	
-    	double scaling = y / ((double) Toolbox.FONTMETRICS.getHeight()); 
-    	
-    	y -= (int) (scaling * Toolbox.FONTMETRICS.getDescent());
-    	
-    	return new Point(0,y);
+		if (underlined) {
+			gc.setColor(Color.green);
+			
+			gc.fillRect((int) reference.x, (int) reference.y + 1, (int) advance, 1);
+		}
+	}	
+
+	private final static DRectangle dummyDescription() {
+		
+		DRectangle dummy 	= new DRectangle(Primitive.makeValue(-1), (int)PaintStatics.AVERAGEADVANCE, false);
+		
+		dummy.value 		= Primitive.DUMMYFORMAL;
+
+		Rectangle bounds 	= PaintStatics.DUMMYBOUNDS.getBounds();
+
+		dummy.image 		= new BufferedImage(bounds.width, bounds.height,BufferedImage.TYPE_INT_ARGB);
+		dummy.transparent 	= PaintStatics.transparantSurrounding(dummy.image);
+		dummy.surrounding 	= new Rectangle2D.Double(-bounds.width/2.0d, -bounds.height/2.0d,bounds.width,bounds.height);	// ERRONIOUS		
+		 		
+		return dummy;
 	}
-
-	private static BufferedImage render(int baseline, int codepoint) {
-		
-		BufferedImage image = Toolbox.makeGlyph(codepoint, Toolbox.advance((char) codepoint));
-		
-		int renderedheight = image.getHeight();
-		
-		int unitwidth  = image.getWidth(null);
-		int unitheight = image.getHeight(null);
-		
-		float xscale = ((float) baseline) / unitwidth; 
-		float yscale = ((float) renderedheight) / unitheight; 
-
-		int width  = (xscale <= yscale) ? baseline : -1;
-		int height = (width == -1) ? renderedheight : -1;
-		
-   		Image scaled = image.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-
-   		Graphics2D g = (Graphics2D) image.getGraphics();
-   		
-   		g.drawImage(scaled, transform, null);
-   		
-   		return image.getSubimage(0, 0, scaled.getWidth(null), scaled.getHeight(null));
-	}
-
 }

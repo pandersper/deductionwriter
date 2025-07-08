@@ -19,8 +19,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
-import control.Shortcut;
-import control.Toolbox;
+import control.session.Shortcut;
+import control.statics.ViewStatics;
 import model.description.DComposite;
 import model.description.DPrimitive;
 import model.description.abstraction.Described;
@@ -41,7 +41,7 @@ public class BindingsViewDialog extends JFrame {
 	/**
 	 * Container gathering relevant things for choosing and altering bindings for described primitives. 
 	 * It has buttons and text fields to adjust and correct values for the bindings. It's actionPerformed
-	 * method updates the fields and then pass them on to the parent trainer module which does the actual
+	 * method updates the fields and then pass them on to the elder trainer module which does the actual
 	 * removing and updating of the buttons, containing their described formals and bindings.
 	 */
 	public class BindingContainer extends Container implements ActionListener {
@@ -88,7 +88,7 @@ public class BindingsViewDialog extends JFrame {
 			for (JTextField txf : txfs) this.add(txf);
 				
 			Action delete = new AbstractAction() {
-				public void actionPerformed(ActionEvent e) { }		// done in parent.actionPerformed(e); 
+				public void actionPerformed(ActionEvent e) { }		// done in elder.actionPerformed(e); 
 			};
 			delete.putValue("container", this);
 
@@ -99,7 +99,7 @@ public class BindingsViewDialog extends JFrame {
 			btnDelete.setBackground(Color.black);
 			
 			Action catchit = new AbstractAction() {
-				public void actionPerformed(ActionEvent e) { }		// done in parent.actionPerformed(e); 
+				public void actionPerformed(ActionEvent e) { }		// done in elder.actionPerformed(e); 
 			};
 			catchit.putValue("container", this);
 			
@@ -129,10 +129,10 @@ public class BindingsViewDialog extends JFrame {
 
 		/**
 		 * Action performed. Updates value fields and textfields and then pass on the editing of the 
-		 * buttons and primitives to parent deduction panel. By passing on a new binding event. 
+		 * buttons and primitives to elder deduction panel. By passing on a new binding event. 
 		 *
 		 * @param e The event originating from textfields or buttons of this container. Propagation
-		 * 			to parent panel is done by a new event named "binding".
+		 * 			to elder panel is done by a new event named "binding".
 		 */
 		public void actionPerformed(ActionEvent e) {
 			
@@ -174,7 +174,7 @@ public class BindingsViewDialog extends JFrame {
  	/**
 	  * Instantiates a new bindings view dialog.
 	  *
-	  * @param parentcontainer The main (parent) frame of the sub application.
+	  * @param parentcontainer The main (elder) frame of the sub application.
 	  */
 	public BindingsViewDialog(DeductionTrainer parent) {
 
@@ -302,18 +302,26 @@ public class BindingsViewDialog extends JFrame {
 		
 		for (Tuple<Described, Shortcut> pair : this.bindings) {
 
-			if (pair.second().keycode != -1) {
+			binding = pair.second();
 			
-				binding = pair.second();
+			if (binding != null) {
 
-				bitoken = "[" + (char) (int) binding.keycode + InputEvent.getModifiersExText(binding.modifiers) + "] "; 
-
-				output += bitoken;
-			
-			} else output += "";
+				if (binding.keycode != -1) {
+				
+					bitoken = "[" + (char) (int) binding.keycode + InputEvent.getModifiersExText(binding.modifiers) + "] "; 
+	
+					output += bitoken;
+				
+				} else output += "";
+			}
 		}
 		
 		return output;
+	}
+	
+	public String unoccupiedString() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	
@@ -341,7 +349,7 @@ public class BindingsViewDialog extends JFrame {
 		for (BindingContainer c : containers) 
 			contentPanel.add(c);
 
-		Toolbox.switchContainer(this, opener);
+		ViewStatics.switchContainer(this, opener);
 		this.pack();
 	}
 

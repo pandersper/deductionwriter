@@ -29,10 +29,8 @@ import model.logic.abstraction.Formal;
  * Compare {@link model.logic.Statement} and {@link model.description.DStatement}.
  **/
 public class Statement extends CyclicList<Described> {		
-
 	/** Identifcation number for this statement. Used for storage in the database. */
 	protected String id;
-	
 	
 	/** 
 	 * Constructors is meant to be called by the {@see #makeValue()} and {@see #makeValue(Collection<Described>, ImplicationType)} 
@@ -43,8 +41,7 @@ public class Statement extends CyclicList<Described> {
  		super();
  		
 		id = Double.toString(Math.random()).substring(2);
-    }
-	
+    }	
 	/** 
 	 * Constructors is meant to be called by the {@see #makeValue()} and {@see #makeValue(Collection<Described>, ImplicationType)} 
 	 * but are exported to extending classes as well. Se these methods for description.
@@ -63,7 +60,6 @@ public class Statement extends CyclicList<Described> {
 			this.addLast(new DPrimitive(Implication.makeValue(type)));
 	}
  
-	
 	/**
  	 * Tells if this statement has an Implication that closes it. 
  	 * 
@@ -72,7 +68,7 @@ public class Statement extends CyclicList<Described> {
 	public final boolean isClosed() {
 		return this.getLast().value() instanceof Implication;
 	}
-
+	
 	/**
 	 * Returns a unique identification to be able to store and retreive these values.
 	 * @return	The identification number of this collection of values as a string. 
@@ -80,7 +76,6 @@ public class Statement extends CyclicList<Described> {
 	public final String getID() {
 		return this.id;
 	}
-
 	/**
 	 * Tells what implication that is associated with this statement.
 	 * @return	Returns the following integers: <i>3 - equivalence, 
@@ -131,8 +126,12 @@ public class Statement extends CyclicList<Described> {
 		} else
 			return output.substring(0, output.length());
 	}
-
-	
+	/**
+	 * Number almost unique to this statment. For 'very probably equal' comparison. The sum of
+	 * it's constituing primitives consistency numbers. 
+	 * 
+	 * @return Unique number for a statement like this.
+	 */
 	public long consistencyNumber() {
 		
 		long sum = 0;

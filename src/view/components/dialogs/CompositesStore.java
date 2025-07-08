@@ -1,31 +1,31 @@
 package view.components.dialogs;
+import java.awt.Container;
 import java.util.ArrayList;
 import java.util.Collections;
 
 import javax.swing.JOptionPane;
 
-import control.Session;
-import control.Toolbox;
-import control.db.DeductionBase;
-import view.abstraction.AbstractFrame;
+import control.session.Session;
+import control.statics.Toolbox;
+import control.statics.ViewStatics;
+import view.abstraction.InitiableContainer;
 
 /**
  * Dialog for loading a set of primitives into the application.
  * @see DefaultDialog
  */
-public class CompositesStore extends DefaultDialog {
+public class CompositesStore<C extends Container & InitiableContainer> extends DefaultDialog<C> {
 
 	
 	/**
 	 * Instantiates a new composites loader.
 	 *
-	 * @param grandparent 	The grandparent container ince it is launched by the parent the controlpanel.
+	 * @param grandparent 	The grandparent container ince it is launched by the elder the controlpanel.
 	 * @param base 			The base of theorems, primitives and composites.
 	 */
-	public CompositesStore(AbstractFrame grandparent, Session session) {
+	public CompositesStore(C grandparent, Session session) {
 		super(grandparent, session);
 	}
-
 	
 	/** {@inheritDoc} */
 	protected int updateMenu()  {
@@ -42,6 +42,7 @@ public class CompositesStore extends DefaultDialog {
 		return menu.size();
 	}
 
+	
 	/** {@inheritDoc} */
 	public void load(String loaded) {
 
@@ -51,46 +52,27 @@ public class CompositesStore extends DefaultDialog {
 
 			session.loadComposites(columnvalue);			
 
-			Toolbox.switchContainer(parent, this);
+			ViewStatics.switchContainer(elder, this);
 		}
 	}
 	
 	/** {@inheritDoc} */
 	public void store(String name) {
 
-		done = false;
-		
-		DeductionBase base = session.getBase();
+		if (!list.isSelectionEmpty()) columnvalue = list.getSelectedValue();
+		else {
+			
+			columnvalue = txfName.getText();
 
-		if (Toolbox.isOkName(name)) {	
+			while (!Toolbox.isOkName(columnvalue))
+				JOptionPane.showMessageDialog(elder,"Bad naming, try something else.");
+		}
 
-			if (base.contains(name, "Compositetables", "tablename")) {							
-
-				int ok = JOptionPane.showConfirmDialog(parent, "Name exists, overwrite?");
-
-				if (ok == JOptionPane.OK_OPTION) {
-
-					base.delete("Compositestables", "tablename", name);
-					base.delete("Composites", "tablename", name);			
-
-					session.storeComposites(name);
-
-					done = true;															System.out.println("Composite table " + name + " is overwritten.");
-
-				} else System.out.println("Skipping.");
-
-			} else {
-
-				session.storeComposites(name);
-
-				done = true;																System.out.println("Composite table " + name + " is inserted.");					
-			}
-
-		} else JOptionPane.showMessageDialog(parent, "Bad naming, try again."); 
-
+		session.storeComposites(columnvalue);
+			
 		updateMenu();
-
-		if (done) Toolbox.switchContainer(parent, this);
+		
+		ViewStatics.switchContainer(elder, this);
 	}
 	
 	/** {@inheritDoc} */
@@ -100,15 +82,9 @@ public class CompositesStore extends DefaultDialog {
 
 			columnvalue = list.getSelectedValue();
 
-			DeductionBase base = session.getBase();
-			
-			if (base.contains(columnvalue, "Composites", "tablename")) {						
-				base.delete("Composites", "tablename", columnvalue);
-				System.out.println("Deleted table of composites: " + columnvalue + ".");
-			}
-			
+			session.deleteComposites(columnvalue);
+						
 			updateMenu();	
 		}
 	}
-
 }

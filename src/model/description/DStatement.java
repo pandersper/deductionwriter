@@ -1,9 +1,11 @@
 package model.description;
 
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.util.Collection;
+import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.LinkedList;
 
+import control.statics.Arithmetic;
 import model.description.abstraction.Described;
 import model.logic.Implication.ImplicationType;
 import model.logic.Statement;
@@ -17,41 +19,76 @@ import model.logic.Statement;
  */
 public class DStatement extends Statement {
 
-	/** The start of the baseline this description follows. */
-	private Point location;
-
-	/**
-	 * Indicates that this description should be highlighted with a box framing.
-	 */
-	public boolean boxed;			
-
+	
+	private Point2D.Double writepoint;
 	
 	/**
 	 * An empty described statement.
 	 */
 	public DStatement() {
-		super();		
-		commonConstructor();
+		super();
+		this.writepoint = new Point2D.Double(0,0);
 	}	
-
 	/**
 	 * A described statement consisting of a collection of described formal mathematics primitives.
 	 * 
 	 * @param described 	The collection of described formal primitives.
 	 * @param type 			The implication terminating this statement. 
 	 */
-	public DStatement(Collection<Described> described, ImplicationType type) {
+	public DStatement(LinkedList<Described> described, ImplicationType type) {
 		super(described, type);
-		commonConstructor();
+		this.writepoint = described.getFirst().getWritepoint();
 	}
-
 	
-	private void commonConstructor() {
-		this.location = new Point(0,0);
-		this.id = super.id + "D";		
+	
+	public void draw(Graphics2D g) {
+		
+		for (Described described : this)
+			described.draw(g);
 	}
+		
+	/**
+	 * Returns this statement's location.
+	 * 
+	 * @return 	The statement's location.
+	 */
+	public Point2D.Double getWritepoint() {
+		return writepoint;
+	}
+	/**
+	 * Sets the location of this statement, which is its upper left corner. Often the same as its first 
+	 * described formal's location.
+	 * 
+	 * @param location	The location point.
+	 */
+	public void setWritepoint(Point2D.Double location) {  
 
-	
+		Point2D.Double offset = DRectangle.DUMMYRECTANGLE.clone().getLocalReferencepoint();
+		
+    	this.writepoint.setLocation(Arithmetic.add(location, offset));	
+	}	
+	/**
+	 * Retreives this description's bounding rectangle.
+	 * 
+	 * @return	The rectangular bounds of this statement's description.
+	 */
+ 	public Rectangle2D.Double getBounds() {
+
+		double x = writepoint.x, y = writepoint.y;
+		double width = 0, height = 0;
+		
+		if (super.size() > 0) {
+		
+			Rectangle2D.Double last = super.getLast().getBounds();
+			
+			Point2D.Double uppercorner = new Point2D.Double(last.x + last.width, last.y + last.height);
+
+			width  = uppercorner.x - x; 	height = uppercorner.y - y;
+		} 
+		
+		return new Rectangle2D.Double(x, y, width, height);
+	}
+ 	
 	/**
 	 * Underline this statement, all its formals.
 	 * 
@@ -61,54 +98,11 @@ public class DStatement extends Statement {
 		
 		for (Described d : this) d.underline(underlined);
 	}
-
-	/**
-	 * Sets the location of this statement, which is its upper left corner. Often the same as its first 
-	 * described formal's location.
-	 * 
-	 * @param location	The location point.
-	 */
-	public void setLocation(Point location) {  
-		
-    	this.location.setLocation(location.getLocation());	
-	}	
-
-	/**
-	 * Returns this statement's location.
-	 * 
-	 * @return 	The statement's location.
-	 */
-	public Point getLocation() {
-		return location.getLocation();
-	}
-
-	/**
-	 * Retreives this description's bounding rectangle.
-	 * 
-	 * @return	The rectangular bounds of this statement's description.
-	 */
- 	public Rectangle getBounds() {
-
-		int x = location.x, y = location.y;
-		int width = 0; int height = 0;
-		
-		if (super.size() > 0) {
-		
-			Rectangle last = super.getLast().description().getBounds();
-			
-			Point uppercorner = new Point(last.x + last.width, last.y + last.height);
-
-			width  = uppercorner.x - x; 	height = uppercorner.y - y;
-		} 
-		
-		return new Rectangle(x, y, width, height);
-	}
-
  	
 	/** {@inheritDoc} */ 
 	public String toString() {
 		
-		String output = "D[(" + location.x + "," + location.y + ") ";
+		String output = "D[(" + writepoint.x + "," + writepoint.y + ") ";
 		
 		for (Described dp : this)
 			output +=  dp.toString() + ":";

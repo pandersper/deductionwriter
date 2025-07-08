@@ -1,8 +1,11 @@
 package model.description;
 
+import java.awt.Graphics2D;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
-import control.Toolbox;
+import control.statics.DebugStatics;
+import control.statics.Toolbox;
 import model.description.abstraction.Described;
 import model.independent.CyclicList;
 import model.logic.Implication.ImplicationType;
@@ -35,7 +38,7 @@ import model.logic.Theorem;
 public class DTheorem extends Theorem {
 
 	/** The preliminary statement that is currently not added to the theorem. */
-	private DStatement 				preliminarydescribed;	
+	private DStatement 				preliminary;	
 	/** The statement chosen for editing or deletion. */
 	private DStatement 				chosen;
 	/** The editing aspect or cloak of the statement that is being edited. Null if no statement is edited. The preliminary statement is not 
@@ -52,13 +55,12 @@ public class DTheorem extends Theorem {
 	public DTheorem(String name) {
 		super(name);
 
-		this.preliminarydescribed = new DStatement();	
+		this.preliminary = new DStatement();	
 
 		this.setName(super.getName());
-		super.preliminaryvalue = (Statement) this.preliminarydescribed;
+		super.preliminaryvalue = (Statement) this.preliminary;
 
 	} 
-
 	/**
 	 * Constructs a new described theorem from the contents given as arguments.
 	 *
@@ -66,35 +68,17 @@ public class DTheorem extends Theorem {
 	 * @param sequences 	The sequences of described formal primitives constituting it's statemets.
 	 * @param implications 	The implications between the statements, carrying the deduction forward in the theorem.
 	 */
-	public DTheorem(String name, ArrayList<ArrayList<Described>> sequences, ArrayList<ImplicationType> implications) {
+	public DTheorem(String name, ArrayList<LinkedList<Described>> sequences, ArrayList<ImplicationType> implications) {
 		super(name, sequences, implications);
 
 		ImplicationType type = implications.get(implications.size()-1);
 
-		this.preliminarydescribed = (type == null) ? new DStatement(sequences.get(sequences.size()-1), null) : new DStatement();		
+		this.preliminary = (type == null) ? new DStatement(sequences.get(sequences.size()-1), null) : new DStatement();		
 
 		this.setName(super.getName());
-		super.preliminaryvalue = (Statement) this.preliminarydescribed;
-	} 
-
+		super.preliminaryvalue = (Statement) this.preliminary;
+	} 	
 	
-	/**
-	 * The name of the theorem.
-	 * @return The name of the theorem.
-	 */
-	public String getName() { 
-		return name; 
-	}
-
-	/**
-	 * Sets the name of this described theorem.
-	 *
-	 * @param name The new name.
-	 */
-	public void setName(String name) {
-		this.name = name + "D";	// To distinguish described from formal theorem.
-	}
-
 	/**
 	 * Finalises the preliminary statement, adding it to the theorem together with an ending implication. 
 	 *
@@ -103,28 +87,41 @@ public class DTheorem extends Theorem {
 	 */
 	public DStatement finalisePreliminary(Described implication) {
 
-		assert(preliminarydescribed.size() > 0);
+		assert(preliminary.size() > 0);
 
-		this.preliminarydescribed.addLast(implication);																		
-		this.addLast(preliminarydescribed);
+		preliminary.setWritepoint(preliminary.getFirst().getWritepoint());		
+		preliminary.addLast(implication);																		
+		addLast(preliminary);
 
 		DStatement newpreliminary = new DStatement();
 
-		this.preliminarydescribed = newpreliminary;
+		this.preliminary = newpreliminary;
 		super.preliminaryvalue = (Statement) newpreliminary;
 
-		return this.preliminarydescribed;
+		return this.preliminary;
 	}
 
+	
+	public void draw(Graphics2D g) {
+		for (DStatement statement : this)
+			statement.draw(g);
+	}
+
+	/**
+	 * The name of the theorem.
+	 * @return The name of the theorem.
+	 */
+	public String getName() { 
+		return name; 
+	}
 	/**
 	 * Returns the preliminary described statement.
 	 *
 	 * @return The preliminary described statement.
 	 */
 	public DStatement getPreliminary() {
-		return preliminarydescribed;
+		return preliminary;
 	}
-	
 	
 	/**
 	 * This theorem's first described primitive.
@@ -132,12 +129,11 @@ public class DTheorem extends Theorem {
 	 * @return The first primitive and it's description.
 	 */
 	public Described firstFormal() {
-		if (this.lengthInFormals() > 0)
-			return this.size() != 0 ? this.getFirst().getFirst() : preliminarydescribed.getFirst();
+		if (lengthInFormals() > 0)
+			return size() != 0 ? this.getFirst().getFirst() : preliminary.getFirst();
 		else 
 			return null;
 	}
-	
 	/**
 	 * This theorem's last described primitive.
 	 *
@@ -147,34 +143,22 @@ public class DTheorem extends Theorem {
 
 		Described retur;
 
-		if (!this.preliminarydescribed.isEmpty()) 
-			retur = this.preliminarydescribed.getLast();		// from preliminary
+		if (!preliminary.isEmpty()) 
+			retur = preliminary.getLast();		// from preliminary
 		else 
-			if (!this.isEmpty()) 
+			if (!isEmpty()) 
 				retur = this.getLast().getLast(); 				// from deduction
 			else retur = null;			 						// all empty
 
 		return retur;
 	}
-	
 	/**
 	 * This theorem's first described statement.
 	 *
 	 * @return The first statement and it's description. 
 	 */
 	public DStatement firstStatement() {
-		return this.size() != 0 ? this.getFirst() : preliminarydescribed;
-	}
-	
-	/**
-	 * This theorem's last described statement.
-	 *
-	 * @return The last statement and it's description.
-	 */
-	public DStatement lastStatement() {
-
-		return (this.preliminarydescribed.size() != 0) ? this.preliminarydescribed : 
-			   (this.size() > 0 ? this.getLast() : this.preliminarydescribed) ;
+		return size() != 0 ? getFirst() : preliminary;
 	}
 
 
@@ -184,9 +168,8 @@ public class DTheorem extends Theorem {
 	 * @param added The added described primitive.
 	 */
 	public void appendPrimitive(Described added) {
-		preliminarydescribed.addLast(added);
+		preliminary.addLast(added);
 	}
-	
 	/**
 	 * Insert a described primitive into this theorem.
 	 *
@@ -206,7 +189,6 @@ public class DTheorem extends Theorem {
 			System.out.println("no such described primitive to insert before");
 
 	}
-	
 	/**
 	 * Removes and returns the last primitive of the prliminary statement.
 	 *
@@ -214,22 +196,21 @@ public class DTheorem extends Theorem {
 	 */
 	public Described removeLastPrimitive() {
 
-		if (preliminarydescribed.size() < 1) {						// must have new preliminary first
+		if (preliminary.size() < 1) {								// must have new preliminary first
 
 			if (this.size() > 0) {									// is possible
 
-				this.preliminarydescribed = this.removeLast();		// so transfer
-				super.preliminaryvalue = this.preliminarydescribed;
+				this.preliminary = this.removeLast();				// so transfer
+				super.preliminaryvalue = this.preliminary;
 
 			} else 
 				return  null; 										// or it is empty theorem
 		} 															// must be one there to remove
 
-		Described remove = preliminarydescribed.removeLast();
+		Described remove = preliminary.removeLast();
 
 		return remove;
 	}
-
 	
 	/**
 	 * Delete and return the last described statement.
@@ -238,7 +219,7 @@ public class DTheorem extends Theorem {
 	 */
 	public DStatement deleteLastStatement() {
 		
-		DStatement removed = this.preliminarydescribed;
+		DStatement removed = this.preliminary;
 
 		if (this.isEmptyTheorem()) return removed;
 
@@ -246,69 +227,64 @@ public class DTheorem extends Theorem {
 
 		if (this.size() > 0) {
 
-			empty.setLocation(this.preliminarydescribed.getLocation());
+			empty.setWritepoint(this.preliminary.getWritepoint());
 
-			this.preliminarydescribed = removed.isEmpty() ? this.removeLast() : empty;
+			this.preliminary = removed.isEmpty() ? this.removeLast() : empty;
 		
 		} else {
 			
-			empty.setLocation(Toolbox.DUMMYCURSOR.getLocation());
+			empty.setWritepoint(DRectangle.DUMMYRECTANGLE.clone().getWritepoint());
 
-			this.preliminarydescribed = empty;
+			this.preliminary = empty;
 		}
 
-		super.preliminaryvalue = (Statement) this.preliminarydescribed;
+		super.preliminaryvalue = (Statement) this.preliminary;
 
 		return removed;		// perhaps zero size
 	}	
-	
 	/**
 	 * Delete a specific described statement.
 	 *
 	 * @param delete 	The described statement to be deleted from this theorem.
+	 * 
 	 * @return 			True if removed otherwise false.
 	 */
 	public DStatement deleteStatement(DStatement delete) {
 
 		if (this.isEmptyTheorem()) return null;
 
-		DStatement removed = null;
-
-		if (this.isEmpty() || delete == this.preliminarydescribed) {
+		if (this.isEmpty() || delete == this.preliminary) {
 			
-			removed = this.preliminarydescribed;
-
-			this.preliminarydescribed = new DStatement();
+			this.preliminary = new DStatement();
 			super.preliminaryvalue = (Statement) new DStatement();
 
-			DStatement before = this.isEmpty() ? null : this.getLast();
+			chosen = this.preliminary;
+
+			chosen.underline(true);			
 			
-			if (chosen == removed) chosen = before;
-			if (chosen != null) chosen.underline(true);
-			
-			return before;			
+			return chosen;			
 		
 		}	// zero and singleton cases done. End case done.
 		
-		int before = super.indexOf(delete) - 1;
+		super.removeElement(delete);
 
-		removed = super.removeElement(delete);
-				
-		if (removed == null) System.err.println("Removal of not contained statement");
+		int newchosen = super.indexOf(delete) - 1;
 
-		if (removed == chosen) chosen = this.get(before);
-		if (chosen != null) chosen.underline(true);
+		chosen = (this.isEmpty()) ? this.preliminary : 
+				  (newchosen > 0) ? this.get(newchosen) : this.get(0);		// could be empty now
 		
-		return this.get(before);		
+		chosen.underline(true);		
+		
+		return chosen;				
 	}
-
 	/**
 	 * Gets the statement before the one given as parameter.
 	 *
 	 * @param after The statement after the one searched for.
+	 * 
 	 * @return The statement before the one given as parameter or null if no such were found.
 	 */
-	public DStatement getPrevious(DStatement after) {
+	public DStatement getPreviousStatement(DStatement after) {
 		
 		int previousindex = this.indexOf(after);
 
@@ -318,51 +294,46 @@ public class DTheorem extends Theorem {
 
 		return previous;
 	}
-
 		
 	/**
 	 * Change which statement that should be highlighted as chosen. Chosen for editing or deleting.
 	 *
 	 * @param forward 	Move forward, to the next statement, circularly in the theorem.
+	 * 
 	 * @return 			The newly chosen statement.
 	 */
 	public DStatement moveChosen(boolean forward) {
 
 		if (chosen == null) {	
 
-			if (preliminarydescribed.size() != 0) chosen = preliminarydescribed;
+			if (preliminary.size() != 0) chosen = preliminary;
 			else 
 				if (size() != 0) 
-					chosen = this.getFirst();
+					chosen = this.getLast();
 
-			chosen.underline(true);
+			chosen.underline(true);									// not null - not empty theorem
 
 		} else {
+			
+			chosen.underline(false);							
 
-			chosen.underline(false);
+			if (preliminary.size() != 0) this.addLast(preliminary);	// trick
 
 			int index = indexOf(chosen);
-
 			int mod = size();
-
+			
 			if (forward)
 				chosen = get((index+1) % mod);
 			else
 				chosen = get((index-1 + mod) % mod);	
 
 			chosen.underline(true);
+			
+			if (preliminary.size()!=0) this.removeLast();			// trick correction
 		}
 		
 		return chosen;
 	}	
-
-	/**
-	 * Unchooses.
-	 */
-	public void clearChosen() {
-		chosen = null;	
-	}
-
 	/**
 	 * Returns the chosen statement.
 	 *
@@ -371,11 +342,12 @@ public class DTheorem extends Theorem {
 	public DStatement getChosen() {
 		return chosen;
 	}
-
 	
 	/**
 	 * Starts an editing aspect of the chosen described statement if there are one.
+	 * 
 	 * @return	The editing aspect of the chosen statement if there are one that has been chosen.
+	 * 
 	 * @see DEditableStatement
 	 */
 	public DEditableStatement edit() {
@@ -385,7 +357,6 @@ public class DTheorem extends Theorem {
 
 		return editing;
 	}
-	
 	/**
 	 * Returns the encapsulated statement that is currently chosen and is being edited, enclosed in it's encapsulation.
 	 *
@@ -396,7 +367,6 @@ public class DTheorem extends Theorem {
 	public DEditableStatement getEditing() {
 		return editing;
 	}
-
 	/**
 	 * Checks if any of this theorem's statements is currently being edited.
 	 *
@@ -405,21 +375,19 @@ public class DTheorem extends Theorem {
 	public boolean isEdited() {
 		return editing != null;
 	}
-	
 	/**
 	 * Deletes the editing aspect.
 	 */
 	public void leaveEditing() {
 		editing = null;		
 	}
-
 		
 	/** {@inheritDoc} */
 	public String toString() {
 
 		String output = "{" + super.getName() + ": ";
 
-		this.addLast(preliminarydescribed);
+		this.addLast(preliminary);
 
 		for (DStatement ds : this) {
 
@@ -434,14 +402,13 @@ public class DTheorem extends Theorem {
 
 		return output;
 	}
-	
+
 	/**
 	 * Prints a simple text description to sys.out.
 	 */
 	public void printout() {
 
-		if (Toolbox.DEBUGMINIMAL)
+		if (DebugStatics.DEBUGMINIMAL)
 			System.out.println(this);
-	}
-																																					
+	}																																					
 }

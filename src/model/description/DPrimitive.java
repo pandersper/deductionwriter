@@ -1,6 +1,7 @@
 package model.description;
 
-import control.Toolbox;
+import control.statics.PaintStatics;
+import control.statics.Toolbox;
 import model.description.abstraction.AbstractDescribed;
 import model.logic.Implication;
 import model.logic.Implication.ImplicationType;
@@ -17,6 +18,10 @@ import model.logic.abstraction.Formal;
 public class DPrimitive extends AbstractDescribed {
 
 	
+	public final static DPrimitive DUMMY = dummy();
+	
+	private boolean			tpbg = false;
+
 	/**
 	 * Creates a description object to the mathematical value corresponding to a specific UTF codepoint.
 	 * For example it could be an ordinary literal used as a variable but could also be an integral 
@@ -25,14 +30,21 @@ public class DPrimitive extends AbstractDescribed {
 	 * @param codepoint		The UTF codepoint corresponding to this described mathematics.
 	 */
 	public DPrimitive(int codepoint) {
-		
-		commonConstructor(codepoint);
-
-		super.description 	= new DRectangle(Primitive.makeValue(codepoint));	
-		super.scale 		= 1.0f;		
-	} 	
-	
+		this(Primitive.makeValue(codepoint));
+	}	
 	/**
+	 * Creates a description object of a mathematical value and the description are scaled to fit on the
+	 * font baseline length given. The mathematical entity corresponds to an UTF codpoint. See 
+	 * {@see DPrimitive(int)}
+	 *  
+	 * @param codepoint 	The UTF codepoint corresponding to this described mathematics.
+	 * @param baseline		The baseline length that this mathematical description (symbol) should fit onto.
+	 */
+	public DPrimitive(int codepoint, double baseline) {
+		this(codepoint, baseline, false);
+	}
+
+		/**
 	 * Creates a description object to the mathematical value given by a formal object. That formal object is
 	 * always in correspondance to an UTF codepoint.
 	 *
@@ -46,52 +58,83 @@ public class DPrimitive extends AbstractDescribed {
 
 			ImplicationType type = ((Implication) formal).getImplicationType();
 
-			commonConstructor(codepoint);
-			
 			super.description = new DRectangle(Implication.makeValue(type));
-			super.scale 		= 1.0f;				
-		}
-		
-		if (formal instanceof Primitive) {
-			
-			this.commonConstructor(codepoint);
-			super.description 	= new DRectangle(Primitive.makeValue(codepoint));	
-			super.scale 		= 1.0f;				
-		}
-	}
-	
-	/**
-	 * Creates a description object of a mathematical value and the description are scaled to fit on the
-	 * font baseline length given. The mathematical entity corresponds to an UTF codpoint. See 
-	 * {@see DPrimitive(int)}
-	 *  
-	 * @param codepoint 	The UTF codepoint corresponding to this described mathematics.
-	 * @param baseline		The baseline length that this mathematical description (symbol) should fit onto.
-	 */
-	public DPrimitive(int codepoint, int baseline) {
-		
-		commonConstructor(codepoint);
-		
-		super.description 	= new DRectangle(Primitive.makeValue(codepoint), baseline);			
-		super.scale 	  	= this.description.height / (float) Toolbox.FONTMETRICS.getHeight();		
 
-		assert(baseline == this.description.getAdvance());
-	} 	
+		}
+		
+		if (formal instanceof Primitive) 
+			super.description = new DRectangle(Primitive.makeValue(codepoint));				
+		
+		this.commonConstructor(codepoint);
+	}
+
+	public DPrimitive(int codepoint, double baseline, boolean transparent) {
+		
+		this.tpbg = transparent;
+		
+		super.description 	= new DRectangle(Primitive.makeValue(codepoint), baseline, this.tpbg);			
+
+		commonConstructor(codepoint);
+	}
 
 	
 	private void commonConstructor(int codepoint) {
 
 		super.codepoint 	= codepoint;
 		super.type			= Toolbox.lookupType(codepoint);
-		super.name 			= Character.isUnicodeIdentifierPart(codepoint) ? Character.getName(codepoint) : "<"+codepoint+">";
+		super.name 			= super.description.value.getName();
 	}
 
-
 	/** {@inheritDoc} */
+	public DPrimitive clone2() {
+		
+		DPrimitive clone = new DPrimitive(this.getCodepoint(), this.getAdvance(), this.tpbg);	
+
+		clone.setWritepoint(this.getWritepoint());
+				
+		return clone;
+	}
+	
 	public DPrimitive clone() {
 		
-		DPrimitive clone = new DPrimitive(this.getCodepoint(), this.description.getAdvance());
+		DPrimitive clone = new DPrimitive(this.getCodepoint(), this.getAdvance(), this.tpbg);	
 
+		clone.description = this.description.clone();
+		
+		clone.setWritepoint(this.getWritepoint());
+				
 		return clone;
-	}																																		
+	}
+
+	
+	public DPrimitive scaledClone(double baseline, boolean transparent) {
+				
+		DPrimitive clone =  new DPrimitive(this.getCodepoint(), baseline, transparent);
+
+		clone.setWritepoint(this.getWritepoint());
+	
+		return clone;
+	}
+
+	
+	public double getAdvance() {
+		return description.advance;
+	}
+
+	
+	private static final DPrimitive dummy() {
+
+		DPrimitive dummy = new DPrimitive(-1, (int) PaintStatics.AVERAGEADVANCE);
+		
+		dummy.description = DRectangle.DUMMYRECTANGLE.clone();
+		
+		dummy.description.value = Primitive.DUMMYFORMAL;
+		
+		dummy.type = FormalType.OTHER;
+		
+		dummy.name = "DUMMY";
+		
+		return dummy;
+	}
+
 }

@@ -10,13 +10,17 @@ import java.awt.event.FocusListener;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.UnsupportedLookAndFeelException;
+
 import annexes.picker.DeductionPicker;
 import annexes.trainer.DeductionTrainer;
 import control.db.DeductionBase;
+import control.session.Session;
 import view.DeductionFrame;
 import view.abstraction.CustomTraversalPolicy;
 import view.components.DeductionMenuBar;
-
 
 /**
  * The application DeductionWriter - A note taking tool for mathematics and other glyph intensive writing. 
@@ -39,38 +43,44 @@ public class DeductionWriter implements FocusListener {
 		}
 	}
 
-	private final DeductionBase 	 	base 	= new DeductionBase(false); 	
+	private final DeductionBase 	 	base; 	
+	private final DeductionTrainer 		trainer; 	
+	private final DeductionPicker<?> 	picker; 	
+	private final DeductionFrame 		frame;
 	private final DeductionMenuBar		menu;
+	
+	private Session 					session; 
 
-	private Session 					session = new Session(base,"empty");;
-	
-	// to be anonymous
-	private final DeductionTrainer 		trainer = new DeductionTrainer();	
-	private final DeductionPicker 		picker 	= new DeductionPicker(session); 
-	private final DeductionFrame 		frame 	= new DeductionFrame(trainer,picker,session); 			
-	
 	private CustomKeyboardFocusManager 	manager;
 	private CustomTraversalPolicy 		policy;
-
 
 	/**
 	 * Instantiates a new DeductionWriter application.
 	 */
 	public DeductionWriter() {		
-				
-		session.connectPanels(frame);
-
-		menu 	= new DeductionMenuBar(trainer, picker, frame);
-		menu.fillStoreMenu();		
-
-		frame.setJMenuBar(menu);
-
-		session.loadPrimitives("default");	
-		
 						
-		initManager();	 		/* default policy only sticks to new components - must be outside constructor */
-		initComponents();
-		setListeners();		
+		setLookAndFeel();
+
+		base 	= new DeductionBase(false);
+		session = new Session("empty", base);		
+		trainer = new DeductionTrainer(session);	
+		picker 	= new DeductionPicker<>(session); 
+		frame 	= new DeductionFrame(trainer,picker,session); 		// frame henceforth distributes session			
+		menu 	= new DeductionMenuBar(trainer, picker, frame);
+		
+		this.initManager();			/* default policy only sticks to new components - must be outside constructor */
+		this.initComponents();
+		this.setListeners();	
+	}
+
+
+	private void setLookAndFeel() {
+		
+		LookAndFeelInfo[] lfi = UIManager.getInstalledLookAndFeels();	
+
+		try { UIManager.setLookAndFeel(lfi[1].getClassName()); } 
+		
+		catch (ClassNotFoundException | InstantiationException | IllegalAccessException| UnsupportedLookAndFeelException e) { e.printStackTrace(); }
 	}
 
 
@@ -81,13 +91,17 @@ public class DeductionWriter implements FocusListener {
 
 		policy = new CustomTraversalPolicy();		
 		manager.setDefaultFocusTraversalPolicy(policy);	
+
+		frame.setFocusTraversal(manager);
+		frame.initTraversalPolicy();
 	}
 
 	private void initComponents() {		
 
-		frame.setFocusTraversal(manager);
-		frame.initTraversalPolicy();
-
+		frame.setJMenuBar(menu);
+		menu.fillStoreMenu();		
+		session.loadPrimitives("default");	
+		trainer.startTimer();
 	}
 
 	private void setListeners() {
@@ -105,21 +119,30 @@ public class DeductionWriter implements FocusListener {
 		for (Component unique : set)
 			unique.addFocusListener(this);
 	}
-
+	
 	/** {@inheritDoc} */
 	public void focusGained(FocusEvent e) {
-
 		Component c = e.getComponent();	
-		c.setBackground(Color.white);		
 	}
 	/** {@inheritDoc} */
 	public void focusLost(FocusEvent e) {
 
 		Component c = e.getComponent();
+		
 		c.setBackground(Color.lightGray);
 	}
 	
+	/** {@inheritDoc} */	
+	public static void main(String[] args) {
 
+		DeductionWriter application = new DeductionWriter();
+				
+		application.frame.setAllVisible();		
+		application.frame.pack();		
+
+	}
+	
+	
 	private void info(String intro) {
 		System.out.println("\t<<< " + intro + ">>>");
 		System.out.println("Focusmanager:\t\t" + 
@@ -129,13 +152,5 @@ public class DeductionWriter implements FocusListener {
 		System.out.println("Frame policy:\t\t" + frame.getFocusTraversalPolicy());
 		System.out.println("-------------------------------------------------------------------");
 	}
-
-	/** {@inheritDoc} */	
-	public static void main(String[] args) {
-
-		DeductionWriter application = new DeductionWriter();
-		application.frame.setVisible(true);		
-		application.frame.pack();		
-	} 
 
 }

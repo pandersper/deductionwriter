@@ -15,10 +15,10 @@ public interface CursoredCanvas {
 	 * for erasing.  
 	 *
 	 * @param formal 	The described primitive that should be displayed by the cursor.
-	 * @param paint		Wether to actually paint or just calculate new layout values.
 	 * @param erased	The previously displayed but now removed described primitive. May be null.
+	 * @param paint		Wether to actually paint or just calculate new layout values.
 	 */
-	public void 		fillCursor(Described formal, boolean paint, Described erased);
+	public void 		fillCursor(Described formal, Described erased, boolean paint);
 
 	/**
 	 * Returns the currently displayed described formal.
@@ -30,7 +30,7 @@ public interface CursoredCanvas {
 	/**
 	 * Increments this canvas's cursor and takes care of everything concerned with that task.
 	 */
-	public void			incrementCursor();
+	public void			proceedCursor();
 
 	/**
 	 * Empties the cursor and sets erase object.

@@ -5,16 +5,18 @@ import model.logic.abstraction.Formal;
 
 /**
  * Special class for the three elementary deductions.
+ * 
  * @see ImplicationType
  */
 public class Implication extends AbstractFormal {
 	
-	private ImplicationType implicationtype;   
 	
+	private ImplicationType implicationtype;   
 	
 	/**
 	 *  A deduction of the given type.
-	 * @param implicationtype The implication type of three possible.
+	 *  
+	 * @param implicationtype 	The implication type of three possible.
 	 */
 	private Implication(ImplicationType implicationtype) {
     
@@ -49,12 +51,11 @@ public class Implication extends AbstractFormal {
 	public static Implication makeValue(ImplicationType type) {
 		return new Implication(type);
 	}
-
 	
 	/**
 	 * The type of this implication.
 	 *
-	 * @return		The type of this implication. 
+	 * @return	The type of this implication. 
 	 */
 	public ImplicationType getImplicationType() { 
     	return implicationtype; 
@@ -66,7 +67,6 @@ public class Implication extends AbstractFormal {
 	public String toString() {
 		return "I[" + super.toString() + "]";
 	}
-	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -74,7 +74,6 @@ public class Implication extends AbstractFormal {
 		return (other instanceof Implication) ? this.getCodepoint() == ((Formal) other).getCodepoint() : false;
 	}
 
-	
 	/**
 	 * The three elementary implications or arrows. <a>&#x21D0;</a>, <a>&#x21D2;</a>, <a>&#x21D4;</a>.
 	 */
@@ -86,12 +85,10 @@ public class Implication extends AbstractFormal {
 		/** Left, backward implication */
 		LEFT 
 	}
-
 	/** Equivalence */
 	public final static Implication EQUIV  = new Implication(ImplicationType.EQUIV);
 	/** Right, forward implication */
 	public final static Implication RIGHT  = new Implication(ImplicationType.RIGHT);
 	/** Left, backward implication */
 	public final static Implication LEFT   = new Implication(ImplicationType.LEFT);
-
 }

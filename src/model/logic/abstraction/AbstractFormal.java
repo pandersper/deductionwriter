@@ -1,6 +1,6 @@
 package model.logic.abstraction;
 
-import control.Toolbox;
+import control.statics.DebugStatics;
 import model.description.DComposite;
 import model.description.DPrimitive;
 import model.logic.Composite;
@@ -18,35 +18,28 @@ public abstract class AbstractFormal implements Formal  {
 	
 	 /** The UTF codepoint representation of this formal. **/
 	protected int codepoint; 
-	
 	/** The text name of this formal, often same as the name in the UTF standard. **/
 	protected String name;
-	
 	/** The type of this mathematical entity. */
 	protected FormalType type = FormalType.UNDEFINED;	
-	
 	
 	/** {@inheritDoc} */	
  	public int 		  getCodepoint() {
 		return codepoint;
 	}
-
 	/** {@inheritDoc} */	
  	public FormalType getType() {
  		return type;
  	}
-
 	/** {@inheritDoc} */	
     public String 	  getName() { 
     	return name; 
     }
-
     
 	/** {@inheritDoc} */	
 	public String 	  toString() {
 		return (char) codepoint + "";
 	}
-
 	/** {@inheritDoc} */	
 	public boolean 	  equals(Object other) {
 
@@ -62,19 +55,17 @@ public abstract class AbstractFormal implements Formal  {
 	/** {@inheritDoc} */	
 	public int 		  compareTo(Formal f) {
 
-		if (Toolbox.DEBUGVERBOSE) System.out.println("AbstractPrimitive comparison");
+		if (DebugStatics.DEBUGVERBOSE) System.out.print("AbstractPrimitive comparison in " + this.getClass().getSimpleName() + ". ");
 
 		Integer thisbox = (Integer) codepoint;
 		Integer otherbox = (Integer) f.getCodepoint();							
 		
 		return thisbox.compareTo(otherbox);
 
-	} 	// FOR USE IN DOUBLE ARRAY ONLY
-
+	} 	// ONLY TO MEET DOUBLE ARRAY INTERFACE 
 	/** {@inheritDoc} */	
  	public int 		  hashCode() {
 		return codepoint;	
 		
-	} // FOR USE IN DOUBLE ARRAY ONLY
-
+	} 	// ONLY TO MEET DOUBLE ARRAY INTERFACE
 }

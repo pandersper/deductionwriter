@@ -1,161 +1,33 @@
 package model.logic.abstraction;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 
-import control.Toolbox;
-import model.description.abstraction.Placeholder.Baseline;
-import model.description.abstraction.Described;
 import model.description.abstraction.Placeholder;
-import model.independent.CyclicList;
-import model.independent.DoubleArray.Tuple;
 import model.logic.Primitive;
 
 /**
  * Provides the functionality of a composite. The only left to implement is the constructor.
+ * 
+ * REMARK ON STRANGE IMPLEMENTATION DECISION: This class carries  <i>a lot of descriptive 
+ * functionality</i> in the form of a {@see CyclicList} of {@see PlaceHolder}s on behalf of 
+ * its abstract super class {@see AbstractDComposite} just for the sake of code readability 
+ * which it never use but only hides away. The most prominent risk is to confuse the 
+ * <i>instance composite value</i> variable in the class {@see DComposite} with the the 
+ * class {@see Composite} it inherits, that contains another {@see CyclicList} of 
+ * {@see PlaceHolder}s that also most often represents the same composite matheamtics value.<br>
+ * This is strange and could well be semantically aligned later but makes source files much
+ * more maintainable now. 
  */
 public abstract class AbstractComposite extends AbstractFormal {
 
-	/** Iterable list of tuples of primitives description and it's baseline.  **/	
-	protected CyclicList<Placeholder> constituents;
 	
-	/** The bounding and framing component that functions as a backdrop form the other components. */
-	protected Placeholder 	frame;
-	
-	private Placeholder 	last;
+	protected LinkedList<Formal> composition = new LinkedList<Formal>();
 
-	
-	/**
-	 * The component at the position iterated to. Remember that order is solely for navigation and
-	 * is not semantically significant per se.
-	 * 
-	 * @return The component at the current position.
-	 */
-	public Described 	current() {		
-		return this.constituents.current().described();
-	}
-	
-	/**
-	 * Iterates forward one step and returns that position's component. Remember that order is solely 
-	 * for navigation and is not semantically significant per se.
-	 * 
-	 * @return The next component in this composite.
-	 */
-	public Described 	next() {
-			return nextPlaceholder().described();
-	}
 
-	/**
-	 * Iterates backward one step and returns that position's component.
-	 * 
-	 * @return The previous component in this composite.
-	 */
-	public Described 	previous() {
-			return previousPlaceholder().described();
-	}
-
-	/**
-	 * The component and it's baseline at the position iterated to, contained in a placeholder.
-	 * Remember that order is solely for navigation and is not semantically significant per se.
-	 * 
-	 * @return The placeholder of the component at the current position.
-	 * 
-	 * @see Placeholder
-	 */
-	public Placeholder 	currentPlaceholder() {
-		return this.constituents.current();	
-	}
-
-	/**
-	 * Iterates forward one step and returns that position's placeholder. Remember that order is solely 
-	 * for navigation and is not semantically significant per se.
-	 * 
-	 * @return The next placeholder in this composite.
-	 *
-	 * @see Placeholder
-	 */
-	public Placeholder 	nextPlaceholder() {
-
-		last = this.constituents.next();
-
-		if (last.described() == frame.described())
-			last = this.constituents.next();
-
-		return last;
-	}
-
-	/**
-	 * Iterates backward one step and returns that position's placeholder.
-	 * 
-	 * @return The previous placeholder in this composite.
-	 *
-	 * @see Placeholder
-	 */
-	public Placeholder 	previousPlaceholder() {
-
-		last = this.constituents.previous();
-
-		if (last.described() == frame.described())
-			last = this.constituents.previous();
-
-		return last;
-	}
-
-	/**
-	 * Returns the last positions placeholder.
-	 * 
-	 * @return The placeholder at the end of this composite.
-	 *
-	 * @see Placeholder
-	 */
-	public Placeholder 	lastPlaceholder() {
-		return last != null ? last : nextPlaceholder();
-	}
-	
-	
-	/**
-	 * Resets this composite that is clears it of its constituents.
-	 */																																				/**(8E42)**																																				/**(5BB0)**/
- 	public void reset() {
-		this.constituents.reset();
-	}
-	
-	
-	/**
-	 * Checks if this composite are currently positioned at it's bounding frame component.
-	 * 
-	 * @return Wether iteration is currently at the first component, the framing component.
-	 */
-	public boolean currentIsBounding() {
-		return this.constituents.currentIsFirst();
-	}
-
- 	/**
- 	 * Returns the bounding frame component of this described composite. The baseline of this baseline is always (0,0).
- 	 *
- 	 * @return The first and bounding framing components placeholder. 
- 	 */
- 	public Placeholder getFrame() {
-		return frame;
-	}
-
-	
-	/**
-	 * Retreives the components and their placeholders. 
-	 *
-	 * @return The consituents of this composite.
-	 */
-	public CyclicList<Placeholder> getConstituents() {
-		return constituents;
-	}
-
-	/**
-	 * Checks wether this formal is dummy, that is just a empty formal used for replacal.
-	 *
-	 * @return Wether this is a dummy formal or not.
-	 */
-	public boolean isDummy() {
-		return this.codepoint == Toolbox.DUMMY.getCodepoint();
+	public LinkedList<Formal> getComposition() { 
+		return composition;
 	}
 	
 	/**
@@ -166,38 +38,37 @@ public abstract class AbstractComposite extends AbstractFormal {
 	public void setCodepoint(int codepoint) {
 		this.codepoint = codepoint;	
 	}
+	/**
+	 * Constructs a string of characters from this composite's components codepoints in navigation order. 
+	 *
+	 * @return A string representation of the constituting formals in navigation order.
+	 */
+	public String codepointsString() {
 
+		String codepoints = "";
+
+		for (Formal primitive : composition) 		
+			codepoints += primitive.getCodepoint() + " ";
+
+		codepoints = codepoints.substring(0, codepoints.length() - 1);
+
+		return codepoints;
+
+	}
+	/**
+	 * Checks wether this formal is dummy, that is just a empty formal used for replacal.
+	 *
+	 * @return Wether this is a dummy formal or not.
+	 */
+	public boolean isDummy() {
+		return this.codepoint == Primitive.DUMMYFORMAL.getCodepoint();
+	}
 	
 	/** {@inheritDoc} */
 	public String 		toString() {
-		return "C[" + characterString(toFormals(constituents)) + "]";
+		return "C[" + this.codepoint + "]";
 	}
 
-	/**
-	 * Returns this composite's components.
-	 *
-	 * @return The sub components.
-	 */
-	public Formal[]		toArray() {
-		return (Formal[]) toFormals(constituents).toArray();
-	}
-
-	/**
-	 * Returns an array of clones of this composite's components. 
-	 *
-	 * @return the formal[]
-	 */
- 	protected Formal[]	toCloneArray() {
-
-		ArrayList<Formal> clones = new ArrayList<Formal>();
-
-		for (Formal primitive : toFormals(constituents))
-			clones.add(Primitive.makeValue(primitive.getCodepoint()));
-
-		return (Formal[]) clones.toArray();
-	}
-	
- 	
 	/**
 	 * A string of characters derived from the components codepoints.
 	 *
@@ -218,26 +89,6 @@ public abstract class AbstractComposite extends AbstractFormal {
 
 		return cps;
 	}
-
-	/**
-	 * Returns only the described formals of the collection in preserved order. 
-	 *
-	 * @param layedout 	A collection of described primitives together with their baselines
-	 *
-	 * @return 			Only the described primitives, in a collection
-	 * 
-	 * @see Placeholder.Baseline
-	 */
-	public static Collection<? extends Described> 	toStandardDescriptions(Collection<Tuple<Baseline, Described>> layedout) {
-	
-		ArrayList<Described> ps = new ArrayList<Described>();
-	
-		for (Tuple<Baseline, Described> position : layedout)			
-			ps.add(position.second());
-	
-		return ps;
-	}
-
 	/**
 	 * Returns only the undescribed formals of the collection in preserved order. 
 	 *
@@ -247,12 +98,12 @@ public abstract class AbstractComposite extends AbstractFormal {
 	 * 
 	 * @see Placeholder
 	 */
-	public static Collection<? extends Formal> 		toFormals(Iterable<Placeholder> primitives) {
+	public static List<? extends Formal> 			toFormals(Iterable<Placeholder> primitives) {
 	
 		ArrayList<Formal> ps = new ArrayList<Formal>();
 	
 		for (Placeholder position : primitives)			
-			ps.add(position.described().description().getValue());
+			ps.add(position.described().value());
 	
 		return ps;
 	}

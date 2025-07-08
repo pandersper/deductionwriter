@@ -1,27 +1,30 @@
 package annexes.picker;
+
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 
 import javax.swing.JOptionPane;
 
-import control.Session;
-import control.Toolbox;
 import control.db.DeductionBase;
+import control.session.Session;
+import control.statics.Toolbox;
+import control.statics.ViewStatics;
+import view.abstraction.InitiableContainer;
 import view.components.dialogs.DefaultDialog;
 
 /**
- * A simple load, store and delete dialog for the DeductionPicker sub application. 
+ * A simple load, store and delete dialog for the DeductionPickerOld sub application. 
  */
-public class PickerDialog extends DefaultDialog {
+public class PickerDialog<C extends Container & InitiableContainer>  extends DefaultDialog<C> {
 
 	/**
 	 * Instantiates a new picker dialog.
 	 *
-	 * @param parent 	The parent frame and application to return control to.
+	 * @param elder 	The elder frame and application to return control to.
 	 * @param base 		The base containing theorems and their constituents.
 	 */
-	public PickerDialog(DeductionPicker parent, Session session) {
-		super(parent, session);
-
+	public PickerDialog(DeductionPicker<C> parent, Session session) {
+		super(((C)parent), session);
 		btnLoad.setText("Add");
 	}
 
@@ -35,13 +38,11 @@ public class PickerDialog extends DefaultDialog {
 
 		columnvalue = txfName.getText();
 
-		boolean done;
-
 		switch (e.getActionCommand()) {
 
 		case "cancel":
 
-			Toolbox.switchContainer(parent, this);
+			ViewStatics.switchContainer(elder, this);
 
 			break;
 
@@ -69,10 +70,12 @@ public class PickerDialog extends DefaultDialog {
 
 			columnvalue = list.getSelectedValue();	
 
-			((DeductionPicker) parent).addToSelected(columnvalue);
-			((DeductionPicker) parent).updateOverview();
-
-			Toolbox.switchContainer(parent, this);
+			if (elder instanceof DeductionPicker) {
+				((DeductionPicker<?>) elder).addToSelected(columnvalue);
+				((DeductionPicker<?>) elder).updateOverview();
+			}
+			
+			ViewStatics.switchContainer(elder, this);
 		}
 	}
 
@@ -89,16 +92,16 @@ public class PickerDialog extends DefaultDialog {
 
 			DeductionBase base = session.getBase();
 			
-			if (base.contains(columnvalue, "FormalsViews", "name")) {							
+			if (base.contains(columnvalue, "Theoremnames", "name")) {							
 
-				int ok = JOptionPane.showConfirmDialog(parent, "Name exists, overwrite?");
+				int ok = JOptionPane.showConfirmDialog(elder, "Name exists, overwrite?");
 
 				if (ok == JOptionPane.OK_OPTION) {
 
-					base.delete("PrimitivesViews", "name", columnvalue);
-					base.delete("Primitives", "tablename", columnvalue);			
+					base.delete(columnvalue, "Primitivestables", "name");
+					base.delete(columnvalue, "Primitives", "tablename");			
 
-					((DeductionPicker) parent).storeInBase(columnvalue);
+					((DeductionPicker<?>) elder).storeInBase(columnvalue);
 
 					done = true;						
 
@@ -108,18 +111,18 @@ public class PickerDialog extends DefaultDialog {
 
 			} else {
 
-				((DeductionPicker) parent).storeInBase(columnvalue);
+				((DeductionPicker<?>) elder).storeInBase(columnvalue);
 
 				done = true;
 
 				System.out.println("Primitive table " + columnvalue + " is inserted.");					
 			}
 
-		} else JOptionPane.showMessageDialog(parent, "Bad naming, try again."); 
+		} else JOptionPane.showMessageDialog(elder, "Bad naming, try again."); 
 
 		updateMenu();
 
-		if (done) Toolbox.switchContainer(parent, this);
+		if (done) ViewStatics.switchContainer(elder, this);
 	}
 
 	/**
@@ -138,8 +141,8 @@ public class PickerDialog extends DefaultDialog {
 
 			if (base.contains(columnvalue, "PrimitivesViews", "name")) {						
 
-				base.delete("PrimitivesViews", "name", columnvalue);
-				base.delete("Primitives", "tablename", columnvalue);			
+				base.delete(columnvalue, "PrimitivesViews", "name");
+				base.delete(columnvalue, "Primitives", "tablename");			
 
 				System.out.println("Deleted view " + columnvalue + " and its primitives.");
 			}

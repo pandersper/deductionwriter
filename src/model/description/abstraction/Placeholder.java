@@ -1,234 +1,253 @@
 package model.description.abstraction;
 
-import java.awt.Point;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 
-import annexes.maker.CompositeCanvas;
-import control.Toolbox;
-import model.description.DPrimitive;
+import model.description.DCursor;
 
 /**
  * Used to join a described primitive with it's decoration elements: a handle, an offset point and it's bounds.
  */
+/**
+ * 
+ */
 public class Placeholder {
 
-	/**
-	 * In principle a mutable struct with global variables to gather the
-	 * variables describing a baseline and to improve readability.
-	 * Global variables are bad programming but tolerated this time.
-	 * 
-	 * @see java.awt.FontMetrics
-	 */
- 	public class Baseline {	
-		
- 		/** Baseline x-coordinate. */
- 		public int x;
- 		/** Baseline y-coordinate. */
- 		public int y;
- 		/** Baseline length. */
- 		public int  length;
- 		
- 		/** A new modifyable class of global variables. 
- 		 * 
- 		 *@param x x-coordinate of the baseline.
- 		 *@param y y-coordinate of the baseline.
- 		 *@param length Length of the baseline.
- 		 *
- 		 * @see java.awt.FontMetrics
- 		 */
- 		public Baseline(int x, int y, int length) {
- 			this.x = x; this.y = y; this.length = length;
- 		}
- 		
- 		/** A new modifyable class of global variables. 
- 		 * 
- 		 *@param referencepoint	Offset pointing to the beginning of the baseline.
- 		 *@param length Length of the baseline. 
- 		 *
- 		 * @see java.awt.FontMetrics
- 		 */
-		public Baseline(Point referencepoint, int length) {
-			this(referencepoint.x, referencepoint.y, length);
-		}
+	
+	public class Handle extends Ellipse2D.Double implements Comparable<Handle> {
+	
+		public int depth;
 
-		/**
-		 * Point pointing at the beginning of the baseline.
-		 * 
-		 * @return The referencepoint.
-		 * 
-		 * @see java.awt.FontMetrics
-		 */
-		public Point getLocalReferencepoint() {
-			return new Point(x, y);
-		}	
+		public Handle(Point2D.Double p) {
+			super(p.x-2.5, p.y-2.5, 5, 5);
+		}
+				
+		public void moveTo(Point2D.Double p) {
+			this.setFrame(p.x - this.width/2.0, p.y - this.height/2.0, this.width, this.height);
+		}
 		
-		/**
-		 * Translates this baseline.
-		 * @param dx	The number of pixels to translate in x-direction.
-		 * @param dy	The number of pixels to translate in y-direction.
-		 */
-		public void translate(int dx, int dy) {
-			this.x += dx;
-			this.y += dy;
+		public int compareTo(Handle o) {
+			return Integer.valueOf(this.depth).compareTo(o.depth);
+		}
+				
+		public Handle clone() {
+
+			Handle clone = new Handle(new Point2D.Double(this.getCenterX(), this.getCenterY()));
+			
+			clone.depth = this.depth;
+			
+			return clone;
 		}
 	}
 
+	private Point2D.Double 	writepoint;
+	private Handle 			handle;
+	public 	int				id;					// same codepoint will occur many times
 	
-	private Described 		 described;	
-	private Ellipse2D.Double handle;	
-	private Rectangle 		 frame;				// location relative canvas origo (global)
-	private	Point			 prereference;	 
-	private Baseline 		 baseline;			// location relative frame origo (local)	
-
+	private Handle 			subhandle;
+	private Point2D.Double 	subhandleoffset;
+	
+	private Described 		described = null;
+	private DCursor 		frame;				// location relative canvas origo (global)
 	
 	/**
 	 * Instantiates a new placeholder for described formals.
 	 *
 	 * @param frame 	The frame that this placeholder holds and from which it's baseline and handle is derived.
 	 */
-	public Placeholder(Rectangle frame) {
-
-		if (frame == null) return;
+	public Placeholder(DCursor frame) {
 		
-		this.described = null;														// glyph-dependent reference point later
+		this.id = this.hashCode();
+		
+		this.frame 		= frame;			
+		this.writepoint = frame.getWritepoint();
+		this.handle		= new Handle(frame.getLocalReferencepoint());	
+		
+		this.handle.moveTo(this.writepoint);		
+	}	
+	/**
+	 * Instantiates a new placeholder for described formals and fills it with the primitive given as argument.
+	 *
+	 * @param primitive 	A primitive that this placeholder will be fitted for and contain. That is the primitive
+	 * 						is also inserted and there is no need to call insert afterwards.
+	 * 						Yet, it is only described primitives that is considered but perhaps composites could 
+	 * 						useful as well.
+	 */
+	public Placeholder(Described primitive) {
 
-		this.frame = frame;		
+		this.frame 		= primitive.description().cast();			
+		this.writepoint = primitive.getWritepoint();
+		this.handle		= new Handle(primitive.getLocalReference());	
 	
-		Baseline defaultbaseline = computeDefaultBaseline(this.frame);				// rectangle-dependent reference point for now
+		this.described 	= primitive;
+
+		this.handle.moveTo(this.writepoint);				
+	}	
+
+	/**
+	 * The rich cursor bounds of the bounding placeholder frame. 
+	 *
+	 * @return The rich rectangular bounds object. 
+	 */
+	public DCursor 		frame() { 
 		
-		this.prereference = defaultbaseline.getLocalReferencepoint();			
-		
-		Point location = this.frame.getLocation();
+		return frame; 
+	}
+	/**
+	 * The described formal, presumably a primitive, that is currently held by this placeholder.
+	 *
+	 * @return The described primitive or null if none is in place.
+	 */
+	public Described 	described() { 	
 				
-		location.translate(this.prereference.x, this.prereference.y);
+		return described; 
+	}
+	/**
+ 	 * The handle of the frame and eventually it's formal. The handle coincides with their both's respective
+ 	 * reference points, the write point where it all is written at. 
+	 *
+	 * @return 	The handle the user clicks when moving the placeholder around. The handles makes up the mouse
+	 * 			interactive area.
+	 */
+	public Handle	 	handle() 	{ 
 		
-		this.baseline = new Baseline(location, defaultbaseline.length);				
-		
-		this.handle = makeHandle(this.frame);
+		return handle;
 	}
 
-	
 	/**
-	 * The primitive.
-	 *
-	 * @return The described primitive.
+	 * The local write point offset, an offset from device coordinates origo. The write point is called 
+	 * reference point in java's and perhaps in  common typographical jargon and is at the start of the glyph's 
+	 * base line.
+	 * 
+	 * @return	The reference point, the write point of the placeholder and perhaps it's described formal. Which
+	 * 			points at the start of what is assumed as the baseline.
 	 */
-	public Described 		described() { 
-		return described; 
+	public Point2D.Double 	getLocalReference() {
+		
+		if (described == null) return frame.getLocalReferencepoint();		
+		else 
+			if (described.getLocalReference().y != frame.getLocalReferencepoint().y) { 
+			
+				System.err.println("Cursor and glyph hasn't same offset point: " + (described.getLocalReference().y - frame.getLocalReferencepoint().y));
+	
+				return frame.getLocalReferencepoint();
+				
+			} else 
+				return described.getLocalReference();
 	}
 	/**
 	 * The offset.
 	 *
 	 * @return The description's offset from (0,0). 
 	 */
-	public Point 			offset() 	{ 
-		return baseline.getLocalReferencepoint(); 
-	}
+	public Point2D.Double 	getGlobalReference() 	{
+
+		if (described == null) return frame.getWritepoint();		
+		else {
+
+			if (described.getWritepoint().x != frame.getWritepoint().x) { 
+				
+				System.err.println("Cursor and glyph hasn't same writepoint: " + (described.getWritepoint().x - frame.getWritepoint().x));
 	
-	/**
-	 * The baseline consisting of the reference point pointing at the beginning and the length of the baseline.
-	 * 
-	 * @return The baseline object.
-	 * 
-	 * @see Baseline
-	 **/
-	public Baseline			baseline() {
-		return baseline;
-	}
-	
-	/**
-	 * The bounds of the bounding frame of the placeholder.
-	 *
-	 * @return The rectangular bounds.
-	 */
-	public Rectangle 		bounds() 	{ 
-		return frame; 
-	}
-									
-	/**
- 	 * The handle of the description. The handle is cicular and situated att the upper left corner. 
-	 *
-	 * @return The handle used for moving the description around.
-	 */
-	public Ellipse2D.Double handle() 	{ 
-		return handle; 
+				return frame.getWritepoint();
+				
+			} else 
+				return described.getWritepoint();
+		}
 	}
 
-	/**
-	 * The pre-calculated referencepoint that considers the frame before the placeholder is filled with a described formal
-	 * and it's deciding glyph. The pre-reference is later adjusted to the filled in description.
-	 * 
-	 * @return	A pre-calculated reference point for the current frame. 
-	 */
-	public Point 			prereference() {
-		return prereference;
+	public double 			getAdvance() {	
+		
+		if (described != null) 
+			return described.getAdvance(); 
+		else
+			return frame.width;
 	}
 
-	
 	/**
  	 * Fills this placeholder with a described formal and adjusts it's baseline to correct for differences
  	 * between frame-derived pre-reference and the described's glyph's reference point. 
 	 *
-	 * @param formal 	The new replacing formal.
+	 * @param adjusted 	The new replacing formal.
 	 */
-	public void fill(Described formal) 	{ 
+	public void 	insert(Described adjusted) 	{ 
+		
+		// my convention: placeholder's and described's reference point is henceforth same	
+		
+		Point2D.Double writepoint = this.getGlobalReference();
+		
+		adjusted.setWritepoint(writepoint);					
+
+		described = adjusted;	
+	}	
 	
-		described = formal;
-		
-		int y = this.baseline.y;
-		
-		Point r1 = this.prereference;												// rectangle-dependent reference point
-		Point r2 = this.described.getLocalReference();								// glyph-dependent reference point
-		
-		Point dr = new Point(r2.x - r1.x, r2.y - r1.y);															
+	public void 	draw(Graphics2D g2d, boolean active) {
+						
+		if (described != null) 
+			described.draw(g2d);
 
-		this.baseline.translate(dr.x, dr.y);										// difference is now zero
-
-		int length = this.baseline.length;
+//		if (active) 
+//			drawShadow(g2d);				
 		
-		this.baseline.length = described.description().width;
-		
-		if (Toolbox.DEBUGMINIMAL)
-			System.out.println("Baseline translated : (" + dr.x + "," + dr.y +") \t Length changed : " + (length - this.baseline.length) + "\t" + "y-direction : " + y + "->" + this.baseline.y);
+		drawBounds(g2d);					
+		drawBaseline(g2d);
+		drawHandle(g2d);
 	}
 
+	public void 	fill(Graphics g) {
+
+		Graphics2D g2d = (Graphics2D) g.create();
+
+		g2d.translate(writepoint.x, writepoint.y);
+		
+		g2d.setColor(new Color(0,128,0,64));
+		
+		g2d.fill(frame);
+	}
+		
 	
-	/**
-	 * Inserts a new frame of this placeholder and recomputes all dependent states of the placeholder.
-	 * 
-	 * @param newframe	The rectangle that should make up the new frame. <i>Remark: the bounds are not copied but the 
-	 * 					actual rectangle given as argument is used (copy-by-reference).</i>
-	 */
-	public void setFrame(Rectangle newframe) {
+	public void 	moveTo(Point2D.Double r) {
 		
-		this.frame = newframe;
-
-		this.handle = this.makeHandle(this.frame);
+		this.writepoint = r;
 		
-		int length;
+		this.frame.setWritepoint(this.writepoint);
 		
-		if (this.described == null) { 
-
-			length = CompositeCanvas.computeBaseline(this.frame, Toolbox.DUMMY.getCodepoint());
-
-			Described adjusteddummy = new DPrimitive(Toolbox.DUMMY.getCodepoint(), length);
-
-			this.prereference = adjusteddummy.description().getReference();				// rectangle-dependent reference point for now
+		if (this.described != null)
+			this.described.setWritepoint(r);
 		
-		} else {
+		handle.moveTo(r);			//handle2.moveTo(Arithmetic.add(r,subhandleoffset));
+	}
 			
-			length = this.described.description().width;
+	
+	public Handle 	getSubhandle() {
+		return subhandle;
+	}
+	
+	public Double 	getSubhandleoffset() {
+		return subhandleoffset;
+	}	
 
-			this.prereference = this.described.description().getReference();				// rectangle-dependent reference point for now			
-		}
-
-		Point offset = newframe.getLocation();										
-		offset.translate(this.prereference.x, this.prereference.y);			
-
-		this.baseline = new Baseline(offset, length);				
+	public void 	setSubhandleoffset(Point2D.Double r) {
 		
-		this.handle = makeHandle(this.frame);		
+		Point2D.Double r0 = new Point2D.Double(handle.getCenterX(), handle.getCenterY());
+		
+		subhandleoffset = new Point2D.Double(r.x - r0.x, r.y - r0.y);
+	}
+
+	public void 	resizeAllToBaseline(double newbaseline) {
+
+		frame.resizeToBaseline(newbaseline);
+		
+		if (described != null)
+			described = described.scaledClone(newbaseline, true);
+
+		// handle should be unchanged
 	}
 	
 	/**
@@ -236,73 +255,73 @@ public class Placeholder {
 	 *
 	 * @return True iff empty.
 	 */
-	public boolean isEmpty() { 
+	public boolean 	isEmpty() { 
 	
 		return described == null; 
 	}
-	
-	/**
-	 * Trims the frame rectangle to the bounds of the image of the described primitive.
-	 */
-	public void trimBounds() {
+
+
+	public Placeholder clone() {
+
+		Placeholder clone;
 		
-		Point location = this.frame.getLocation();
+		if (this.described != null) 
+			clone = new Placeholder(this.described.clone());
+		else
+			clone = new Placeholder(this.frame.clone());
 		
-		frame = described.description().getBounds();
+		clone.handle.depth = this.handle.depth;
 		
-		frame.setLocation(location);
+		clone.writepoint = (Point2D.Double) this.writepoint.clone();
 		
-		this.prereference = described.description().getReference();
-		
-		this.updateHandle();
+		return clone;
 	}
 	
-	/**
-	 * Recomputes the handle for the description. Used after altering bounds.
-	 */
-	public void updateHandle() {
-		this.handle = makeHandle(this.frame);
-	}
 	
-	/**
-	 * Translates bounds and handle, that is all that concerns the described primitive.
-	 *
-	 * @param dragging the dragging
-	 */
-	public void translate(Point dragging) {
+	private void drawBounds(Graphics2D g2d) {
+
+		PathIterator pi = frame.getPathIterator(null);
+		double[] coords = new double[4];
+
+		int DR = 2;
+		
+		while (!pi.isDone()) {
 			
-		frame.translate(dragging.x, dragging.y);
+			pi.currentSegment(coords);
+			
+			g2d.setColor(Color.yellow);
+			g2d.fillOval((int) coords[0] - DR, (int) coords[1] - DR, 2*DR, 2*DR);
 
-		handle.x += dragging.x;
-		handle.y += dragging.y;		
+			g2d.setColor(Color.black);
+			g2d.drawOval((int) coords[0] - DR, (int) coords[1] - DR, 2*DR, 2*DR);
+			
+			pi.next();
+		}
+	}
+	
+	private void drawShadow(Graphics2D g2d) {
+
+		Rectangle shadow =  frame.getBounds();
 		
-		baseline.x += dragging.x;
-		baseline.y += dragging.y;
-	}	
-
-	
-	private static Ellipse2D.Double 		makeHandle(Rectangle rectangle) {
-	
-		int DR = CompositeCanvas.DR;		
-
-		int x = rectangle.x;
-		int y = rectangle.y;
+		g2d.setColor(new Color(64,64,64,64));	
 		
-		Ellipse2D.Double circle = new Ellipse2D.Double(x - (DR+1), y - (DR+1), 2*(DR+1), 2*(DR+1));
+		shadow.grow(2, 2); 	g2d.draw(shadow);
+	}
 	
-		return circle;
+	private void drawBaseline(Graphics2D g2d) {
+		 
+		Point2D.Double reference = new Point2D.Double(handle().getCenterX(), handle().getCenterY());
+						
+		g2d.setColor(Color.magenta);
+		
+		g2d.drawLine((int)reference.x, (int) reference.y, (int) (reference.x + this.getAdvance()), (int) reference.getY());
+	}
+	
+	private void drawHandle(Graphics2D g2d) {
+		g2d.setColor(Color.green);
+		g2d.fill(handle());
+		g2d.setColor(Color.black);
+		g2d.draw(handle());
 	}
 
-	private static Placeholder.Baseline 	computeDefaultBaseline(Rectangle frame) {
-
-		Placeholder staticclass = new Placeholder(null);
-		
-		int length = CompositeCanvas.computeBaseline(frame, Toolbox.DUMMY.getCodepoint());
-
-		Described adjusteddummy = new DPrimitive(Toolbox.DUMMY.getCodepoint(), length);
-		
-		Point offset =  adjusteddummy.description().getReference();			
-				
-		return staticclass.new Baseline(offset.x, offset.y, length);
-	}
 }

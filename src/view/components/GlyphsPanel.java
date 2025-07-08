@@ -1,4 +1,4 @@
-package view;
+package view.components;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -10,9 +10,11 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowFocusListener;
 import java.awt.event.WindowEvent;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import javax.swing.ActionMap;
@@ -27,8 +29,9 @@ import javax.swing.border.BevelBorder;
 import javax.swing.border.SoftBevelBorder;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
-import control.Shortcut;
-import control.Toolbox;
+import control.session.Shortcut;
+import control.statics.Toolbox;
+import control.statics.ViewStatics.Mode;
 import model.description.DComposite;
 import model.description.DEditableStatement;
 import model.description.DPrimitive;
@@ -38,16 +41,15 @@ import model.independent.DoubleArray.Tuple;
 import model.logic.Implication;
 import model.logic.Implication.ImplicationType;
 import model.logic.abstraction.Formal;
+import view.DeductionFrame;
 import view.abstraction.TraversablePanel;
-import view.components.DButton;
-import view.components.DisplayCanvas;
 import view.components.DButton.DisplayAction;
 
 
 /**
  * Panel containing the primitives written with. 
  */
-public class GlyphsPanel extends TraversablePanel implements KeyListener {
+public class GlyphsPanel extends TraversablePanel implements KeyListener, WindowFocusListener {
 
 	private HashMap<Formal, DButton> 	buttons  = new HashMap<Formal, DButton>();
 
@@ -70,15 +72,15 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
 		this.parent = parent;
 		this.panel = this;
+		this.addKeyListener(this);
 		
-		this.olddispatcher = new DefaultKeyboardFocusManager();
-		this.dispatcher = new CustomDispatcher();
+		this.olddispatcher	= new DefaultKeyboardFocusManager();
+		this.dispatcher 	= new CustomDispatcher();
 
 		this.setInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, inputmap);
-
+		
 		this.makeLayout();
 	}
-
 	
 	
 	public void newGlyph() {
@@ -86,41 +88,68 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 		DisplayCanvas canvas = this.getCanvas();
 		Described drawn = canvas.getDrawn();
 		
-		if (drawn == null) return;
-		if (drawn.value() instanceof Implication) return;
-		
-		if (isEditing(drawn)) {
+		if (drawn == null || drawn.value() instanceof Implication) return;
+
+		//// CRAP REDO ALL ////
+		if (this.isEditing()) {
 
 			DEditableStatement edit = canvas.getTheorem().getEditing();
 
-			//Described old = null;
+			if (edit.current().isDummy()) {					
+			
+				edit.replaceCurrent(drawn);
+				//drawn.underline(true);						///(46B5)
+				edit.togglePrompting();
+			} else return;
 
-			if (edit.current().isDummy()) 
-
-				if (drawn.isDummy()) {}					// drawn == null
-					//old = edit.deleteCurrent();
-				else {
-					//old = edit.replaceCurrent(drawn);
-					drawn.underline(true);				///(46B5)
-					edit.togglePrompting();
-					
-				}
-			else {
-				//old = edit.replaceCurrent(drawn);
-				drawn.underline(true);					// in chosen	
-			}
-
-			canvas.redescribeTail(edit.whole());
-			canvas.setWritepoint(edit.next());			// update display
-			canvas.setPaintMode(false,false,false);
+			canvas.describeTheoremTail(edit.whole());
+			canvas.setWritecursor(edit.next().description());				// update display
+			//canvas.setPaintMode(!Mode.CURSOR,!Mode.PRELIMINARY,!Mode.CONFIRM);
 			canvas.paint(canvas.getGraphics());
 
-		} else {
-
-			if (drawn != null)	canvas.newPrimitive();						
-														// do nothing if editing or nothing to draw to insert
-			canvas.setPaintMode(true,false,false);
+		} else { 
+			
+			canvas.newPrimitive();						
+			//canvas.setPaintMode(Mode.CURSOR,!Mode.PRELIMINARY,!Mode.CONFIRM);
 			canvas.paint(canvas.getGraphics());
+		}
+		//// CRAP REDO ALL ////
+	}
+
+	public void newStatement(int codepoint) {
+
+		DisplayCanvas canvas = this.getCanvas();
+		
+		if (this.getTheorem().getPreliminary().size() > 0) {
+
+			Described last;
+
+			switch (codepoint) {
+															// they are also reconstructed in theorem and statement constructors
+				case (KeyEvent.VK_LEFT):	
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.LEFT));	
+					canvas.fillCursor(last, null, Mode.PAINT);
+					canvas.newStatement(last);						
+					break;
+
+				case (KeyEvent.VK_UP):				
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.EQUIV));	
+					canvas.fillCursor(last, null, Mode.PAINT);
+					canvas.newStatement(last);						
+					break;
+
+				case (KeyEvent.VK_RIGHT):			
+
+					last = new DPrimitive(Implication.makeValue(ImplicationType.RIGHT));	
+					canvas.fillCursor(last, null, Mode.PAINT);
+					canvas.newStatement(last);						
+					break;
+
+				default:
+					break;					
+			}	
 		}
 	}
 
@@ -146,9 +175,9 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
    	public void updateButtonsListener(DisplayCanvas canvas) {
    		
-   		for (DButton button : buttons.values()) {
+   		for (DButton button : buttons.values()) 
    			button.getDisplayAction().putValue("canvas", canvas);   			
-   		}
+   		  		
    	}
    	
    	/**
@@ -158,11 +187,11 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
    	 */
   	private void updateButtonBinding(Tuple<Formal, Shortcut> binding) {
 
-  		Shortcut shortcut = binding.second();
-
   		DButton button = this.buttons.get(binding.first());
 
   		KeyStroke stroke = button.makeKeyStroke(binding.second());
+
+  		Shortcut shortcut = binding.second();
 
   		String key = "" + (char) (int) shortcut.keycode + " + " + InputEvent.getModifiersExText(shortcut.modifiers);
 
@@ -268,7 +297,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 	 *
 	 * @return The composites used in primitives panel.
 	 */
-	public Collection<DComposite> 			getComposites() {
+	public List<DComposite> 				getComposites() {
 		return Toolbox.collectComposites(this.buttons);
 	}
 
@@ -280,8 +309,32 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 	public Collection<DButton> 				getButtons() {
 		return buttons.values();
 	}
-
 	
+	public DButton removeButton(Described formal) {
+		
+		for (Component c : pnlPrimitives.getComponents()) {
+
+			DButton button = (DButton) c;
+			
+			if (button.getDescribed().value().compareTo(formal) == 0) {
+				pnlPrimitives.remove(c);
+				return button;
+			}			
+		}
+		
+		for (Component c : pnlComposites.getComponents()) {
+
+			DButton button = (DButton) c;
+			
+			if (button.getDescribed().value().compareTo(formal) == 0) {
+				pnlComposites.remove(c);
+				return button;
+			}			
+		}
+		
+		return null;
+	}
+
    	/*  event related */
 	
 	/**
@@ -322,7 +375,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 				newStatement(codepoint);
 	
 				e.consume();										// new statement keys are not overloaded so end chain				
-				canvas.setPaintMode(false,true,false);
 				break;		
 
 			case(KEYBOARD): 										// change focus gear
@@ -349,49 +401,15 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 		}		
 
 		canvas.repaint();
+		
 		this.getTheorem().printout();
+		
 		return;
 	}
 
 
-
-	public void newStatement(int codepoint) {
-
-		DisplayCanvas canvas = this.getCanvas();
-		
-		if (this.getTheorem().getPreliminary().size() > 0) {
-
-			Described last;
-
-			switch (codepoint) {
-															// they are also reconstructed in theorem and statement constructors
-				case (KeyEvent.VK_LEFT):	
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.LEFT));	
-					canvas.fillCursor(last, true, null);
-					canvas.newStatement(last);						
-					break;
-
-				case (KeyEvent.VK_UP):				
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.EQUIV));	
-					canvas.fillCursor(last, true, null);
-					canvas.newStatement(last);						
-					break;
-
-				case (KeyEvent.VK_RIGHT):			
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.RIGHT));	
-					canvas.fillCursor(last, true, null);
-					canvas.newStatement(last);						
-					break;
-
-				default:
-					break;					
-			}	
-		}
-	}
-
+	//start_win_var_ini
+	
 	/**
 	 * Not used. Only consumes it's event.
 	 */
@@ -407,8 +425,8 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 	}
 
 	
-	private boolean isEditing(Described drawn) {
-		return (this.parent.getSession().getCurrentCanvas().isPrompting() || this.getTheorem().isEdited()) && drawn != null;
+	private boolean isEditing() {
+		return (this.parent.getSession().getCurrentCanvas().isPrompting() || this.getTheorem().isEdited());
 	}
 
 	/**
@@ -441,6 +459,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 		int offmask = InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
 
 		boolean statementmodifier =  ((modifiers & (onmask | offmask)) == onmask);
+
 		return statementmodifier ? 1 : 0;
 	}
 
@@ -491,7 +510,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 			manager.removeKeyEventDispatcher(olddispatcher);							
 			manager.addKeyEventDispatcher(dispatcher);								
 
-			parent.requestFocusInWindow();																									///(6FA2)
+			parent.requestFocusInWindow();																	///(6FA2)
 
 		} else 
 			manager.removeKeyEventDispatcher(dispatcher);	
@@ -507,7 +526,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 			manager.addKeyEventDispatcher(olddispatcher);						
 		} 
 	}
-
 	
 	/*  awt & swing */
 	
@@ -521,6 +539,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 		DButton button = new DButton(described);    			
 
 		DisplayAction displayaction = (DisplayAction) button.getAction();
+		
 		displayaction.setCanvas(this.parent.getSession().getCurrentCanvas());
 		displayaction.setFocusrestore(this);
 
@@ -530,7 +549,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
 			String key = "" + (char) (int) binding.keycode + " + " + InputEvent.getModifiersExText(binding.modifiers);
 
-			actionmap.put(key, displayaction);																								///(0CFC)
+			actionmap.put(key, displayaction);																///(0CFC)
 			inputmap.put(stroke, key);
 		}
 		
@@ -544,7 +563,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 		this.buttons.put(described.value(), button);
 	}
 
-	
 	private void makeLayout() {
 
 		setSize(new Dimension(327, 438));
@@ -558,9 +576,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
 		JInternalFrame ifrmPrimitives = new JInternalFrame("Primitives");
 		JInternalFrame ifrmComposites = new JInternalFrame("Composites");
-
-		ifrmPrimitives.getContentPane().setLayout(null);
-		ifrmComposites.getContentPane().setLayout(null);
 		
 		ifrmPrimitives.getContentPane().add(pnlPrimitives);
 		ifrmComposites.getContentPane().add(pnlComposites);
@@ -600,5 +615,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener {
 
 	private JPanel pnlPrimitives = new JPanel();
 	private JPanel pnlComposites = new JPanel();
+
+	//end_win_var_init
 
 }

@@ -1,4 +1,4 @@
-package view;
+package view.components;
 
 import javax.swing.JPanel;
 import java.awt.GridLayout;
@@ -8,20 +8,20 @@ import javax.swing.JLabel;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 
-import java.awt.Color;
 import java.awt.Component;
 
 import javax.swing.border.SoftBevelBorder;
 
+import control.statics.ViewStatics;
 import model.logic.Implication;
-import view.components.ViewConstants;
+import view.SidePanel;
 
 import javax.swing.border.BevelBorder;
 
 public class ConcludePanel extends JPanel {
 	
 	private ToggleGroup toggles 	= new ToggleGroup();
-	private JButton 	btnDone 	= new JButton("Done");
+	private JButton 	btnDone 	= new JButton("done");
 	private SidePanel 	executive;
 
 	public class ImplicationToggle extends JToggleButton {
@@ -89,7 +89,6 @@ public class ConcludePanel extends JPanel {
 			return current;
 		}
  	}	
-
  	
  	/**
 	 * Panel for navigation in deductions.
@@ -98,6 +97,8 @@ public class ConcludePanel extends JPanel {
 
 		toggles = new ToggleGroup();
 			
+		this.setMaximumSize(ViewStatics.cncpnlsize);
+
 		makeButtons();		
 	}
 
@@ -126,7 +127,7 @@ public class ConcludePanel extends JPanel {
 		
 		setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
 
-		setLayout(new GridLayout(4, 4, 10, ViewConstants.btnvgap));
+		setLayout(new GridLayout(4, 4, 10, ViewStatics.btnvgap));
 
 		JLabel lblStatementRelation = new JLabel("Relation");
 		JLabel lblDrop = new JLabel("Drop");
@@ -139,22 +140,23 @@ public class ConcludePanel extends JPanel {
 		JButton[] btns = new JButton[] {btnDropStatement, btnDropPrimitive, btnDone};
 		
 		for (int i = 0;i < 3; i++) {
-			btns[i].setBorder(ViewConstants.btnBorder);
-			btns[i].setBackground(ViewConstants.btnBkgr);
-			btns[i].setFont(ViewConstants.btnFont);
+			//btns[i].setBorder(ViewStatics.btnBorder);
+			btns[i].setBackground(ViewStatics.btnBkgr);
+			btns[i].setFont(ViewStatics.btnFont);
 		}
 
 		ImplicationToggle[] tgls = toggles.toggleButtons();
 
 		for (ImplicationToggle tgl : tgls) {
-			tgl.setBorder(new BevelBorder(BevelBorder.RAISED));
-			tgl.setFont(ViewConstants.btnFont);
-			tgl.setBackground(ViewConstants.btnBkgr);
+			//tgl.setBorder(new BevelBorder(BevelBorder.RAISED));
+			tgl.setFont(ViewStatics.btnFont);
+			tgl.setBackground(ViewStatics.btnBkgr);
 		}
 
-		lblStatementRelation.setFont(ViewConstants.btnFont);
+		lblStatementRelation.setFont(ViewStatics.btnFont);
 		lblStatementRelation.setVerticalAlignment(SwingConstants.BOTTOM);
-		lblDrop.setFont(ViewConstants.btnFont);		
+
+		lblDrop.setFont(ViewStatics.btnFont);		
 		lblDrop.setVerticalAlignment(SwingConstants.BOTTOM);
 
 		add(lblStatementRelation);	add(lblDrop);					
@@ -162,8 +164,8 @@ public class ConcludePanel extends JPanel {
 		add(tgls[1]);				add(btnDropStatement);
 		add(tgls[2]);				add(btnDone);
 
-		btnDone.setBackground(ViewConstants.btnBkgrAlarm);
-		btnDone.setFont(ViewConstants.btnFontPlus);		
+		btnDone.setBackground(ViewStatics.btnBkgrAlarm);
+		btnDone.setFont(ViewStatics.btnFontPlus);		
 	}
 	
 }

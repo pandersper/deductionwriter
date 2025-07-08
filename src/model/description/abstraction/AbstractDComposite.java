@@ -1,13 +1,17 @@
 package model.description.abstraction;
 
-import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 
-import control.Toolbox;
+import control.statics.DebugStatics;
+import control.statics.PaintStatics.Size2D;
 import model.description.DRectangle;
-import model.description.abstraction.Placeholder.Baseline;
+import model.description.abstraction.Placeholder.Handle;
+import model.independent.CyclicMap;
 import model.logic.Composite;
-import model.logic.abstraction.AbstractComposite;
 import model.logic.abstraction.Formal;
 
 /**
@@ -16,140 +20,167 @@ import model.logic.abstraction.Formal;
  * 
  * @see Described
  */
-public abstract class AbstractDComposite extends AbstractComposite implements Described {
+public abstract class AbstractDComposite extends Composite implements Described {
+	
+	/** Iterable list o tuples of primitives description and it's baseline.  **/	
+	protected CyclicMap<Handle, Placeholder> constituents;	
+	/** The bounding and framing component that functions as a backdrop form the other components. */
+	protected Placeholder 	frameholder, current;	/** The graphical description, the image description of this piece of mathematics. */
+	protected DRectangle 	description;
 
 	private boolean underlined = false;
 
-	/** The graphical description, the image description of this piece of mathematics. */
-	protected DRectangle 	description;
 	
 	/**
-	 * Renders a graphical representation for this described composite.
-	 * 
-	 * @return The bounding area of the graphical description.
+	 * Retreives the components and their placeholders. 
+	 *
+	 * @return The consituents of this composite.
 	 */
-	public abstract Rectangle renderAndMount();
-
-	
-	/** {@inheritDoc} */	
-	public DRectangle 	description() {
-		return description;
+	public CyclicMap<Handle, Placeholder> getConstituents() {
+		return this.constituents;
 	}
-
-	/** {@inheritDoc} */
-	public Formal 		value() {
-		return (description != null) ? description.getValue() : null;
-	}
-	
-	
-	/** {@inheritDoc} */
-	public Point 		getLocalReference() {		
-		return description.getReference();
-	}
-
-	/** {@inheritDoc} */																																			
-	public Point 		getGlobalReference() {
-
-		Point offset = description.getReference();
-		Point upperleft = description.getLocation();
-		upperleft.translate(offset.x, offset.y);
 		
-		return upperleft;
-	}
+	
+	public void 		draw(Graphics g) {
 
-	/** {@inheritDoc} */																																			
-	public Point 		getLocation() {
-		return this.description.getLocation();
-	}
+		Rectangle2D.Double bounds = this.frameholder.described().description();
 
-	/** {@inheritDoc} */																																			
-	public void 		setLocation(Point location) {
-			
-		this.description.setLocation(location);
-		this.description.translate(Toolbox.negate(this.description.getReference()));
+		Graphics2D g2d = (Graphics2D) g.create(); 
+		
+		Point2D.Double writepoint = this.getWritepoint();
+		
+		g2d.translate(writepoint.x,  writepoint.y);
+		
+		for (Placeholder holder : constituents.sortedValues()) 
+			holder.described().draw(g2d);	
 	}
 	
-	
+	/**
+	 * The component and it's baseline at the position iterated to, contained in a placeholder.
+	 * Remember that order is solely for navigation and is not semantically significant per se.
+	 * 
+	 * @return The placeholder of the component at the current position.
+	 * 
+	 * @see Placeholder
+	 */
+	public Placeholder 	currentPlaceholder() {	
+		// skip the frame itself
+		return (current.described() != frameholder.described()) ? current : constituents.next();		
+	}
+	/**
+	 * Iterates forward one step and returns that position's placeholder. Remember that order is solely 
+	 * for navigation and is not semantically significant per se.
+	 * 
+	 * @return The next placeholder in this composite.
+	 *
+	 * @see Placeholder
+	 */
+	public Placeholder 	nextPlaceholder() {
+
+		current = constituents.next();
+
+		if (current.described() == frameholder.described())
+			current = constituents.next();
+
+		return current;
+	}
+	/**
+	 * Iterates backward one step and returns that position's placeholder.
+	 * 
+	 * @return The previous placeholder in this composite.
+	 *
+	 * @see Placeholder
+	 */
+	public Placeholder 	previousPlaceholder() {
+
+		current = constituents.previous();
+
+		if (current.described() == frameholder.described())
+			current = constituents.previous();
+
+		return current;
+	}
+		
 	/** {@inheritDoc} */																																			
-	public void 	underline(boolean underline) {
+	public void 		underline(boolean underline) {
 		this.underlined = underline;
 	}
-
 	/** {@inheritDoc} */																																			
-	public boolean 	isUnderlined() {
+	public boolean 		isUnderlined() {
 		return underlined;
 	}
 	
-	
-	/**
-	 * Used to construct a textual representation to make able storing it in the data base.
-	 *
-	 * @return The string representation of all baselines, in the order it was added. 
-	 */
-	public String baselinesString() {
 
-		Baseline frame =  this.frame.baseline();
-
-		String output = "";
-
-		for (Placeholder component : super.constituents) {
-
-			Baseline base = component.baseline();
-
-			output += base.x +  ":" + base.y +  ":" + base.length + " ";
-		}
-
-		output = output.substring(0, output.length() - 1);
-
-		return output;
+	// // //  CONTINUATION  TO DRectangle  - Code reuse has to stand back for interface semantics discipline // // //
+	/** {@inheritDoc} */
+	public Formal 			value() {
+		return description.getValue();
+	}		
+	/** {@inheritDoc} */
+	public DRectangle 		description() {
+		return description;
 	}
-	/**
-	 * Used to construct a textual representation to make able storing it in the data base.
-	 *
-	 * @return The string representations of all codepoints, in the order the were added.
-	 */
-	public String codepointsString() {
+	/** {@inheritDoc} */
+	public Point2D.Double 	getLocalReference() {
+		
+		return description.getLocalReferencepoint();
+	}
+	/** {@inheritDoc} */																																			
+	public Point2D.Double 	getWritepoint() {
 
-		String output = "";
-
-		output += ((Composite) this.value()).codepointsString(); 	
-
-		return output;
+		return description.getWritepoint();
+	}
+	/** {@inheritDoc} */																																			
+	public void 			setWritepoint(Point2D.Double location) {
+		
+		this.description.setWritepoint(location);
 	}
 
+	public void 			setErase() {
+		description.setErase();
+	}
 	
-	/** {@inheritDoc} */	
-	public Described clone() {
+	// // //  CONTINUATION END  // // //
+	
+ 	/**
+ 	 * Returns the bounding frame component of this described composite. The baseline of this baseline is always (0,0).
+ 	 *
+ 	 * @return The first and bounding framing components placeholder. 
+ 	 */
+ 	public Placeholder 			getFrame() {
+		return frameholder;
+	}	
+ 	
+	public double 				getAdvance() {
+		return frameholder.getAdvance();
+	}
+
+	public Rectangle2D.Double 	getBounds() {
+		return frameholder.frame();
+	}
+
+	public Size2D				getSize() {
+		return new Size2D(frameholder.frame());
+	}
+
+
+	public BufferedImage getImage() {
+				
+		return description.getImage();
+
+	}
+/** {@inheritDoc} */	
+	public Described 	clone() {
 		return null;
 	}
-
 	/** {@inheritDoc} */	
-	public String toString() {
+	public String 		toString() {
 
-		return "D[" + this.allString() + "]";
+		return "D[" + DebugStatics.allString(this) + "]";
 
 	}
-	
 	/** {@inheritDoc} */	
-	public int hashCode() {
+	public int 			hashCode() {
 		return (int) this.codepoint;
 	}	
-
-
-	private String allString() {
-
-		String output = "";
-
-		for (Placeholder component : super.constituents) {
-
-			Baseline xyb = component.baseline();
-
-			output += (char) component.described().getCodepoint() + " @" + xyb.x +  ":" + xyb.y +  ":" + xyb.length + " ";
-		}
-
-		output = output.substring(0, output.length() - 1);
-
-		return output;
-	}
-	
 }

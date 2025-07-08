@@ -8,10 +8,8 @@ import model.description.abstraction.Described;
 import model.independent.CyclicList;
 import model.logic.Implication.ImplicationType;
 
-/** NOW GIT IS WORKING **/
-
 /**
-  * The objects of class Theorem is the formal part of a mathematics theorem which the user is editing and describing and 
+ * The objects of class Theorem is the formal part of a mathematics theorem which the user is editing and describing and 
  * which is displayed and stored. <br><br>
  * 
  * It is implemented as an easily iterable {@see CyclicList} of {@see DStatement}s which are part of the non formal, non value 
@@ -35,10 +33,8 @@ public class Theorem extends CyclicList<DStatement> {
 
 	/** The statement currently worked on, to be added to the theorem when ready. */
 	protected Statement preliminaryvalue;	
-
 	/** The name of the theorem. */
 	protected String name;				
-
 
 	/**
 	 * Instantiates a new empty theorem.
@@ -51,7 +47,6 @@ public class Theorem extends CyclicList<DStatement> {
 		this.preliminaryvalue = new Statement();
 		this.name = name;
 	}
-
 	/**
 	 * Instantiates a new theorem with the content given as parameters.
 	 *
@@ -59,7 +54,7 @@ public class Theorem extends CyclicList<DStatement> {
 	 * @param sequences 	List of lists (statements) of described formals (primitives) which are used to construct this theorem. 
 	 * @param implications 	The implications used beteween statements, given in same order as the list of statements that they terminate.
 	 */
-	protected Theorem(String name, ArrayList<ArrayList<Described>> sequences, ArrayList<ImplicationType> implications) {
+	protected Theorem(String name, ArrayList<LinkedList<Described>> sequences, ArrayList<ImplicationType> implications) {
 		this(name);
 
 		int N = sequences.size();
@@ -77,7 +72,6 @@ public class Theorem extends CyclicList<DStatement> {
 
 	}
 
-
 	/**
 	 * The theorem's length in primitives.
 	 * @return The number of primitives in the theorem.
@@ -91,7 +85,6 @@ public class Theorem extends CyclicList<DStatement> {
 
 		return length;
 	}
-
 	/**
 	 * The theorem's length in statements.
 	 * @return The number of statements in the theorem.
@@ -120,7 +113,6 @@ public class Theorem extends CyclicList<DStatement> {
 	public String getName() { 
 		return name; 
 	}
-
 	/**
 	 * Sets the name of the theorem.
 	 *
@@ -130,7 +122,11 @@ public class Theorem extends CyclicList<DStatement> {
 		this.name = name;
 	}
 
-
+	/**
+	 * Number derived from a theorem to provide high probability equality comparison.
+	 * 
+	 * @return The sum of it's statments's consistency numbers.d 
+	 */
 	public int consistencyNumber() {
 		
 		int sum = 0;
@@ -141,5 +137,4 @@ public class Theorem extends CyclicList<DStatement> {
 		
 		return sum;
 	}
-
 }

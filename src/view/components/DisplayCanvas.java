@@ -4,115 +4,185 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.util.HashSet;
+import java.awt.geom.Point2D;
 import java.util.Iterator;
-import java.util.Set;
 
-import control.Toolbox;
+import control.statics.Arithmetic;
+import control.statics.PaintStatics;
+import control.statics.PaintStatics.Size2D;
+import control.statics.ViewStatics;
+import control.statics.ViewStatics.Mode;
+import model.description.DCursor;
 import model.description.DEditableStatement;
-import model.description.DPrimitive;
+import model.description.DRectangle;
 import model.description.DStatement;
 import model.description.DTheorem;
 import model.description.abstraction.Described;
 import view.abstraction.CursoredCanvas;
-import view.abstraction.DisplayTools;
 
 /**
  * The canvas upon which to draw theorems.
  * 
  * The canvas is particularly 'view part of the application' but
  * <b>Remark:</b><i> it encapsulates and shields a core part of the model</i>
- * namely the {@see DTheorem} which is created in it and should be acceses
+ * namely the {@see DTheorem} which is created in it and should be accessed
  * through either this {@see DisplayCanvas} which lays out and draws the theorem
- * or via the {@see Session} which stores all theorems, the theorems being
- * contained in their respective {@see Canvas}. 
+ * or via the {@see Session} which stores all canvases.
  */
 public class DisplayCanvas extends Canvas implements CursoredCanvas {
+	
+	
+	public static final Size2D CURSORSIZE = new Size2D(DRectangle.DUMMYRECTANGLE);
+	
+	private DTheorem			theorem;
+	private Described			drawn  = null, erase  = null;	
+	
+	private DCursor				dcursor 	= PaintStatics.DUMMYCURSOR.clone();
+	private Point2D.Double		writepoint 	= dcursor.getWritepoint();
+	private double				advance		= dcursor.getAdvance();
 
+	private boolean 			painting = true;
+	public boolean				degrowth = false;
 	
-	private DTheorem				theorem;
-	private Described				drawn = null,  erase = Toolbox.DUMMYCURSOR.clone(),  cursor = Toolbox.DUMMYCURSOR.clone();	
-	private Rectangle				clear;
-	private Set<DStatement>			altered = new HashSet<>();
-	
-	private Point					writepoint = new Point(0,0);
-	
-	private int						advance, lead, defaultadvance;
-	
-	private static int leftmargin = 5, rightmargin = 30, topmargin = 0;
-
-	private boolean painting				= true;
-	private boolean outofcursorchange 		= false;
-	private boolean outofpreliminarychange 	= false;
-	private boolean confirm 				= false;
-	private boolean clearpreliminary		= false;
-
-	
-	/**
-	 * Instantiates a new empty canvas for drawing fantastic math theorems upon.
-	 * Every canvas holds one and only one theorem and is the only direct holder of that theorem.
-	 * If no theorem is provided it creates an empty one.
-	 */
- 	public DisplayCanvas() {		
- 		this("empty");
- 	}
- 	
-	public DisplayCanvas(String name) {
- 		this.theorem = new DTheorem(name);
- 		this.reset();	
-	}
-
 	/**
 	 * Instantiates a new canvas for drawing fantastic math theorems upon.
 	 * Every canvas holds one and only one theorem and is the only direct holder of that theorem.
+	 * 
 	 * @param theorem The theorem that is described by this canvas.
 	 */
- 	public DisplayCanvas(DTheorem theorem) {		
- 		this.theorem = theorem;
- 		this.reset();	
+ 	public DisplayCanvas(DTheorem theorem) {
+
+ 		this.setSize(ViewStatics.canvasdimension); 		
+
+ 		this.theorem = theorem; 		 		
+
+ 		this.reset();	 		
+ 	}
+ 	
+ 	/**
+ 	 * Resets this canvas to a cleared canvas with cursor a start position.
+ 	 */
+	public void 	reset() {
+
+		drawn = null;
+		erase = null;
+		
+		dcursor.setWritepoint((Point2D.Double) PaintStatics.PAGESTART.clone());
+
+		this.setWritecursor(dcursor);		
+		this.repaint();
+	}
+ 	
+ 	/**
+	 * Sets the cursor's position, this canvas's write point.
+	 * 
+	 * @param	movedto 			The described formal who's referencepoint should be the new write point.
+	 * 								If this is null the writepoint is set to the startcursor's. 
+	 */
+ 	public void 	setWritecursor(DCursor movedto) {
+						
+ 		Point2D.Double wp = movedto.getWritepoint();
+ 		
+		this.writepoint.setLocation(wp.x, wp.y);
+		
+		this.advance = movedto.getAdvance();
+	}
+ 	/**
+	 * Sets the cursor's position, this canvas's write point.
+	 * 
+	 * @param	movedto 	If there is no offset (offset is null) set the writepoint to this described formals referencepoint. 
+	 * @param	origo	The position in the canvas where the current cursor has it's upper left corner.
+	 * @param	offset		The offset, the cursors reference point, from the local origo.
+	 */
+	public void 	setWritecursor(DCursor movedto, Point2D.Double origo, Point2D.Double offset) {
+
+		advance = movedto.getAdvance();
+
+		if (offset == null) setWritecursor(movedto);
+		else 
+			writepoint.setLocation(Arithmetic.add(origo, offset));
+	}
+
+	public void 	fillCursor(Described formal, Described erased, boolean paint) {
+
+ 		// erase the previous and clear current
+ 		erase = drawn;
+ 		drawn = null;	
+		dcursor.setErase();
+ 		if (paint) this.paint(this.getGraphics());
+		
+		// fill in the new
+ 		formal.setWritepoint(writepoint);
+ 		drawn = formal; 		
+ 		advance = drawn.getAdvance();
+
+ 		dcursor.setFrame(drawn.description()); 		//dcursor.setFrame(drawn.description().getAscendingBounds());
+
+ 		this.repaint();
+	}	
+
+	public void 	proceedCursor() {
+		
+ 		if (drawn != null) {
+				
+ 			// erase previous cursor
+	 		dcursor.setErase();
+	 		if (this.getGraphics()!=null) this.paint(this.getGraphics());
+	 		
+	 		// move on one position or new row
+			if (writepoint.x + 2*advance > ViewStatics.canvasdimension.width - PaintStatics.MARGINS[PaintStatics.RIGHT])
+				this.newRow();
+			else 
+				writepoint.x += advance;
+					
+			// set up new empty cursor
+			dcursor.setFrame(writepoint, CURSORSIZE);	
+			dcursor.setWritepoint(writepoint);
+ 		}
+		
+		erase = drawn;
+		drawn = null;
+	}
+
+ 	private void 	fillAndProceed(Described fillin, Described erase, boolean paint) {
+ 
+ 		this.fillCursor(fillin, erase, paint);
+ 		
+ 		proceedCursor();		
  	}
 
- 	
-	/** {@inheritDoc} */
- 	public void fillCursor(Described formal, boolean paint, Described erased) {
-		
-		erase = erased != null ? erased : drawn;
-
-		drawn = formal;
-		
-		drawn.setLocation(writepoint);	
-
-		cursor.description().setBounds(drawn.description().getBounds());
-		
-		if (paint) {			
-			this.setPaintMode(true, false, false);
-			this.paint(this.getGraphics());
-		}
-	}
-	
-
 	/**
- 	 * Sets the theorem to be drawn.
-	 *
-	 * @param theorem The new theorem.
+	 * Adds the currently drawn primitive to the theorem in use, either at the end of the theorem or if
+	 * a statement is edited into the current prompt of that statement.
 	 */
-	public void setAndDescribeTheorem(DTheorem theorem) {
-
-		this.theorem = theorem;
-
-		this.setWritepoint(startCursor());
-
-		this.theorem.firstStatement().setLocation(writepoint.getLocation());
-		if (!theorem.isEmptyTheorem())
-			this.theorem.firstFormal().setLocation(writepoint.getLocation());
+	public void 	newPrimitive() {	
 		
-		this.redescribeAll();
+		if (this.isPrompting()) 
+			theorem.insertPrimitive(drawn, theorem.getEditing().current());
+		else 
+			theorem.appendPrimitive(drawn);
+
+		proceedCursor();
 	}
-
+	/**
+ 	 * Finalises and appends the work piece preliminary statement of the theorem to the theorem and creates a 
+	 * new preliminary statement to work on. 
+	 *
+	 * @param implication The implication ending the finalised statement.
+	 */
+	public void 	newStatement(Described implication) {
+		
+		implication.setWritepoint(writepoint);
+		
+		theorem.finalisePreliminary(implication);
+												
+		proceedCursor();
+	}
 	
-
+	
+	public void 	setTheorem(DTheorem theorem) {
+		this.theorem = theorem;
+	}
 	/** 
 	 * The theorem worked on in this canvas. Try to export the theorem only frmo its canvas. They are a couple.
 	 * 
@@ -122,269 +192,124 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		return theorem;
 	}
 	
-	/** 
-	 * Returns the current cursor.
-	 *
-	 * @return 	The current cursor of the canvas.
-	 */
- 	public Described cursor() {
-		return this.cursor;
-	}
-
-	/** {@inheritDoc} */
- 	public void emptyCursor() {
-		
-		erase = drawn;
-
-		drawn = null;
-	}
-
-	/**
-	 * Set a new empty cursor after the last formal of the theorem
-	 */
- 	public void newCursor() {
-		
- 		Described last = !theorem.isEmptyTheorem() ? theorem.lastFormal() : startCursor();
- 		
- 		this.setWritepoint(last);
-
- 		this.fillCursor(last, false, null);
- 		
- 		erase = last;
- 	
- 		if (!theorem.isEmptyTheorem()) incrementCursor();
- 	}
-	
-	/** {@inheritDoc} */
- 	public void incrementCursor() {
-
-		advance = drawn.description().width;
-
-		erase = drawn;
-
-		drawn = null;
-
-		if (writepoint.x + advance > this.getWidth() - rightmargin) 
-			this.incrementRow();
-		else 
-			writepoint.x += advance;
-
-		advance = defaultadvance;
-				
-		cursor.setLocation(writepoint);
-		cursor.description().width = advance;
-		
- 	}
-
- 	/** Increment the writing point so as to point at the begining of the next row. */
-	private void incrementRow() {
-
-		writepoint.y += lead;
-		writepoint.x = 0;
-	}
-
-
 	/** {@inheritDoc} */
 	public Described getDrawn() {
 		return drawn;
 	}
-																																				
+	/** {@inheritDoc} */
+ 	public void 	emptyCursor() {
+ 		
+		erase = drawn;
+		drawn = null;
+	}
+ 	
+ 	public void 	newCursor() {
+ 		
+ 		Point2D.Double lastwrite = theorem.lastFormal().getWritepoint();
+
+ 		dcursor.setFrame(PaintStatics.DUMMYCURSOR);
+ 		dcursor.setWritepoint(lastwrite);
+
+ 		advance = dcursor.getAdvance();
+ 		
+ 		writepoint.setLocation(lastwrite);
+ 		
+ 		proceedCursor(); 		
+ 	} 	 	
+ 	/** Increment the writing point so as to point at the begining of the next row. */
+	private void 	newRow() {
+		writepoint.y += PaintStatics.AVERAGELEAD;
+		writepoint.x = PaintStatics.PAGESTART.x;
+	}
+		
  	/**
-	 * Sets the cursor's position, this canvas's write point.
-	 * 
-	 * @param	movedto 			The described formal who's referencepoint should be the new write point.
-	 * 								If this is null the writepoint is set to the startcursor's. 
-	 */
- 	public void setWritepoint(Described movedto) {
-						
-		Described write = movedto != null ? movedto : startCursor();
-		
-		Point to = write.getGlobalReference();
-		
-		writepoint.setLocation(to.x, to.y);
-	}
-	
- 	/**
-	 * Sets the cursor's position, this canvas's write point.
-	 * 
-	 * @param	movedto 	If there is no offset (offset is null) set the writepoint to this described formals referencepoint. 
-	 * @param	localorigo	The position in the canvas where the current cursor has it's upper left corner.
-	 * @param	offset		The offset, the cursors reference point, from the local origo.
-	 */
-	public void setWritepoint(Described movedto, Point localorigo, Point offset) {
+ 	 * Do a new layout of the whole theorem
+ 	 */
+ 	public void 	describeTheorem() {
 
-		if (offset == null) setWritepoint(movedto);
-		else {
-			writepoint.setLocation(localorigo.x, localorigo.y);
-			writepoint.translate(offset.x, offset.y);
-		}
-	}
+		if (!theorem.isEmptyTheorem()) {
 
-	
+	 		Described firstformal = theorem.firstFormal();
+	 		
+	 		dcursor.setFrame(firstformal.description());
+	 			 		
+	 		this.setWritecursor(dcursor);
+
+			DStatement firststatement = theorem.firstStatement();
+
+			firststatement.setWritepoint(writepoint);			
+			firststatement.getFirst().setWritepoint((Point2D.Double) PaintStatics.PAGESTART.clone());
+			
+ 			this.describeTheoremTail(firststatement);		
+ 			this.newCursor();
+ 			
+ 			drawn = theorem.lastFormal();
+ 		}		
+ 	}
 	/**
-	 * Adds the currently drawn primitive to the theorem in use, either at the end of the theorem or if
-	 * a statement is edited into the current prompt of that statement.
-	 */
-	public void newPrimitive() {	
+ 	 * Do a new layout of the ending part of the theorem, starting att statement given as argument. 
+ 	 * 
+ 	 * @param included	The statement that begins the tail to be re-layouted.
+ 	 */
+ 	public void 	describeTheoremTail(DStatement included) {
 		
-		if (this.isPrompting()) 
-			theorem.insertPrimitive(drawn, theorem.getEditing().current());
-		else 		
-			theorem.appendPrimitive(drawn);
-				
-		this.setPaintMode(false, false, true);
- 		this.paint(this.getGraphics());			// force is necessary - repaint paints 'as soon as possible'
-
-		this.incrementCursor();
-	}
-
-	/**
- 	 * Finalises and appends the work piece preliminary statement of the theorem to the theorem and creates a 
-	 * new preliminary statement to work on. 
-	 *
-	 * @param implication The implication ending the finalised statement.
-	 */
-	public void newStatement(Described implication) {						
-		
-		theorem.finalisePreliminary(implication);
-				
-		erase = implication;
-		
-		this.setPaintMode(false, false, true);
-		this.paint(this.getGraphics());																											///(1960)
-
-		this.incrementCursor();
-		this.setPaintMode(true, false, false);
-		this.paint(this.getGraphics());
-						
-		theorem.getPreliminary().setLocation(writepoint);
-	}
-
+ 		// empty statements can't have tail
+ 		if (included.isEmpty()) return; 				
+ 		
+ 		this.setWritecursor(included.getFirst().description()); 			
+ 		
+ 		Point2D.Double restore = writepoint;
+ 		
+ 		this.describeStatements(included);
+ 			
+ 		writepoint.setLocation(restore);
+ 		
+ 		return; 		
+ 	}
+ 	
+	private void 	describeStatements(DStatement included) {
 	
+		theorem.addLast(theorem.getPreliminary());
+
+		int start = theorem.indexOf(included);
+
+		Iterator<DStatement> it = theorem.listIterator(start);
+
+		painting = false;
+		
+		while (it.hasNext()) 
+			this.describeStatement(it.next());
+	
+		painting = true;
+
+		theorem.removeLast();
+	}	 	
 	/**
 	 * Redescribes a statement of the theorem. Lays out the statement to fit this canvas.
 	 *
 	 * @param statement The statement to lay out and redescribe.
 	 */
- 	public void redescribeStatement(DStatement statement) {			/** DOES NOT RESTORE CURSOR **/
+ 	public void 	describeStatement(DStatement statement) {			/** DOES NOT RESTORE CURSOR **/
 
  		if (statement.isEmpty()) return;
  		
 		Iterator<Described> it = statement.iterator();
 		
-		while (it.hasNext()) {
-			this.fillCursor(it.next(), false, null);
-			this.incrementCursor();
-		}
+		while (it.hasNext()) 
+			this.fillAndProceed(it.next(), null, !Mode.PAINT);
 		
-		statement.setLocation(statement.getFirst().getLocation());			
-	}
-
- 	/**
- 	 * Do a new layout of the whole theorem
- 	 */
- 	public void redescribeAll() {
- 		
- 		this.redescribeTail(theorem.firstStatement());
- 		
- 		if (Toolbox.DEBUGMINIMAL) System.err.println("Redescribed all");
- 	}
- 	
- 	/**
- 	 * Do a new layout of the ending part of the theorem, starting att statement given as argument. 
- 	 * 
- 	 * @param included	The statement that begins the tail to be re-layouted.
- 	 */
- 	public void redescribeTail(DStatement included) {
-		
- 		if (theorem.isEmptyTheorem()) return;
- 		
- 		if (included == null || included == theorem.getPreliminary() || theorem.size() == 0 ) {		// last, last, first
- 			this.redescribePreliminary();
- 			return;
- 		} else {				// included != null && included != theorem.getPreliminary() && !theorem.size() == 0
-
- 	 		if (Toolbox.DEBUGMINIMAL) System.err.println("Redescribing, starting at " + included.formalsString());
-
- 			Point restore = writepoint.getLocation();
-
- 			painting = false;
- 			this.setWritepoint(included.getFirst()); 			
- 			theorem.addLast(theorem.getPreliminary());
-
- 			int start = theorem.indexOf(included);
-
- 			Iterator<DStatement> it = theorem.listIterator(start);
-
- 			while (it.hasNext()) 
- 				this.redescribeStatement(it.next());
-
- 			theorem.removeLast();
- 			writepoint.setLocation(restore.getLocation());
- 			painting = true;
-
- 			return;
- 		} 		
- 	}
- 	 	
- 	/**
- 	 * Do a new layout of the preliminary statement.
- 	 */
-  	public void redescribePreliminary() {
-
-  		DStatement redescribe = theorem.getPreliminary();
-  		
-  		if (redescribe.isEmpty()) return;
-  		
- 		Point restore = writepoint.getLocation();
- 		Point write = redescribe.getLocation();
- 		
- 		writepoint.setLocation(write);
- 		this.fillCursor(redescribe.getFirst(), false, null);
- 		this.incrementCursor();
- 		
- 		this.redescribeStatement(redescribe);
- 		
- 		writepoint.setLocation(restore);
- 		this.fillCursor(redescribe.getLast(), false, null);
- 		this.incrementCursor();
-	}
-
- 	/**
- 	 * Resets this canvas to a cleared canvas with cursor a start position.
- 	 */
-	public void reset() {
-
- 		Described startcursor = DisplayCanvas.startCursor();
-
- 		this.setWritepoint(startcursor);
-		
-		defaultadvance	= startcursor.description().width;
-		lead			= startcursor.description().height;
-		advance 		= defaultadvance;
-			
-		this.repaint();
-	}
-
-  	
-  	/**
-  	 * Add a statement's bounding area to the area that should be updated because it has been altered.
-  	 * 
-  	 * @param altered	The statement which also should be updated.
-  	 */
-	public void unionAltered(DStatement altered) {
-		this.altered.add(altered);
+		statement.setWritepoint(statement.getFirst().getWritepoint());			
 	}
 
 	/**
 	 * Toggle editing mode. Starts a new editing aspect or closes, tidies up and leaves the existing editing aspect.
 	 */
-	public void toggleEditingMode() {
+	public void 	toggleEditingMode() {
 
-		DStatement chosen = theorem.getChosen();
-		DEditableStatement editing = theorem.getEditing();
+		DStatement 			chosen 	= theorem.getChosen();
+		DEditableStatement 	editing = theorem.getEditing();
 
-		if (editing == null) {										// start new editing aspect of chosen statement 
+		if (editing == null) {								// start new editing aspect of chosen statement 
 
 			if (chosen != null && chosen.size() > 0) {				// someting to edit
 
@@ -392,12 +317,12 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 
 				Described first = editing.current();
 				
-				this.setWritepoint(first);
-				this.fillCursor(first, true, null);
+				this.setWritecursor(first.description());
+				this.fillCursor(first, null, Mode.PAINT);
 			} 												
 			
-		} else {								// edited statement is larger than two
-												// finish up and close editing aspect, make chosen statement and canvas ok to leave
+		} else {										// edited statement is larger than two
+														// finish up and close editing aspect, make chosen statement and canvas ok to leave
 			if (editing.current().isDummy()) 				
 				editing.deleteCurrent();												// perhaps delete dummy 
 			else 
@@ -406,229 +331,86 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 			
 			editing.togglePrompting();													// close prompt, dummy already removed
 
-			DStatement previous = theorem.getPrevious(editing.whole());					// perhaphs null
+			DStatement previous = theorem.getPreviousStatement(editing.whole());		// perhaphs null
 
-			this.redescribeTail(previous);												// handles all cases
+			this.describeTheoremTail(previous);											// handles all cases
 
 			theorem.leaveEditing();
+			
+			Described last = theorem.lastFormal();
 		
-			this.setWritepoint(theorem.lastFormal());							// reset cursor
-			this.fillCursor(theorem.lastFormal(), false, editing.current());			
-			this.incrementCursor();
+			this.setWritecursor(last.description());									// reset cursor
+			this.fillAndProceed(last, editing.current(), !Mode.PAINT);			
 
 			editing = null;																// editing no more
 		}		
 	}
-
 	/**
 	 * Checks if the editing aspect exists and are prompting for a new primitive to insert.
 	 *
 	 * @return true, if is prompting and editing. Otherwise false.
 	 */
-	public boolean isPrompting() {
+	public boolean 	isPrompting() {
 
 		DEditableStatement editing = theorem.getEditing();
 
 		return editing != null ? editing.prompting : false;
 	}
 	
-	// the usual suspects
-
-	/** {@inheritDoc} */
-	public void update(Graphics g) {	
-		
-		if (outofpreliminarychange) { 
-						
-			if (theorem.isEdited()) 
-				redescribeTail(theorem.getEditing().whole());
-			else
-				redescribeAll();
-				
-			erase = theorem.lastFormal();
-			
-			super.update(g);																													///(266G)
-		} 		
-	}
-
-	/** {@inheritDoc} */
-	public void repaint() {		
-		super.repaint();
-		
-		if (theorem != null) {
-			
-			Rectangle bounds = new Rectangle();
-
-			if (theorem.isEdited()) {
-						
-				bounds = theorem.getEditing().whole().getBounds();																			///(DE2G)
-				
-			} else {
-
-				cursor.setLocation(writepoint.getLocation());
-				
-				if (outofpreliminarychange) 
-					bounds = new Rectangle(0, writepoint.y, this.getWidth(), writepoint.y + lead);											///(040C)
-				else 
-					if (outofcursorchange) 
-						bounds = theorem.getPreliminary().getBounds();  																	///(GE23)
-					else 
-						bounds = cursor.description();  																					///(7AG9)
-			}
 	
-			super.repaint(bounds.x, bounds.y, bounds.width, bounds.height);
-		}
-	}
+	public void update(Graphics g) {		
 
-	/** {@inheritDoc} */
+		Graphics2D g2dc = (Graphics2D) g.create();
+
+		if (degrowth) {
+			degrowth = false;
+			PaintStatics.clearEndOfLine(g2dc,dcursor.getBounds());
+		}
+
+		paintBaseline(g2dc);
+
+		theorem.draw(g2dc);			
+		theorem.getPreliminary().draw(g2dc);
+				
+		this.paint(g2dc); 
+	}
+		
 	public void paint(Graphics g) {
     	
-     	if (painting) {
-
-     	  	Graphics2D gcopy = (Graphics2D) g.create();
-     	   
-    		if (theorem == null) {
-    			
-    			return;
-
-    		} else {											///(3G90)
-        			
-    			if (!theorem.isEdited()) DisplayTools.clearEndOfLine(gcopy, cursor);
-
-    			if (clear != null) {
-    				gcopy.clip(clear);
-    				DisplayTools.clearRect(gcopy, clear);
-    				clear = null;
-    				return;
-    			}
-    			
-    			if (!outofcursorchange) {						// only in cursor																					///(683F)
-    				    				
-    	    		if (drawn != null) {
-
-    	    			if (erase != null) {
-    	    				
-    	    				gcopy.setClip(drawn.description().union(erase.description()));		// backwards
-
-        					DisplayTools.paintCursor(gcopy, erase, true);									
-    	    				DisplayTools.paintDescribed(gcopy, drawn, Color.orange);												
-    	    				DisplayTools.paintCursor(gcopy, drawn, false);									
-    	    			
-    	    			} else {
-
-    	    				gcopy.setClip(drawn.description());
-
-        					DisplayTools.paintDescribed(gcopy, drawn, Color.orange);												
-        					DisplayTools.paintCursor(gcopy, drawn, false);									
-    	    			}
-
-    					if (confirm) {	  										///(E83F)
-
-    						DisplayTools.blinkCursor(gcopy, drawn.description());
-    						erase = drawn;
-    						confirm = false;
-    					}  
-        				    
-    				} else {					 								// proceeded so erase previous cursor																							///(05B8)
-
-    					gcopy.setClip(erase.description().union(cursor.description()));
-
-    					DisplayTools.paintCursor(gcopy, erase, true);									
-    					DisplayTools.paintDescribed(gcopy, erase, Color.green);												
-    
-    					DisplayTools.clearCursor(gcopy, cursor);
-    				}    				
-  	    		
-    			} else {														///(AA7D)
-    				
-    				if (!outofpreliminarychange) {								// only in preliminary 																								///(5403)    			
-
-    					DStatement preliminary = theorem.getPreliminary();
-    					Rectangle bounds = preliminary.getBounds().union(cursor.description());
-    					
-    					gcopy.setClip(bounds);
-    					
-    					DisplayTools.paintStatement(gcopy, preliminary);
-    					
-    				} else {													// whole canvas	///(27GB)
-
-    					gcopy.setClip(null);
-    					
-    					DisplayTools.clearRect(gcopy, this.getBounds());
-    	    			DisplayTools.paintTheorem(gcopy, theorem);
-    					
-    		    		if (theorem.isEdited()) {								///(7DB0)
-
-    		    			DEditableStatement edited = theorem.getEditing();
-    		    			
-    		    			gcopy.setClip(edited.getBounds());
-
-    		    			DisplayTools.paintEditing(gcopy, edited, null);
-    		    			DisplayTools.paintCursor(gcopy, edited.current(), false);
-
-    		    		}
-    		    		
-    					outofpreliminarychange = false;							// done
-    				}
-    				
-    				outofcursorchange = false;									// done
-    			}   			    			    			
-
-    		}  		
-
-    		DisplayTools.paintCursor(gcopy, cursor, false);									
-
-			if (!altered.isEmpty()) {
-				
-				gcopy.setClip(DisplayTools.area(altered));
-				
-				for (DStatement s : altered) DisplayTools.paintStatement(gcopy, s);
-
-				altered.clear();
-			}																		///(34CD)	
-
-			gcopy.dispose();
-    	}
+		Graphics2D g2dc = (Graphics2D) g.create();
+		
+		if (painting && drawn != null) { 			
+			paintDrawnAndErase(g2dc);
+			paintCursor(g2dc);						
+			//paintEditing(g2dc);
+		}
   	}
 
-	// the remedy
 	
-	/**
-	 * Sets which parts of the theorem that needs painting and similar. 
-	 * 
-	 * @param cursorchanged			The cursor has changed.
-	 * @param preliminarychanged	The preliminary statement has changed.
-	 * @param confirmcursor			The cursor content should be confirmed by red blinking.
-	 */
- 	public void setPaintMode(boolean cursorchanged, boolean preliminarychanged, boolean confirmcursor) {
-		
-		confirm = confirmcursor;			
-
-		outofpreliminarychange  = confirm ? false : !(cursorchanged || preliminarychanged);																	///(66ED)
-		outofcursorchange 		= confirm ? false : (preliminarychanged || outofpreliminarychange);		
-		clearpreliminary		= preliminarychanged;
+	private void 	paintCursor(Graphics2D g2dc) {
+		dcursor.draw(g2dc);
 	}
 
- 	
- 	/**
- 	 * Sets the area that should be cleared before painting.
- 	 * 
- 	 * @param cleared	The area that should be cleared. null is a sound value if no clearing should be made.
- 	 */
-	public void setClearArea(Rectangle cleared) {
-		clear = cleared;
+	private void 	paintDrawnAndErase(Graphics2D g2d) {
+		
+		if (drawn!=null) drawn.draw(g2d);
+		else
+			if (erase!=null) {
+				erase.setErase();
+				erase.draw(g2d);
+			}
 	}
 
-	/**
-	 * The start cursor of the canvas page.
-	 * 
-	 * @return	A dummy formal positioned at the very start of the page, where the first glyph should be drawn.
-	 */
-	public static Described startCursor() {
+	private void 	paintEditing(Graphics2D g2dc) {
+		if (theorem.isEdited()) 
+			theorem.getEditing().draw(g2dc);
+	}
+
+	private void 	paintBaseline(Graphics2D gcopy) {
+
+		Point2D.Double start = PaintStatics.PAGESTART;
 		
-		Described start = new DPrimitive(Toolbox.DUMMY);
-		
-		start.setLocation(Toolbox.PAGESTART);
-		
-		return start;
+		gcopy.setColor(Color.black);
+		gcopy.drawLine((int)start.x, (int)start.y, (int)(start.x + this.getWidth()), (int)start.y);
 	}
 }
