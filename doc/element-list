@@ -1,0 +1,17 @@
+annexes.maker
+annexes.picker
+annexes.trainer
+control
+control.db
+control.session
+control.statics
+model
+model.description
+model.description.abstraction
+model.independent
+model.logic
+model.logic.abstraction
+view
+view.abstraction
+view.components
+view.components.dialogs
