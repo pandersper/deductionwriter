@@ -3,19 +3,21 @@ package control.session;
 import javax.swing.KeyStroke;
 
 /**
- * A binding between an UTF codepoint and a keyboard key and modifiers integer mask (a shortcut).
+ * A binding between an UTF codepoint and a keyboard key and modifiers integer mask, a shortcut.
  * 
  * @see model.logic.abstraction.Formal#getCodepoint()
  * @see java.awt.AWTKeyStroke 
  */
 public class Shortcut implements Comparable<Shortcut> {
 
-	/** The keyboard key stroke integer code. 
+	/** 
+	 * The keyboard key stroke integer code. 
 	 * 
 	 * @see java.awt.AWTKeyStroke 
 	 */
 	public Integer keycode;
-	/** The modifiers mask.
+	/** 
+	 * The modifiers mask.
 	 * 
 	 * @see java.awt.AWTKeyStroke 
 	 */

@@ -9,8 +9,6 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.font.FontRenderContext;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.Dimension2D;
 import java.awt.geom.Point2D;
@@ -30,15 +28,16 @@ import model.independent.CyclicMap;
 import model.logic.Primitive;
 
 /**
- * Class of static helper methods for drawing.
+ * Class of static helper methods and constants for painting and drawing.
  */
-public class PaintStatics {
+public final class PaintStatics {
 	
-	
+	/**
+	 * Simple implementation of the {@link Dimension2D} interface.
+	 */
 	public static class Size2D extends Dimension2D {
 
 		private double width, height;
-
 
 		public Size2D(Rectangle2D.Double r) {
 			this.width = r.width;
@@ -49,7 +48,6 @@ public class PaintStatics {
 			this.width = width;
 			this.height = height;
 		}
-		
 		
 		public double getWidth() {
 			return this.width;
@@ -64,42 +62,95 @@ public class PaintStatics {
 			this.height = height;
 		}
 	}	
-		
+
+	private static final Dimension 			
+		GLYPHBOUNDS  	= new Dimension(100, 100);
+	private static final BufferedImage 		
+		ANYPAINTABLE 	= new BufferedImage(GLYPHBOUNDS.width, GLYPHBOUNDS.height, BufferedImage.TYPE_INT_ARGB);	
+
 	
-	public static final Font 				FONT 		= new Font("Times", Font.PLAIN, 60);
+	/** 
+	 * Application wide font. 
+	 * */
+ 	public static final Font 			
+ 		FONT = new Font("Times", Font.PLAIN, 60);
 
-	private static final Dimension 			GLYPHBOUNDS  = new Dimension(200, 400);
-	public static final BufferedImage 		ANYPAINTABLE = new BufferedImage(GLYPHBOUNDS.width, GLYPHBOUNDS.height, BufferedImage.TYPE_INT_ARGB);	/** Commonly used font metrics. */
-		/** Information about the font used **/
-	public static final FontMetrics			FONTMETRICS			= ANYPAINTABLE.createGraphics().getFontMetrics(FONT);
-	public static final FontRenderContext	FONTRENDERCONTEXT	= FONTMETRICS.getFontRenderContext();	
+ 	/** 
+ 	 * java SE information about the font used. **/
+	public static final FontMetrics		
+		FONTMETRICS	= ANYPAINTABLE.createGraphics().getFontMetrics(FONT);
+
+	/** 
+	 * The average advancement of a glyph. */
+	public static final double 			
+		AVERAGEADVANCE = averageAdvance();
+
+	/** 
+	 * The average inter-line spacing. */
+	public static final int 			
+		AVERAGELEAD = FONTMETRICS.getDescent() + FONTMETRICS.getAscent() + FONTMETRICS.getLeading();
+
+	/** 
+	 * Left, top, right and bottom page margins. */
+	public static final int[]			
+		MARGINS	= {10, 20, 10, 20};
+
+	/** 
+	 * Constants for accessing margins in a readable manner. 
+	 */
+	public static final int 			
+		LEFT = 0, TOP = 1, RIGHT = 2, BOTTOM = 3; 
+
+	/** 
+	 * Number of rows in sequence. */
+	public static final int				
+		MAXROWS = 20;
+
+	/** 
+	 * Start write-point of a page. 
+	 */
+	public static final Point2D.Double	
+		PAGESTART = new Point2D.Double(MARGINS[LEFT], 2*AVERAGELEAD);
+
+	/** 
+	 * End write-point of a page. 
+	 */
+	public static final Point2D.Double	
+		PAGEEND = new Point2D.Double(MARGINS[RIGHT], MAXROWS*AVERAGELEAD + MARGINS[BOTTOM]);
+
+	/** 
+	 * The bounds of the dummy. 
+	 */
+	public static final Rectangle		
+		DUMMYBOUNDS = new Rectangle(0,-FONTMETRICS.getAscent(), (int) AVERAGEADVANCE, 
+									   FONTMETRICS.getDescent() + FONTMETRICS.getAscent());
+
+	/** 
+	 * Not just the bounds, the complete dummy cursor. 
+	 */
+	public static final DCursor 		
+		DUMMYCURSOR	= dummyCursor();
+
+	/** 
+	 * The application wide canvas background colour. 
+	 */
+	public static final Color 			
+		BACKGROUND 		= ViewStatics.floralwhite;
+
+	/** 
+	 * The application wide canvas foreground colour. 
+	 */
+	public static final Color 			
+		FOREGROUND 	= Color.black;
+
+	/** 
+	 * The global collection of character to primitive bindings.  
+	 */
+	public static final HashMap<Character, DPrimitive>  
+		GLYPHDICTIONARY = new HashMap<Character, DPrimitive>();
+
 	
-	public static final char 				DUMMYCHAR 	= 'D';
-
-	public static final AffineTransform 	IDENTITY = AffineTransform.getTranslateInstance(0, 0);
-
-	public static final double 				AVERAGEADVANCE 	= averageAdvance();
-	public static final int 				AVERAGELEAD 	= FONTMETRICS.getDescent() + FONTMETRICS.getAscent() + FONTMETRICS.getLeading();
-
-	public static final Rectangle			DUMMYBOUNDS 	= new Rectangle(0, -FONTMETRICS.getAscent(), (int) AVERAGEADVANCE, FONTMETRICS.getDescent() + FONTMETRICS.getAscent());
-	
-	public static final int[]				MARGINS			= { 10, 20, 10, 20 };
-	private static final int				MAXROWS 		= 20;
-
-	public static final int LEFT = 0, TOP = 1, RIGHT = 2, BOTTOM = 3; 
-
-	public static final Point2D.Double		PAGESTART 	= new Point2D.Double(MARGINS[LEFT], 2*AVERAGELEAD);
-	public static final Point2D.Double		PAGEEND 	= new Point2D.Double(MARGINS[RIGHT], MAXROWS*AVERAGELEAD + MARGINS[BOTTOM]);
-
-	public static final DCursor 			DUMMYCURSOR = dummyCursor();
-
-	public static final Color 				BACKGROUND 	= ViewStatics.floralwhite;
-	public static final Color 				FOREGROUND 	= Color.black;
-	
-	/** The global collection of character to primitive bindings.  */
-	public static final HashMap<Character, DPrimitive>  GLYPHDICTIONARY = new HashMap<Character, DPrimitive>();
-
-	/**
+	/**				
 	 * Draw the blink of a cursor.
 	 *
 	 * @param g 		The graphics object with which to draw.
@@ -121,7 +172,7 @@ public class PaintStatics {
 	/**
 	 * Clears the end of the current line starting after the described formal given as argument. 
 	 * 
-	 * @param g 	The graphics on which to draw.	 
+	 * @param g 	The graphics with which to draw.	 
 	 * @param last	The formal that ends the line.
 	 */
 	public static void clearEndOfLine(Graphics g, Rectangle last) {
@@ -197,7 +248,17 @@ public class PaintStatics {
 		g2d.dispose();
 	}
 		
-	
+	/**
+	 * The primary glyph image generator of the application. Generates simple primitive's description, glyph,
+	 * image. {@link java.awt.FontMetrics}
+	 * 
+	 * @param codepoint		The UTF codepooint for the glyph.
+	 * @param baseline		The length of the base line determining the whole glyph's size according to common 
+	 * 						typography practice. {@link java.awt.FontMetrics}
+	 * @param transparent	If the glyph background shoud be transparent or opaque.
+	 * 
+	 * @return The glyph image.
+	 */
 	public static BufferedImage		makeGlyph(int codepoint, double baseline, boolean transparent) {
 		
 		CharGauge gauge = new CharGauge(codepoint, PaintStatics.AVERAGEADVANCE);
@@ -212,93 +273,15 @@ public class PaintStatics {
 		
 		return image;
 	}
-
-	
-	private static BufferedImage 	makeImage(CharGauge gauge) {
-		
-		double height 	= gauge.cursor.getHeight();
-		double width 	= gauge.cursor.getWidth();
-				
-		BufferedImage image = new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB);
-		return image;
-	}
-
-	private static void 			drawGlyph(CharGauge gauge, BufferedImage image, boolean transparent) {
-
-		Graphics2D g2d = image.createGraphics();
-	
-		if (transparent)
-			g2d.setColor(new Color(0,0,0,0));
-		else
-			g2d.setColor(ViewStatics.floralwhite);
-		
-		g2d.fill(gauge.cursor);	
-				
-		g2d.setFont(FONT);
-		g2d.setColor(Color.black);	
-		
-		if (gauge.codepoint != -1)
-			g2d.drawString("" + (char) gauge.codepoint, (int) gauge.reference.x, (int) gauge.reference.y);		// characters are written upside down relative device coordinates
-	}
-	
-	private static BufferedImage 	scaleImage(CharGauge gauge, BufferedImage image) {
-	
-		Rectangle2D.Double bounds = gauge.cursor;
-			
-		Image scaled = image.getScaledInstance((int)bounds.getWidth(), (int)bounds.getHeight(), Image.SCALE_SMOOTH);
-
-		image = new BufferedImage(scaled.getWidth(null), scaled.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-
-		Graphics2D g2d = image.createGraphics();
-		
-		g2d.drawImage(scaled, null, null);
-		
-		return image;
-	}
-	
-	public static BufferedImage 	makeCompositeGlyph(CyclicMap<Handle, Placeholder> shapes) {
-		
-		Placeholder frameholder = Toolbox.findFrame(shapes);	/* Later: if subglyphs outside frame is allowed - determineBounds(shapes.values()); */
-		
-		Point2D.Double origo = new Point2D.Double(frameholder.getLocalReference().x, frameholder.getLocalReference().y);
-		
-		Rectangle2D.Double bounds = frameholder.described().description();							
-
-		BufferedImage all = new BufferedImage((int)bounds.width, (int)bounds.height, BufferedImage.TYPE_INT_ARGB);
-		
-		Graphics2D g2dc = all.createGraphics();
-		
-		g2dc.translate(origo.x, origo.y);
-		
-		Placeholder holder;
-					
-		for (Placeholder h : shapes.sortedValues())						
-			h.described().draw(g2dc);
-		
-		return all;	
-	}
-
-	
-	private static Rectangle2D.Double determineBounds(Collection<Placeholder> values) {
-
-		double xmax = java.lang.Double.MAX_VALUE;
-		double ymax = java.lang.Double.MAX_VALUE;
-		double xmin = java.lang.Double.MIN_VALUE;
-		double ymin = java.lang.Double.MIN_VALUE;
-		
-		for (Placeholder p : values) {
-			
-			Rectangle2D.Double r = p.frame();
-			
-			xmax = (xmax > r.x) ? xmax : r.x;
-			ymax = (ymax > r.y) ? ymax : r.y;
-			xmin = (xmin < r.x) ? xmin : r.x;
-			ymin = (ymin < r.y) ? ymin : r.y;		
-		}
-
-		return new Rectangle2D.Double(xmin, ymin, (xmax - xmin), (ymax - ymin));
-	}
-	
+	/** 
+	 * Makes a transparant surrounding image of the main centerpiece glyph image. This will  perhaps become useful.
+	 * 
+	 * The idea behind this fetaure is that absolutism is bad and non-probable so to cover boundary cases when 
+	 * rendering it will be necessary to clobber a little outside the ordinary rectangular image. Think integral 
+	 * limits and the likes.
+	 * 
+	 * @param The image that should be centered within this surounding.
+	 */
 	public static BufferedImage 	transparantSurrounding(BufferedImage centerpiece) {
 		
 		int width = centerpiece.getWidth();
@@ -327,7 +310,91 @@ public class PaintStatics {
 	}
 
 	
-	private static double 			averageAdvance() {
+	private static BufferedImage 		makeImage(CharGauge gauge) {
+		
+		double height 	= gauge.cursor.getHeight();
+		double width 	= gauge.cursor.getWidth();
+				
+		BufferedImage image = new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB);
+		return image;
+	}
+
+	private static void 				drawGlyph(CharGauge gauge, BufferedImage image, boolean transparent) {
+
+		Graphics2D g2d = image.createGraphics();
+	
+		if (transparent)
+			g2d.setColor(new Color(0,0,0,0));
+		else
+			g2d.setColor(ViewStatics.floralwhite);
+		
+		g2d.fill(gauge.cursor);	
+				
+		g2d.setFont(FONT);
+		g2d.setColor(Color.black);	
+		
+		if (gauge.codepoint != -1)
+			g2d.drawString("" + (char) gauge.codepoint, (int) gauge.reference.x, (int) gauge.reference.y);		// characters are written upside down relative device coordinates
+	}
+	
+	private static BufferedImage 		scaleImage(CharGauge gauge, BufferedImage image) {
+	
+		Rectangle2D.Double bounds = gauge.cursor;
+			
+		Image scaled = image.getScaledInstance((int)bounds.getWidth(), (int)bounds.getHeight(), Image.SCALE_SMOOTH);
+
+		image = new BufferedImage(scaled.getWidth(null), scaled.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+
+		Graphics2D g2d = image.createGraphics();
+		
+		g2d.drawImage(scaled, null, null);
+		
+		return image;
+	}
+	
+	public static BufferedImage 		makeCompositeGlyph(CyclicMap<Handle, Placeholder> shapes) {
+		
+		Placeholder frameholder = Toolbox.findFrame(shapes);	/* Later: if subglyphs outside frame is allowed - determineBounds(shapes.values()); */
+		
+		Point2D.Double origo = new Point2D.Double(frameholder.getLocalReference().x, frameholder.getLocalReference().y);
+		
+		Rectangle2D.Double bounds = frameholder.described().description();							
+
+		BufferedImage all = new BufferedImage((int)bounds.width, (int)bounds.height, BufferedImage.TYPE_INT_ARGB);
+		
+		Graphics2D g2dc = all.createGraphics();
+		
+		g2dc.translate(origo.x, origo.y);
+		
+		Placeholder holder;
+					
+		for (Placeholder h : shapes.sortedValues())						
+			h.described().draw(g2dc);
+		
+		return all;	
+	}
+	
+	private static Rectangle2D.Double 	determineBounds(Collection<Placeholder> values) {
+
+		double xmax = java.lang.Double.MAX_VALUE;
+		double ymax = java.lang.Double.MAX_VALUE;
+		double xmin = java.lang.Double.MIN_VALUE;
+		double ymin = java.lang.Double.MIN_VALUE;
+		
+		for (Placeholder p : values) {
+			
+			Rectangle2D.Double r = p.frame();
+			
+			xmax = (xmax > r.x) ? xmax : r.x;
+			ymax = (ymax > r.y) ? ymax : r.y;
+			xmin = (xmin < r.x) ? xmin : r.x;
+			ymin = (ymin < r.y) ? ymin : r.y;		
+		}
+
+		return new Rectangle2D.Double(xmin, ymin, (xmax - xmin), (ymax - ymin));
+	}
+	
+	private static double 				averageAdvance() {
 		
 		int sum = 0;
 		
@@ -338,7 +405,7 @@ public class PaintStatics {
 		return (((double)sum)/advances.length);
 	}	
 
-	private final static DCursor 	dummyCursor() {
+	private final static DCursor 		dummyCursor() {
 		
 		model.description.DCursor dummy 	= new DCursor(Primitive.DUMMYFORMAL, (int)AVERAGEADVANCE);
 				

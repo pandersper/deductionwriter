@@ -18,51 +18,68 @@ import model.description.abstraction.Placeholder;
 import model.description.abstraction.Placeholder.Handle;
 import model.independent.CyclicMap;
 
-
+/**
+ * A simple panel, more like a canvas but with a zooming feature. 
+ * 
+ * Remark: as I comprehend, to make benefit of the simplicity of a ordinary {@link Canvas} one has to improve on double
+ * buffering, which is not in the scope of this application. That is way {@link JPanel} is used although it is a simple canvas.
+ */
 public class ZoomPanel extends JPanel {
 
-	protected CyclicMap<Handle, Placeholder> 	cursors	= new CyclicMap<>();
-	protected PriorityQueue<Handle> 			handles	= new PriorityQueue<Handle>();
-	protected Point2D.Double 					origo;
-	protected Handle 							handle;
+	/**
+	 * The placeholders of the designed composite.
+	 */
+ 	protected CyclicMap<Handle, Placeholder> 	cursors	= new CyclicMap<>();
+ 	/**
+ 	 *  The handles of the placeholders.
+ 	 */
+	protected PriorityQueue<Handle> 					handles	= new PriorityQueue<Handle>();
+	/**
+	 * The zero coordinates of the canvas.
+	 */
+	protected Point2D.Double 								origo;
+	/**
+	 * The handle of the currently active placeholder. 
+	 */
+	protected Handle 												handle;
 
-	private AffineTransform 	map = null;
+	private AffineTransform 		map = null;
 	private DComposite			inset = null;
 	
 	
-	
-	public Point2D.Double 	getLocalCoordinates(Point2D.Double R) {	
-		return Arithmetic.add(R, Arithmetic.neg(origo));
-	}
-
-	
-	public void 			setTransform(AffineTransform map) {
+	/**
+	 * Sets the zooming transform.
+	 * 
+	 * @param map	A scaling transform.
+	 * 
+	 * @see AffineTransform#getScaleInstance(double, double)
+	 */
+	public void 						setTransform(AffineTransform map) {
 		this.map = map;
 	}
-
+	/**
+	 * Returns the current zooming transform.
+	 * 
+	 * @return The transform paint uses to draw current works in a zoomed state.
+	 */
 	public AffineTransform 	getTransform() {
 		 return map;
 	}
-
-	public AffineTransform 	getInverseTransform() {
-
-		if (map == null) return null;
-
-		try {
-			if (this.map.getDeterminant() != 0)
-				return this.map.createInverse();	
-			else
-				return null;
-			
-		} catch (NoninvertibleTransformException nite) {
-
-			nite.printStackTrace();
-			
-			return null;
-		}
-	}
-
 	
+	/**
+	 * Change of coordinates to local coordinate system. Basis translation to local basis.
+	 * 
+	 * @param R		The point to have a change of basis.
+	 * @return			The point's cooridinates in local basis.
+	 */
+	public Point2D.Double 	getLocalCoordinates(Point2D.Double R) {	
+		return Arithmetic.add(R, Arithmetic.neg(origo));
+	}
+	/**
+	 * The inverted coordinates of the zoomed ones.
+	 * 
+	 * @return	Inverted zoomed localal coordinates, the real local coordinates, not the ones that paint uses.
+	 */
 	public Point2D 			getInvertedCoordinates(Point2D.Double Z) {
 
 		if (map == null) return Z;
@@ -75,7 +92,11 @@ public class ZoomPanel extends JPanel {
 		
 		return R;
 	}
-
+	/**
+	 * The inverted vectorial change of a zoomed vectorial change in the current zooming.
+	 * 
+	 * @return	Inverted vectorial change cooresponding to non-zoomen local coordinates.
+	 */
 	public Point2D 			getInvertedDeltaCoordinates(Point2D.Double dZ) {
 
 		if (map == null) return dZ;
@@ -89,7 +110,13 @@ public class ZoomPanel extends JPanel {
 		return dR;
 	}
 
-	
+	/**
+	 * Activates the placeholder a point points at.
+	 * 
+	 * @param p		The point that possibly is contained in some placeholder handle.
+	 * 
+	 * @return			The place holder or null if the point isn't contained in any placeholder.
+	 */
 	public Placeholder 		activateObject(Point2D.Double p) {
 
 		Placeholder active = cursors.get(this.handle);
@@ -114,7 +141,11 @@ public class ZoomPanel extends JPanel {
 
 		return null; 				// moving 0
 	}
-
+	/**
+	 * Moves the currently active place holder to a point.
+	 * 
+	 * @param r	The point to move it to.
+	 */
 	public void 			moveActivated(Point2D.Double r) {
 
 		Placeholder moved = cursors.get(handle);
@@ -171,6 +202,24 @@ public class ZoomPanel extends JPanel {
 	}
 
 	
+	private AffineTransform 	getInverseTransform() {
+
+		if (map == null) return null;
+
+		try {
+			if (this.map.getDeterminant() != 0)
+				return this.map.createInverse();	
+			else
+				return null;
+			
+		} catch (NoninvertibleTransformException nite) {
+
+			nite.printStackTrace();
+			
+			return null;
+		}
+	}
+
 	private void drawInset(Graphics2D g2d) {
 		
 		g2d.translate(-origo.x, -origo.y);

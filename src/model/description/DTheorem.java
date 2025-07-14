@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 import control.statics.DebugStatics;
+import control.statics.PaintStatics;
 import control.statics.Toolbox;
 import model.description.abstraction.Described;
 import model.independent.CyclicList;
@@ -37,20 +38,15 @@ import model.logic.Theorem;
  */
 public class DTheorem extends Theorem {
 
-	/** The preliminary statement that is currently not added to the theorem. */
 	private DStatement 				preliminary;	
-	/** The statement chosen for editing or deletion. */
 	private DStatement 				chosen;
-	/** The editing aspect or cloak of the statement that is being edited. Null if no statement is edited. The preliminary statement is not 
-	 * an edited statement but the common adding of new primitives to the statement. 
-	 * */
 	private DEditableStatement 		editing = null;
 
 	
 	/**
 	 * Instantiates a new empty described theorem.
 	 *
-	 * @param name The name
+	 * @param name A name for it.
 	 */
 	public DTheorem(String name) {
 		super(name);
@@ -65,7 +61,7 @@ public class DTheorem extends Theorem {
 	 * Constructs a new described theorem from the contents given as arguments.
 	 *
 	 * @param name 			The name of the theorem.
-	 * @param sequences 	The sequences of described formal primitives constituting it's statemets.
+	 * @param sequences 	The sequences of described formal primitives constituting it's statements.
 	 * @param implications 	The implications between the statements, carrying the deduction forward in the theorem.
 	 */
 	public DTheorem(String name, ArrayList<LinkedList<Described>> sequences, ArrayList<ImplicationType> implications) {
@@ -101,14 +97,21 @@ public class DTheorem extends Theorem {
 		return this.preliminary;
 	}
 
-	
+	/**
+	 * Draw this theorem, that is draws each of it's statements.
+	 * 
+	 * @param g The common grphics object.
+	 */
 	public void draw(Graphics2D g) {
+		Graphics2D g2c = (Graphics2D) g;
+		
 		for (DStatement statement : this)
-			statement.draw(g);
+			statement.draw(g2c);
 	}
 
 	/**
 	 * The name of the theorem.
+	 * 
 	 * @return The name of the theorem.
 	 */
 	public String getName() { 
@@ -233,7 +236,7 @@ public class DTheorem extends Theorem {
 		
 		} else {
 			
-			empty.setWritepoint(DRectangle.DUMMYRECTANGLE.clone().getWritepoint());
+			empty.setWritepoint(PaintStatics.PAGESTART);
 
 			this.preliminary = empty;
 		}
@@ -247,7 +250,7 @@ public class DTheorem extends Theorem {
 	 *
 	 * @param delete 	The described statement to be deleted from this theorem.
 	 * 
-	 * @return 			True if removed otherwise false.
+	 * @return True if removed otherwise false.
 	 */
 	public DStatement deleteStatement(DStatement delete) {
 
@@ -368,7 +371,7 @@ public class DTheorem extends Theorem {
 		return editing;
 	}
 	/**
-	 * Checks if any of this theorem's statements is currently being edited.
+	 * Checks if this theorem's statements is currently being edited.
 	 *
 	 * @return Wether some statement is being edited.
 	 */

@@ -31,13 +31,15 @@ import view.components.DButton;
 /**
  * A box of tools used across the application.
  */
-public class Toolbox {
+public final class Toolbox {
 
 	private static int 		COMPOSITEID 	= Integer.MAX_VALUE - (int)(Math.random() * 10000);
 
 	private static double	TOLERANCE		= 0.01f; 	// percent of a pixel is ok
 
-	
+	/**
+	 * What is considered tolerably close before painting. Determines for example if costly resizing is necessary.
+	 */
 	public static boolean 	tolerance(double baseline1, double baseline2) {
 		return Math.abs(baseline1 - baseline2) <= TOLERANCE;
 	}
@@ -354,6 +356,13 @@ public class Toolbox {
 		}		
 	}
 
+	/**
+	 * Creates a cyclic map from a set of place holders, having their handles as keys.
+	 * 
+	 * @param holders	The placehoders of a composites sub components.
+	 * 
+	 * @return A map from handles to their respective place holder. The representation used in described composites.
+	 */
 	public static CyclicMap<Handle, Placeholder> 		cyclicMap(Collection<Placeholder> holders) {
 
 		CyclicMap<Handle, Placeholder> mapping = new CyclicMap<Handle, Placeholder>();
@@ -364,6 +373,13 @@ public class Toolbox {
 		return mapping;
 	}
 
+	/**
+	 * Picks out the frame placeholder (depth = 0) from a list.
+	 * 
+	 * @param components	The sub components in a composite.
+	 * 
+	 * @return The found frame or null which is considered an error. Will throw an exception later.
+	 */
 	public static Placeholder 							findFrame(CyclicMap<Handle, Placeholder> components) {
 		
 		for (Handle key : components.keySet())

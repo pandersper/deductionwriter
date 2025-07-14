@@ -37,7 +37,8 @@ public class BindingsViewDialog extends JFrame {
 	private ArrayList<BindingContainer> 			containers = new ArrayList<BindingContainer>();
 	
 	private DeductionTrainer parent;
-		
+
+	
 	/**
 	 * Container gathering relevant things for choosing and altering bindings for described primitives. 
 	 * It has buttons and text fields to adjust and correct values for the bindings. It's actionPerformed
@@ -171,6 +172,7 @@ public class BindingsViewDialog extends JFrame {
 		}
 	}
 
+	
  	/**
 	  * Instantiates a new bindings view dialog.
 	  *
@@ -209,6 +211,7 @@ public class BindingsViewDialog extends JFrame {
 		buttonPanel.revalidate();
 	}
 
+	
 	/**
 	 * Returns the map of bound described primitives.
 	 *
@@ -288,6 +291,7 @@ public class BindingsViewDialog extends JFrame {
 	/** Called from actionPerformed method */
 	public void setCatching() {
 		contentPanel.setBackground(Color.yellow);
+		System.err.println("... catching ...");
 	}
 	
 	/**

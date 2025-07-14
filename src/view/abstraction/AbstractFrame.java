@@ -18,19 +18,27 @@ import control.session.Session;
 public abstract class AbstractFrame extends JFrame implements InitiableContainer, WindowListener, WindowStateListener {		
 
 	
-	/** Still just a plain WindowAdapter and nothing else. */
+	/** 
+	 * Still just a plain WindowAdapter and nothing else. 
+	 */
 	public class CustomWindowAdapter extends WindowAdapter { }
 	
 	
 	protected Session session;
 	
-	/** The defaultcomponent to focus. */
+	/** 
+	 * The defaultcomponent to focus. 
+	 */
 	protected Component defaultcomponent;	
 	
-	/** Manages focus traversal by keyboard. */
+	/** 
+	 * Manages focus traversal by keyboard. 
+	 */
 	protected CustomKeyboardFocusManager manager;
 	
-	/** Still just a plain window windowadapter. {@link WindowAdapter}. */
+	/** 
+	 * Still just a plain window windowadapter. {@link WindowAdapter}. 
+	 */
 	protected CustomWindowAdapter			windowadapter = new CustomWindowAdapter();
 
 
@@ -93,22 +101,28 @@ public abstract class AbstractFrame extends JFrame implements InitiableContainer
 		session.restoreFocus();
 		windowadapter.windowOpened(e);
 	}	
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowClosing(WindowEvent e) {
 		windowadapter.windowClosing(e);
 	}
-	
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter. 
+	 */
 	public void windowClosed(WindowEvent e) {
 		windowadapter.windowClosed(e);
 	}
 	
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowIconified(WindowEvent e) {
 		windowadapter.windowIconified(e);
 	}
-	
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter. 
+	 */
 	public void windowDeiconified(WindowEvent e) {
 		session.restoreFocus();
 		windowadapter.windowDeiconified(e);
@@ -124,25 +138,32 @@ public abstract class AbstractFrame extends JFrame implements InitiableContainer
 		session.restoreFocus();
 		windowadapter.windowActivated(e);
 	}
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowDeactivated(WindowEvent e) {
 		windowadapter.windowDeactivated(e);
 	}
 
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowStateChanged(WindowEvent e) {	
 		session.restoreFocus();
 		windowadapter.windowStateChanged(e);
 	}
 	
 	
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowGainedFocus(WindowEvent e) {
 		session.restoreFocus();
 		windowadapter.windowGainedFocus(e);
 	}
-
-	/** Delegates to windowadapter. */
+	/** 
+	 * Delegates to windowadapter.
+	 */
 	public void windowLostFocus(WindowEvent e) {
 		windowadapter.windowLostFocus(e);
 	}

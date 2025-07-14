@@ -39,10 +39,10 @@ public class TheoremStore<C extends Container & InitiableContainer> extends Defa
 	}
  
 	/**
- 	 * Empty and refill menu items from the data base.
-	  *
-	  * @return The size of the menu.
-	  */
+	 * Empty and refill menu items from the data base.
+ 	 *
+ 	 * @return The size of the menu.
+ 	 */
 	protected int 	updateMenu()  {
 
 		menu.clear();

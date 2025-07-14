@@ -31,7 +31,7 @@ import javax.swing.border.SoftBevelBorder;
 import control.DeductionWriter.CustomKeyboardFocusManager;
 import control.session.Shortcut;
 import control.statics.Toolbox;
-import control.statics.ViewStatics.Mode;
+import control.statics.ViewStatics;
 import model.description.DComposite;
 import model.description.DEditableStatement;
 import model.description.DPrimitive;
@@ -58,15 +58,13 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 	
 	/**
 	 * The panel with all the buttons to type math with. It rereceives keyboard focus after something else 
-	 * has happened on the canvas or similar. So that it can't catch keyboard key events. <br><br>
+	 * has happened on the canvas or similar. So that it can catch keyboard key events. <br><br>
 	 * 
-	 * The buttons themselves fill in the canvas's cursor so this panel simple delegates a lot to them
-	 * but still handles when the user accepts a formal and proceeds the theorem (space key) or accepts
-	 * the preliminary statement as done (ctrl + arrow key). It also handles focus traversal while also
-	 * lets space key click ordinary buttons.
+	 * The buttons themselves fill in the canvas's cursor so this panel delegates a lot to them but still handles 
+	 * when the user accepts a formal and proceeds the theorem (space key) or accepts the preliminary statement as 
+	 * done (ctrl + arrow key). It also handles focus traversal while also lets space key click ordinary buttons.
 	 * 
 	 * @param parentcontainer	The frame containing this primitives panel.
-	 * @param display	The canvas this primitives panel uses to draw on.
 	 */
 	public GlyphsPanel(DeductionFrame parent) {
 
@@ -82,7 +80,10 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		this.makeLayout();
 	}
 	
-	
+	/**
+	 * Handles insertion of the draw glyph into the open cursor which can be situated either at the end or somewhere
+	 * in an edited statement. 
+	 */
 	public void newGlyph() {
 
 		DisplayCanvas canvas = this.getCanvas();
@@ -90,66 +91,71 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		
 		if (drawn == null || drawn.value() instanceof Implication) return;
 
-		//// CRAP REDO ALL ////
+		//// REDO ////
+
 		if (this.isEditing()) {
 
 			DEditableStatement edit = canvas.getTheorem().getEditing();
 
-			if (edit.current().isDummy()) {					
+			if (!edit.current().isDummy()) return;
+			else {					
 			
 				edit.replaceCurrent(drawn);
-				//drawn.underline(true);						///(46B5)
-				edit.togglePrompting();
-			} else return;
-
-			canvas.describeTheoremTail(edit.whole());
-			canvas.setWritecursor(edit.next().description());				// update display
-			//canvas.setPaintMode(!Mode.CURSOR,!Mode.PRELIMINARY,!Mode.CONFIRM);
-			canvas.paint(canvas.getGraphics());
-
-		} else { 
+				drawn.underline(true);					
+				edit.togglePrompting();	
+			}
 			
-			canvas.newPrimitive();						
-			//canvas.setPaintMode(Mode.CURSOR,!Mode.PRELIMINARY,!Mode.CONFIRM);
-			canvas.paint(canvas.getGraphics());
-		}
-		//// CRAP REDO ALL ////
+			canvas.describeTheoremTail(edit.whole());
+			canvas.setWritecursor(edit.next().description());
+
+		} else canvas.newPrimitive();						
+
+		canvas.paint(canvas.getGraphics());
+
+		//// REDO ////	
 	}
 
-	public void newStatement(int codepoint) {
+	/**
+	 * Finalises the current theorem's last statement when called by keypressed.
+	 * 
+	 * @param keycode	Codepoint that should be only one of the three arrow functions left, right and up representing
+	 * 					left and right implication and equivalence.
+	 * 
+	 * @see KeyEvent.VK_LEFT
+	 */
+	public void newStatement(int keycode) {
 
 		DisplayCanvas canvas = this.getCanvas();
-		
+				
 		if (this.getTheorem().getPreliminary().size() > 0) {
 
-			Described last;
+			Implication implication = null;
 
-			switch (codepoint) {
-															// they are also reconstructed in theorem and statement constructors
-				case (KeyEvent.VK_LEFT):	
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.LEFT));	
-					canvas.fillCursor(last, null, Mode.PAINT);
-					canvas.newStatement(last);						
+			switch (keycode) {
+													
+				case (KeyEvent.VK_LEFT):
+					implication = Implication.makeValue(ImplicationType.LEFT);
 					break;
 
-				case (KeyEvent.VK_UP):				
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.EQUIV));	
-					canvas.fillCursor(last, null, Mode.PAINT);
-					canvas.newStatement(last);						
+				case (KeyEvent.VK_UP):
+					implication = Implication.makeValue(ImplicationType.EQUIV);
 					break;
 
-				case (KeyEvent.VK_RIGHT):			
-
-					last = new DPrimitive(Implication.makeValue(ImplicationType.RIGHT));	
-					canvas.fillCursor(last, null, Mode.PAINT);
-					canvas.newStatement(last);						
+				case (KeyEvent.VK_RIGHT):
+					implication = Implication.makeValue(ImplicationType.RIGHT);
 					break;
 
 				default:
-					break;					
+					break;		
 			}	
+			
+			if (implication != null) {	// key events with proper but other modifier can happen
+
+				Described last = new DPrimitive(implication);
+				
+				canvas.fillCursor(last, null, ViewStatics.PAINT);
+				canvas.newStatement(last);
+			}
 		}
 	}
 
@@ -172,7 +178,9 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		this.setInputMap(JComponent.WHEN_FOCUSED, inputmap);
 	}
 
-
+   	/**
+   	 * Sets which canvas should be receiving the buttons's key events.
+   	 */
    	public void updateButtonsListener(DisplayCanvas canvas) {
    		
    		for (DButton button : buttons.values()) 
@@ -183,7 +191,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
    	/**
    	 * Update the binding for a particular formal. The formal is unique and is found in a unique button.
    	 * 
-   	 * @param binding
+   	 * @param binding	The binding between a formal a key stroke used typing it. 
    	 */
   	private void updateButtonBinding(Tuple<Formal, Shortcut> binding) {
 
@@ -198,11 +206,11 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
   		DisplayAction displayaction = (DisplayAction) button.getAction();
 
   		inputmap.put(stroke, key);
-  		actionmap.put(key, displayaction);																								///(GF05)
+  		actionmap.put(key, displayaction);
   	}
   	
   	/**
-  	 * Add new-only bindings to the map of bindings used in the application.
+  	 * Add new bindings to the map of bindings used in the application but only if it isn't in the list already.
   	 * 
   	 * @param bindings	The bindings that should be added if the not already are contained in the mapping.
   	 */
@@ -213,7 +221,7 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 			if (bindings.getByFirst(pair.first()) != null) {
 				
 				this.bindings.updateByFirst(pair.first(), pair.second());
-
+				
 				this.updateButtonBinding(pair);
 				
 				bindings.removeByFirst(pair.first());
@@ -310,6 +318,11 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		return buttons.values();
 	}
 	
+	/**
+	 * Remove the button that is used for typing a specific formal.
+	 * 
+	 * @param formal	The formal pinpointing the button to remove.
+	 */
 	public DButton removeButton(Described formal) {
 		
 		for (Component c : pnlPrimitives.getComponents()) {
@@ -407,35 +420,12 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		return;
 	}
 
-
-	//start_win_var_ini
-	
-	/**
-	 * Not used. Only consumes it's event.
-	 */
-	public void keyTyped(KeyEvent e) {
-		e.consume();
-	}
-
-	/**
-	 * Not used. Only consumes it's event.
-	 */
-	public void keyReleased(KeyEvent e) {			
-		e.consume();
-	}
-
-	
+	//start_win_var_init
+		
 	private boolean isEditing() {
 		return (this.parent.getSession().getCurrentCanvas().isPrompting() || this.getTheorem().isEdited());
 	}
 
-	/**
-	 * Checks if a modifier is a focus modifier.
-	 *
-	 * @param modifiers The mask integer checked. 
-	 * @return int Returns <b>2</b> yes <b>two</b> if focus modifier, otherwise 0. Used to distinguish different 
-	 * 			   sums representing different combinations of modifiers.
-	 */
 	private static int isFocusModifier(int modifiers) {
 
 		int onmask  = InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
@@ -446,13 +436,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 		return focusmodifier ? 2 : 0;
 	}
 
-	/**
-	 * Checks if a modifier is a statement modifier.
-	 *
-	 * @param modifiers The mask integer checked. 
-	 * @return int Returns <b>1</b> yes <b>one</b> if statement modifier, otherwise 0. Used to distinguish different 
-	 * 			   sums representing different combinations of modifiers.
-	 */
 	private static int isStatementModifier(int modifiers) {
 
 		int onmask  = InputEvent.CTRL_DOWN_MASK;
@@ -462,7 +445,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 
 		return statementmodifier ? 1 : 0;
 	}
-
 	
 	/*  focus traversal and windows focus */
 	 
@@ -472,7 +454,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 	public void restoreFocus() {
 		manager.upFocusCycle(this);
 	}
-
  	private void changeFocus(int keycode) {
 
 		switch (keycode) {
@@ -496,12 +477,11 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 
 		defaultfocus = this.getParent();	
 	}
-	
  	/** {@inheritDoc} */
 	public Component[][] focusCycleNodes() {
 		return new Component[][] { new Component[] { this.getParent() } }; 
 	}
-
+	
  	/** {@inheritDoc} */
 	public void windowGainedFocus(WindowEvent e) {
 
@@ -516,7 +496,6 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 			manager.removeKeyEventDispatcher(dispatcher);	
 
 	}
-
  	/** {@inheritDoc} */
 	public void windowLostFocus(WindowEvent e) {
 
@@ -525,8 +504,21 @@ public class GlyphsPanel extends TraversablePanel implements KeyListener, Window
 			manager.removeKeyEventDispatcher(dispatcher);	
 			manager.addKeyEventDispatcher(olddispatcher);						
 		} 
-	}
+	}	
 	
+	/**
+	 * Not used. Only consumes it's event.
+	 */
+	public void keyTyped(KeyEvent e) {
+		e.consume();
+	}
+	/**
+	 * Not used. Only consumes it's event.
+	 */
+	public void keyReleased(KeyEvent e) {			
+		e.consume();
+	}
+
 	/*  awt & swing */
 	
 	/**

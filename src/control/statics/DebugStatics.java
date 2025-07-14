@@ -6,7 +6,10 @@ import model.description.abstraction.AbstractDComposite;
 import model.description.abstraction.Placeholder;
 import model.logic.Composite;
 
-public class DebugStatics {
+/**
+ * Class for global static members that is used for debugging.
+ */
+public final class DebugStatics {
 	
 	/** Verbosity of debugging - verbose level low on/off. */
 	public static final boolean DEBUGVERBOSE = false;
@@ -28,6 +31,11 @@ public class DebugStatics {
 		return output;
 	}
 
+	/**
+	 * String debug representation of a composite.
+	 * 
+	 * @param composite	The composite to make a string of.
+	 */
 	public static String 	allString(AbstractDComposite composite) {
 	
 		String output = "";

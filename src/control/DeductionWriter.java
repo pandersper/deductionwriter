@@ -59,7 +59,7 @@ public class DeductionWriter implements FocusListener {
 	 */
 	public DeductionWriter() {		
 						
-		setLookAndFeel();
+		//setLookAndFeel();
 
 		base 	= new DeductionBase(false);
 		session = new Session("empty", base);		
@@ -82,8 +82,7 @@ public class DeductionWriter implements FocusListener {
 		
 		catch (ClassNotFoundException | InstantiationException | IllegalAccessException| UnsupportedLookAndFeelException e) { e.printStackTrace(); }
 	}
-
-
+	
 	private void initManager() { 
 
 		manager = new CustomKeyboardFocusManager();
@@ -95,7 +94,7 @@ public class DeductionWriter implements FocusListener {
 		frame.setFocusTraversal(manager);
 		frame.initTraversalPolicy();
 	}
-
+	
 	private void initComponents() {		
 
 		frame.setJMenuBar(menu);
@@ -103,7 +102,7 @@ public class DeductionWriter implements FocusListener {
 		session.loadPrimitives("default");	
 		trainer.startTimer();
 	}
-
+	
 	private void setListeners() {
 
 		HashSet<Component> set = new HashSet<Component>();
@@ -132,16 +131,14 @@ public class DeductionWriter implements FocusListener {
 		c.setBackground(Color.lightGray);
 	}
 	
-	/** {@inheritDoc} */	
 	public static void main(String[] args) {
 
 		DeductionWriter application = new DeductionWriter();
 				
-		application.frame.setAllVisible();		
+		application.frame.setVisible(true);		
 		application.frame.pack();		
 
 	}
-	
 	
 	private void info(String intro) {
 		System.out.println("\t<<< " + intro + ">>>");
@@ -152,5 +149,4 @@ public class DeductionWriter implements FocusListener {
 		System.out.println("Frame policy:\t\t" + frame.getFocusTraversalPolicy());
 		System.out.println("-------------------------------------------------------------------");
 	}
-
 }

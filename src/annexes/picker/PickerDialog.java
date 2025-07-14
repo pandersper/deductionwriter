@@ -13,7 +13,7 @@ import view.abstraction.InitiableContainer;
 import view.components.dialogs.DefaultDialog;
 
 /**
- * A simple load, store and delete dialog for the DeductionPickerOld sub application. 
+ * A simple load, store and delete dialog for the DeductionPicker sub application. 
  */
 public class PickerDialog<C extends Container & InitiableContainer>  extends DefaultDialog<C> {
 

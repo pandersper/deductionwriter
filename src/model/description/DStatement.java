@@ -40,11 +40,17 @@ public class DStatement extends Statement {
 		this.writepoint = described.getFirst().getWritepoint();
 	}
 	
-	
-	public void draw(Graphics2D g) {
+	/**
+	 * Draws this statement's formals.
+	 * 
+	 * @param g2 The common graphics object.
+	 */
+	public void draw(Graphics2D g2) {
+		
+		Graphics2D g2c = (Graphics2D) g2.create();
 		
 		for (Described described : this)
-			described.draw(g);
+			described.draw(g2);
 	}
 		
 	/**

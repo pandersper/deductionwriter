@@ -18,26 +18,45 @@ import view.SidePanel;
 
 import javax.swing.border.BevelBorder;
 
+/**
+ * Panel for finalising the preliminary statement worked on.
+ */
 public class ConcludePanel extends JPanel {
 	
 	private ToggleGroup toggles 	= new ToggleGroup();
 	private JButton 	btnDone 	= new JButton("done");
 	private SidePanel 	executive;
 
+	/**
+	 * A toggle button dedicated to toggle between the three implications.
+	 */
 	public class ImplicationToggle extends JToggleButton {
 		
 		private Implication implication;
 		
+		/**
+		 * Creates a toggle button for an implication.
+		 * 
+		 * @param implication 	One of {@see Implication.LEFT}, {@see Implication.RIGHT} or {@see Implication.EQUIV}
+		 * 
+		 * @see Implication
+		 */
 		public ImplicationToggle(Implication implication) {
 			super();
 			this.implication = implication;
 			super.setText(""+ (char)this.implication.getCodepoint());
 		}
 		
+		/**
+		 * @return This toggle button's implication. 
+		 */
 		public Implication getImplication() { return implication; }
 		
 	}
 	
+	/**
+	 * The three toggle button's for implications are grouped together in a button group.
+	 */
  	public class ToggleGroup {
 		
 		private ImplicationToggle tglLeft  = new ImplicationToggle(Implication.LEFT);
@@ -48,16 +67,21 @@ public class ConcludePanel extends JPanel {
 
 		private Implication current = Implication.RIGHT;
 		
-		public ToggleGroup() {
+		private ToggleGroup() {
 			
 			for (JToggleButton button : tglbuttons) 
 				button.setActionCommand("toggle");			
 		}
 		
-		public ImplicationToggle[] toggleButtons() {
+		private ImplicationToggle[] toggleButtons() {
 			return tglbuttons;
 		}
 		
+		/**
+		 * Select which implication that is currently chosen for closing implication relation.
+		 * 
+		 * @param implication The implication to toggle to.
+		 */
 		public Implication chooseToggle(Implication implication) {
 			
 			switch (implication.getImplicationType()) {
@@ -91,27 +115,34 @@ public class ConcludePanel extends JPanel {
  	}	
  	
  	/**
-	 * Panel for navigation in deductions.
+	 * Panel for finalising the preliminary statement worked on.
 	 */
 	public ConcludePanel() {
 
 		toggles = new ToggleGroup();
 			
-		this.setMaximumSize(ViewStatics.cncpnlsize);
+		this.setMaximumSize(ViewStatics.pnlCnclSize);
 
 		makeButtons();		
 	}
 
-
+	/**
+	 * The 'done' button is the default button.
+	 * @return
+	 */
 	public Component getDefaultComponent() {
 		return btnDone;
 	}
 
-	public void registerButtons(SidePanel listener) {
+	/**
+	 * Register the side panel as listener on the toggle buttons.
+	 * @param listener
+	 */
+	public void registerToggleButtonsListener(SidePanel listener) {
 
 		this.executive = listener;
 		
-		this.executive.shareToggles(toggles);
+		this.executive.setToggles(toggles);
 
 		Component[] components = this.getComponents();
 
@@ -127,7 +158,7 @@ public class ConcludePanel extends JPanel {
 		
 		setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
 
-		setLayout(new GridLayout(4, 4, 10, ViewStatics.btnvgap));
+		setLayout(new GridLayout(4, 4, 10, ViewStatics.btnVGap));
 
 		JLabel lblStatementRelation = new JLabel("Relation");
 		JLabel lblDrop = new JLabel("Drop");
@@ -167,5 +198,4 @@ public class ConcludePanel extends JPanel {
 		btnDone.setBackground(ViewStatics.btnBkgrAlarm);
 		btnDone.setFont(ViewStatics.btnFontPlus);		
 	}
-	
 }

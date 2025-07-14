@@ -40,6 +40,7 @@ import javax.swing.event.ChangeEvent;
 
 /**
  * The frame of the sub application DeductionTrainer.
+ * 
  * @see DeductionTrainer
  */
 public class TrainerFrame extends AbstractFrame implements ChangeListener {
@@ -51,6 +52,7 @@ public class TrainerFrame extends AbstractFrame implements ChangeListener {
 	
 	private CyclicAccessList<Described> keyqueue;
 	private BindingsViewDialog dialog;
+	
 	
 	/**
 	 * Instantiates a new trainer frame.
@@ -151,29 +153,6 @@ public class TrainerFrame extends AbstractFrame implements ChangeListener {
 		pnlGlyph.repaint();
 	}
 
-	private void setGlyphArray(ArrayList<Described> array, DoubleArray<Described, Shortcut> bindings) {
-		
-		for (int i = 0; i < buttonarray.length; i++) 
-			buttonarray[i].setIcon(ViewStatics.describedIcon(array.get(i)));		
-		
-		String codepoint; 
-		Shortcut bound;
-		Tuple<Described,Shortcut> binding;
-		
-		for (int i = 0; i < labelarray.length; i++) {
-
-			binding = bindings.getByFirst(array.get(i));
-
-			if (binding != null) {
-				bound = binding.second();			
-				codepoint = ViewStatics.bindingString(bound);
-			} else
-				codepoint = "?";
-			
-			labelarray[i].setText(codepoint);		
-		}
-	}
-
 	
 	public void stateChanged(ChangeEvent e) {
 
@@ -216,27 +195,16 @@ public class TrainerFrame extends AbstractFrame implements ChangeListener {
 		for (JButton button : buttons) 
 			button.addActionListener(listener);
 	}
-	/**
-	 * Sets the action commands.
-	 */
-	private void setActionCommands() {
-		btnStart.setActionCommand("start-stop");
-		btnStore.setActionCommand("store");
-		btnDone.setActionCommand("done");
-		btnReset.setActionCommand("reset");
-		btnClear.setActionCommand("clear");
-	}
+
 
 	/** {@inheritDoc} */
 	public Container[] focusCycleRoots() {
 		return new Container[] { this };
 	}
-
 	/** {@inheritDoc} */
 	public Component[][] focusCycleNodes() {
 		return new Component[][] { new Component[] { btnStart, btnStore }};
 	}
-
 	/** {@inheritDoc} */
 	public void setFocusTraversal(CustomKeyboardFocusManager manager) {
 
@@ -245,13 +213,44 @@ public class TrainerFrame extends AbstractFrame implements ChangeListener {
 		this.setFocusable(true);
 		this.setFocusCycleRoot(true);		
 	}
-	
 	/** {@inheritDoc} */
 	public void setDefaultComponent() {
 		this.defaultcomponent = contentPane;		
 	}
 
 	
+	private void setGlyphArray(ArrayList<Described> array, DoubleArray<Described, Shortcut> bindings) {
+		
+		for (int i = 0; i < buttonarray.length; i++) 
+			buttonarray[i].setIcon(ViewStatics.describedIcon(array.get(i)));		
+		
+		String codepoint; 
+		Shortcut bound;
+		Tuple<Described,Shortcut> binding;
+		
+		for (int i = 0; i < labelarray.length; i++) {
+
+			binding = bindings.getByFirst(array.get(i));
+
+			if (binding != null) {
+				bound = binding.second();			
+				codepoint = ViewStatics.bindingString(bound);
+			} else
+				codepoint = "?";
+			
+			labelarray[i].setText(codepoint);		
+		}
+
+	}
+
+	private void setActionCommands() {
+		btnStart.setActionCommand("start-stop");
+		btnStore.setActionCommand("store");
+		btnDone.setActionCommand("done");
+		btnReset.setActionCommand("reset");
+		btnClear.setActionCommand("clear");
+	}
+
 	//start_win_var_init
 
 	private static final 	EtchedBorder 	BORDERTXA 	= new EtchedBorder(EtchedBorder.LOWERED, null, null);
@@ -323,13 +322,13 @@ public class TrainerFrame extends AbstractFrame implements ChangeListener {
 		pnlGlyph.add(pnlSequence);
 		pnlGlyph.add(pnlBindings);
 		
-		btnBefore2 	= new DButton(new DPrimitive((int)'Z'));	btnBefore1 	= new DButton(new DPrimitive((int)'Å'));
-		btnNow 		= new DButton(new DPrimitive((int)'Ä'));			
-		btnAfter1 	= new DButton(new DPrimitive((int)'Ö'));	btnAfter2 	= new DButton(new DPrimitive((int)'!'));
+		btnBefore2 	= new DButton(new DPrimitive("Z"));	btnBefore1 	= new DButton(new DPrimitive("Å"));
+		btnNow 		= new DButton(new DPrimitive("Ä"));			
+		btnAfter1 	= new DButton(new DPrimitive("Ö"));	btnAfter2 	= new DButton(new DPrimitive("!"));
 
-		lbtnBefore2 	= new DButton(new DPrimitive((int)'z'));	lbtnBefore1 = new DButton(new DPrimitive((int)'å'));
-		lbtnNow 		= new DButton(new DPrimitive((int)'ä'));			
-		lbtnAfter1 		= new DButton(new DPrimitive((int)'ö'));	lbtnAfter2 	= new DButton(new DPrimitive((int)'?'));
+		lbtnBefore2 	= new DButton(new DPrimitive("z"));	lbtnBefore1 = new DButton(new DPrimitive("å"));
+		lbtnNow 		= new DButton(new DPrimitive("ä"));			
+		lbtnAfter1 		= new DButton(new DPrimitive("ö"));	lbtnAfter2 	= new DButton(new DPrimitive("?"));
 				
 		buttonarray = new DButton[] {btnBefore2, btnBefore1, btnNow, btnAfter1, btnAfter2};
 		labelarray  = new DButton[] {lbtnBefore2, lbtnBefore1, lbtnNow, lbtnAfter1, lbtnAfter2};

@@ -60,7 +60,7 @@ public interface Formal extends Comparable<Formal> {
 		OTHER(4),
 		/** Deduction symbols used between statements.  */
 		ARROW(5), 
-		/** Composition of different formals mentioned here. */
+		/** Composition of different formals. */
 		COMPOSITE(6), 
 		/** Formals not assigned or defined yet. */
 		UNDEFINED(-1); 

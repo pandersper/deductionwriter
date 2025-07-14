@@ -17,13 +17,10 @@ import view.components.DButton;
 
 /**
  * The canvas of the composite maker which draws everything while they are edited. I keeps a current 
- * cursor among all the cursors and the buttons fills it int the same way as in the main application. 
+ * cursor among all the cursors and implements the {@link CursoredCanvas} interface. 
  * It does not keep it's own set of constituents but instead gets it from the elder composite panel. 
  * It shows the rendering in an inset in the upper left corner and has a side panel displaying and 
- * choosing the described primitives in use. <br>
- * 
- * It keeps it's own static drawing helpers but probably they will be merged with other similar in 
- * {@link control.statics.PaintStatics} in the future.
+ * choosing the described primitives in use.S
  */
 public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 	
@@ -57,15 +54,21 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		
 		current.insert(adjusted);
 					
-		DButton button = new DButton(adjusted, current.id);
+		DButton button = new DButton(adjusted);		// must pass in current.id for distinguishing later
 		
 		parent.addButton(button);			
 	}		
 	
-	
-	public Placeholder 		addPlaceholder(DCursor subrectangle) {
+	/**
+	 * Constructs and adds a new place holder based on a cursor object.
+	 * 
+	 * @param cursor	The cursor that determines the shape and reference point of the placeholder. 
+	 * @return			The place holder constructed and added.
+	 */
+	public Placeholder 	addPlaceholder(DCursor cursor) {
 
-		Placeholder holder 	= new Placeholder(subrectangle);
+
+		Placeholder holder 	= new Placeholder(cursor);
 
 		this.handle 		= holder.handle();
 		this.handle.depth 	= depth;
@@ -78,6 +81,11 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		return holder;
 	}
 	
+	/**
+	 * Adds a new place holder.
+	 * 
+	 * @param cursor	The new place holder. 
+	 */
 	public void 		addPlaceholder(Placeholder replace) {
 
 		this.handle 		= replace.handle();
@@ -86,6 +94,12 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		handles.add(this.handle);
 	}
 
+	/**
+	 * Constructs and adds a new place holder based on a rectangular bounding area.
+	 * 
+	 * @param cursor	The rectangle that bounds the area to create a place holder for. Reference point and handle 
+	 * 					is derived by an average glyph.
+	 */
 	public void 		addPlaceholder(Rectangle2D.Double subrectangle) {
 		addPlaceholder(new DCursor(subrectangle));		
 	}
@@ -93,7 +107,7 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 	/**
 	 * Sets the described primitive component currently edited.
 	 *
-	 * @param current The placeholder containing the sub component to choose for editing.
+	 * @param current 	The placeholder containing the sub component to choose for editing.
 	 */
 	public void 		setCurrent(Placeholder current) {
 
@@ -128,7 +142,12 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		}
 	}
 	
-	
+	/**
+	 * Transfers and all placeholders and their handles to a new cyclic map and returns it. The placeholder map
+	 * in this canvas is left empty.
+	 * 
+	 * @return	A map of handles (keys) to placeholders (values).
+	 */
 	public CyclicMap<Handle, Placeholder> 	exportCursors() {
 		
 		CyclicMap<Handle, Placeholder> export = new CyclicMap<Handle, Placeholder>();
@@ -157,7 +176,11 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 			int x = 2;
 		}
 	}
-
+	/**
+	 * Sets up the cursors that are sub glyphs of the composite glyph that should be edited.
+	 * 
+	 * @param cursors	The cycli map of sub glyph cursors.
+	 */
 	public void 							setupCursors(CyclicMap<Handle, Placeholder> cursors) {
 
 		this.cursors.clear();
@@ -169,8 +192,10 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		this.depth = cursors.size() - 1;		
 	}
 	
-	
-	public void 			clear() {
+	/**
+	 * Clears the list of placeholders holding sub glyphs and the assisting ordered list of handles (keys). 
+	 */
+	public void 		clear() {
 		
 		cursors.clear();
 		handles.clear();
@@ -191,7 +216,10 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		
 	}
 	
-	public void				clearAll() {
+	/**
+	 * Clears everything in this canvas for a complete restart.
+	 */
+	public void			clearAll() {
 
 		cursors.clear();
 		handles.clear();
@@ -207,11 +235,18 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		this.repaint();
 	}
 	
-	public void 			setOrigo(Point2D.Double p) {
+	/**
+	 * Set the point being the origo of the glyph where the main frame has it's write point.
+	 * 
+	 * @param p		The new origo.
+	 */
+	public void 		setOrigo(Point2D.Double p) {
 		origo = p;
 	}
 	
-
+	/**
+	 * Determines the area of handles that interact with the user by mouse point and clicks.
+	 */
 	public void 		recomputeInteraction() {
 
 		interacting.reset();
@@ -224,6 +259,13 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		handles.addAll(cursors.keySet());		
 	}
 
+	/**
+	 * Updates the area of interaction with the handle of a new place holder.
+	 * 
+	 * @param added	The new place holder whos handle shoul be interacted with.
+	 * 
+	 * @return	The interactive area.
+	 */
 	public Area 		updateInteraction(Placeholder added) {
 
 		interacting.add(new Area(added.handle()));
@@ -233,23 +275,26 @@ public class CompositeCanvas extends ZoomPanel implements CursoredCanvas {
 		return interacting;
 	}
 	
+	/**
+	 * Retruns the area to interact with by mouse point and clicks.
+	 * 
+	 * @return	The interactive area.
+	 */
 	public Area 		getInteractingArea() {
 
 		return interacting;
 	}
 	
-	
-	@Override
-	public Described 	getDrawn() {
-		// TODO Auto-generated method stub	
-		return null;
+	/** {@inheritDoc} */
+	public Described 	getDrawn() {	
+		return (super.handle !=null) ? super.cursors.get(super.handle).described() : null;
 	}
-	@Override
+	/** {@inheritDoc} */
 	public void 		proceedCursor() {
-		// TODO Auto-generated method stub	
+		System.err.println("Not implemented (CompositeCanvas:proceedCursor())");	// TODO Auto-generated method stub	
 	}
-	@Override
+	/** {@inheritDoc} */
 	public void 		emptyCursor() {
-		// TODO Auto-generated method stub	
+		System.err.println("Not implemented (CompositeCanvas:emptyCursor())");		// TODO Auto-generated method stub	
 	}
 }	

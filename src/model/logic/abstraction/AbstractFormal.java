@@ -16,11 +16,11 @@ import model.logic.Primitive;
  */
 public abstract class AbstractFormal implements Formal  {	
 	
-	 /** The UTF codepoint representation of this formal. **/
+	/** The UTF codepoint representation of this formal. **/
 	protected int codepoint; 
 	/** The text name of this formal, often same as the name in the UTF standard. **/
 	protected String name;
-	/** The type of this mathematical entity. */
+	/** The type of this mathematical entity. **/
 	protected FormalType type = FormalType.UNDEFINED;	
 	
 	/** {@inheritDoc} */	

@@ -22,10 +22,15 @@ import model.logic.Primitive;
  */
 public abstract class AbstractComposite extends AbstractFormal {
 
-	
+	/**
+	 * List of sub components. 
+	 */
 	protected LinkedList<Formal> composition = new LinkedList<Formal>();
 
-
+	
+	/**
+	 * Getter for tihs composite's sub components.
+	 */
 	public LinkedList<Formal> getComposition() { 
 		return composition;
 	}

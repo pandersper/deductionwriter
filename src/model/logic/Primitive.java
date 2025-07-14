@@ -12,7 +12,7 @@ import model.logic.abstraction.AbstractFormal;
  */
 public final class Primitive extends AbstractFormal {	
 		
-	
+	/** An average formal with no special value used as a space filler.	*/
 	public static final Formal DUMMYFORMAL = new Primitive(-1);
 
 	
@@ -55,12 +55,12 @@ public final class Primitive extends AbstractFormal {
     
     /**
      * The java text description of this value. 
+     * 
      * {@linkplain java.lang.Object#toString()}
      */
     public String toString() {
     	
     	return "P[" + super.toString() + "]";
     }
-    
 }
  

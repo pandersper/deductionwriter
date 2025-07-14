@@ -24,7 +24,7 @@ import model.logic.abstraction.Formal;
  * cursorial.<br><br>
  * 
  * REMARK: This class subclass {@link model.description.DStatement} is not a value but a description object
- * of a statement value and classes further extending that are not values either. <br><br>
+ * of a statement value and classes further extending should not be just values either. <br><br>
  * 
  * Compare {@link model.logic.Statement} and {@link model.description.DStatement}.
  **/
@@ -35,6 +35,7 @@ public class Statement extends CyclicList<Described> {
 	/** 
 	 * Constructors is meant to be called by the {@see #makeValue()} and {@see #makeValue(Collection<Described>, ImplicationType)} 
 	 * but are exported to extending classes as well. Se these methods for description.
+	 * 
 	 * {@see #makeValue()}
 	 **/
 	protected Statement() {

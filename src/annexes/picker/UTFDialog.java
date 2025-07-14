@@ -20,6 +20,9 @@ import java.awt.event.KeyEvent;
 import java.util.HexFormat;
 import javax.swing.JTextArea;
 
+/**
+ * Small dialog for UTF code point iput.
+ */
 public class UTFDialog extends JDialog implements ActionListener {
 
 	
@@ -42,7 +45,6 @@ public class UTFDialog extends JDialog implements ActionListener {
 		}
 	}
 
-	
 	private DeductionPicker<?> parent;
 	 
 	private final JPanel contentPanel = new JPanel();
@@ -55,8 +57,11 @@ public class UTFDialog extends JDialog implements ActionListener {
 	
 	private String character, decimalstring, hexstring, utfname;
 	
+	
 	/**
 	 * Dialog for importing UTF-16 glyphs one by one.
+	 * 
+	 * @param The deduction picker component that opens this dialog.
 	 */
 	public UTFDialog(DeductionPicker<?> parent) {
 	
@@ -133,7 +138,7 @@ public class UTFDialog extends JDialog implements ActionListener {
 	}
 
 	
-	protected void highlightError() {
+	private void highlightError() {
 
 		String hexstringtmp = hexstring, decimalstringtmp = decimalstring;
 
@@ -159,11 +164,11 @@ public class UTFDialog extends JDialog implements ActionListener {
 		txfDecimal.setBackground(ViewStatics.floralwhite);		txfHex.setBackground(ViewStatics.floralwhite);
 	}
 
-	public static String questionIfNonempty(String s) {
+	private static String questionIfNonempty(String s) {
 		return (s != "") ? ("?"+s+"?") : "?";
 	}
 
-	protected void fillFields() {
+	private void fillFields() {
 
 		txfDecimal.setText(decimalstring);
 		txfHex.setText(hexstring);		
@@ -171,7 +176,7 @@ public class UTFDialog extends JDialog implements ActionListener {
 		txfChar.setText(character);
 	}
 
-	protected boolean parseFields(JTextField txf) {
+	private boolean parseFields(JTextField txf) {
 		
 		try {
 			

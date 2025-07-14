@@ -39,7 +39,7 @@ public class Theorem extends CyclicList<DStatement> {
 	/**
 	 * Instantiates a new empty theorem.
 	 *
-	 * @param name The name of the theorem
+	 * @param name The name of the theorem.
 	 */
 	protected Theorem(String name) {
 		super(new LinkedList<DStatement>());
@@ -90,6 +90,7 @@ public class Theorem extends CyclicList<DStatement> {
 	 * @return The number of statements in the theorem.
 	 */
 	public int lengthInStatements() {
+
 		int length = this.preliminaryvalue.isEmpty() ? 0 : 1;
 
 		length += this.size();
@@ -99,6 +100,7 @@ public class Theorem extends CyclicList<DStatement> {
 
 	/**
 	 * Checks if this theorem is the empty theorem.
+	 * 
 	 * @return Wether this theorem is empty or not.
 	 */
 	public boolean isEmptyTheorem() {
@@ -123,9 +125,9 @@ public class Theorem extends CyclicList<DStatement> {
 	}
 
 	/**
-	 * Number derived from a theorem to provide high probability equality comparison.
+	 * Number derived from a theorem to provide high probability equality test.
 	 * 
-	 * @return The sum of it's statments's consistency numbers.d 
+	 * @return The sum of it's statments's consistency numbers.
 	 */
 	public int consistencyNumber() {
 		

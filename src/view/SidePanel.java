@@ -9,7 +9,6 @@ import javax.swing.BoxLayout;
 
 import control.DeductionWriter.CustomKeyboardFocusManager;
 import control.statics.ViewStatics;
-import control.statics.ViewStatics.Mode;
 import model.description.DComposite;
 import model.description.DEditableStatement;
 import model.description.DTheorem;
@@ -25,7 +24,8 @@ import view.components.ConcludePanel.ImplicationToggle;
 import view.components.ConcludePanel.ToggleGroup;
 
 /**
- * This panel is used for editing the theorem.
+ * This panel is the full control panel of the application, editing and navigating the theoreom in the currently 
+ * selected tab.
  */
 public class SidePanel extends TraversablePanel implements ActionListener {
 
@@ -35,6 +35,7 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 	private GlyphsPanel		pnlGlyphs;
 	
 	private ToggleGroup 	toggles;
+
 	
 	/**
 	 * Instantiates a new deduction panel.
@@ -53,8 +54,8 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 		this.setAlignmentX(Component.LEFT_ALIGNMENT);
 		this.setPreferredSize(new Dimension(350, 3*ViewStatics.a4height));
 
-		navigation.registerButtons(this);
-		conclude.registerButtons(this);
+		navigation.registerButtonsListener(this);
+		conclude.registerToggleButtonsListener(this);
 
 		pnlConclude.addKeyListener(this.pnlGlyphs);
 	}
@@ -72,67 +73,67 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 			
 			case "done": 			pnlNavigate.newStatement();		break;
 			case "next": 			pnlGlyphs.newGlyph();			break;
-			case "drop primitive": 	pnlNavigate.dropPrimitive(); 	break;
+			case "drop primitive": 	pnlNavigate.dropFormal(); 		break;
 			case "drop statement": 	pnlNavigate.dropStatement(); 	break;				
 			case "forward":			pnlNavigate.navigate(true);		break;
 			case "backward": 		pnlNavigate.navigate(false); 	break;
 
 			case "edit down":
 				
-				if (theorem.getChosen() != null) { 																							///(G2CC)
+				if (theorem.getChosen() != null) {
 				
-					if (theorem.isEdited()) {																								///(E0D9)
+					if (theorem.isEdited()) {
 						
 						DEditableStatement edit = theorem.getEditing();
 						
 						Described composite = edit.descend();
 						
-						if (composite != null) {																								///(1B8G)
+						if (composite != null) {
 							
 							Placeholder placeholder = ((DComposite)composite).currentPlaceholder();
 							
 							Described primitive = placeholder.described();
 							
 							canvas.setWritecursor(primitive.description(), composite.getWritepoint(), primitive.getLocalReference());					
-							canvas.fillCursor(primitive, composite, Mode.PAINT);
+							canvas.fillCursor(primitive, composite, ViewStatics.PAINT);
 
 						} else {}
 					} else 
-						canvas.toggleEditingMode();																							///(A207)
+						canvas.toggleEditingMode();	
 				}
 				
 				break;
 
 			case "edit up":
 				
-				if (theorem.isEdited()) { 																									///(968E)
+				if (theorem.isEdited()) {
 					
 					DEditableStatement edit = theorem.getEditing();
 
 					Described ascend = edit.ascend();
 					
-					if (ascend != null)	{																									///(C018)
+					if (ascend != null)	{
 						canvas.setWritecursor(ascend.description());
-						canvas.fillCursor(ascend, null, Mode.PAINT);
+						canvas.fillCursor(ascend, null, ViewStatics.PAINT);
 
 					} else 
-						canvas.toggleEditingMode();						///(8F71)
+						canvas.toggleEditingMode();
 				} 
-																																			///(D4A2)
+
 				break;
 
-			case "insert":																													///(25CA)
+			case "insert":
 				
 				DEditableStatement edit = theorem.getEditing();
 
 				if (theorem.isEdited() && !edit.current().isDummy()) { 	
 
 					edit.insertDummy();
-					edit.togglePrompting();																									///(D748)
+					edit.togglePrompting();
 
 					canvas.describeTheoremTail(edit.whole());	
 					
-				} else { break; } 																											///(24BB)
+				} else { break; } 
 
 				break;
 				
@@ -140,9 +141,9 @@ public class SidePanel extends TraversablePanel implements ActionListener {
 				
 				if (canvas.isPrompting()) break;
 
-				if (theorem.isEdited()) 																								///(4BBB)
+				if (theorem.isEdited()) 
 					pnlNavigate.editDelete(theorem.getEditing());
-				else 																														///(59FG)
+				else 
 					pnlNavigate.ordinaryDelete();
 				
 				break;
@@ -175,7 +176,12 @@ public class SidePanel extends TraversablePanel implements ActionListener {
  		this.defaultfocus = pnlConclude.getDefaultComponent();
  	}
 
- 	public void shareToggles(ConcludePanel.ToggleGroup toggles) {
+ 	/**
+ 	 * Sets the shared toggle buttons group.
+ 	 *  
+ 	 * @param toggles The group of toggle buttons to switch between implications.
+ 	 */
+ 	public void setToggles(ConcludePanel.ToggleGroup toggles) {
 		this.toggles = toggles;	
 	}
  	

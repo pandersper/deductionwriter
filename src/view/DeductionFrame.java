@@ -64,6 +64,7 @@ public class DeductionFrame extends AbstractFrame {
 	private Vector<Container> 			roots = new Vector<Container>();
 	private Vector<Vector<Component>> 	nodes = new Vector<Vector<Component>>(); 	
 	
+	
 	/**
 	 * Instantiates a new frame containing this application's different panels.
 	 *
@@ -88,12 +89,13 @@ public class DeductionFrame extends AbstractFrame {
 		setNames();		
 	}
  	
+ 	
 	/**
 	 * Sets the theorem of the whole application and redescribes it relative to the canvas.
 	 *
 	 * @param theorem The new theorem to fit into the application.
 	 */
-	public void 	setAndDescribeTheorem(DTheorem theorem) {
+	public void 		setAndDescribeTheorem(DTheorem theorem) {
 
 		DisplayCanvas canvas = session.getCurrentCanvas();		// canvas layouts the theorem so have to put it right first
 
@@ -131,30 +133,46 @@ public class DeductionFrame extends AbstractFrame {
  	 * 
  	 * @return
  	 */
-	public Session 	getSession() {
+	public Session 		getSession() {
 		return session;
 	}
-
-	public void 	newSession() {
+	/**
+	 * Clears and reuses the current session.
+	 */
+	public void 		newSession() {
 
 		this.session.clearSesssion();
 	}
-	
-	public boolean 	storeSession(String name) {
+	/**
+	 * Stores the current session.
+	 */
+	public boolean 		storeSession(String name) {
 		
 		session.changeSessionName(name);
 		
 		return session.saveSession(); 
 	}
+	/**
+	 * For now, just exits and leaves everything to vm.
+	 */
+	public void 		cleanAndExit() {
+		
+		session.closeSession();
+		
+		DeductionFrame.this.dispose();
+	}	
+		
+	/* * * *  event related  * * * */
 	
-	
-	/*  event related  */
- 	/** Delegates to windowadapter. */
+ 	/** 
+ 	 * Delegates to windowadapter. 
+ 	 */
 	public void windowClosing(WindowEvent e) {
 		cleanAndExit();
 	}
-
-	/** Delegates to windowadapter. */
+ 	/** 
+ 	 * Delegates to windowadapter. 
+ 	 */
 	public void windowClosed(WindowEvent e) {
 
 		thread.halt();
@@ -162,7 +180,8 @@ public class DeductionFrame extends AbstractFrame {
 		System.exit(0);
 	}
 	
-	/*  focus related  */
+	/* * * *  focus related  * * * */
+	
 	/**
 	 * Sets up the traversal policy of this appliction.
 	 * 
@@ -214,13 +233,11 @@ public class DeductionFrame extends AbstractFrame {
 		pnlMain.setFocusTraversal(null);																///(BFB4)
 		pnlSide.setFocusTraversal(null);
 	}
-	
-	
+	/** {@inheritDoc} */	
 	public Container[] focusCycleRoots() { 
 
 		return new Container[] { content, pnlSide, pnlGlyphs };
 	}
-	
 	/** {@inheritDoc} */
 	public Component[][] focusCycleNodes() { 
 
@@ -255,10 +272,11 @@ public class DeductionFrame extends AbstractFrame {
 		return allnodesarray;
 	}
 
-		
-	/*  awt and swing */
+	/* * * * awt and swing * * * */
 	
-	private void setNames() {		// if container have null layout focusability don't work
+	private void setNames() {		
+					
+		// if container have null layout focusability don't work
 
 		this.setName("main frame");
 		content.setName("content pane");
@@ -315,21 +333,4 @@ public class DeductionFrame extends AbstractFrame {
 		content.setInputMap(JComponent.WHEN_FOCUSED, inputmap);
 	}
 	
-	/**
-	 * For now, just exits and leaves everything to vm.
-	 */
-	public void cleanAndExit() {
-		
-		session.closeSession();
-		
-		DeductionFrame.this.dispose();
-	}
-
-	public void setAllVisible() {
-
-		pnlMain.setVisible(true);
-		pnlSide.setVisible(true);
-		
-		this.setVisible(true);
-	}
 }

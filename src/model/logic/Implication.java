@@ -44,6 +44,7 @@ public class Implication extends AbstractFormal {
 
     /**
      * Produces static values of Implications.
+     * 
 	 * @param type 	The implication type of three possible.
      * 
      * @return 		An implication value.
@@ -67,6 +68,7 @@ public class Implication extends AbstractFormal {
 	public String toString() {
 		return "I[" + super.toString() + "]";
 	}
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -85,6 +87,7 @@ public class Implication extends AbstractFormal {
 		/** Left, backward implication */
 		LEFT 
 	}
+	
 	/** Equivalence */
 	public final static Implication EQUIV  = new Implication(ImplicationType.EQUIV);
 	/** Right, forward implication */

@@ -19,8 +19,8 @@ import view.components.DisplayCanvas;
 import view.components.GlyphsPanel;
 
 /**
- * A JPanel object that handles the most common window events and window listening. An important distinction to make is that between this
- * panel's components focus traversal and this panel's elder frame's focus traversal.
+ * A JPanel object that handles the most common window events and windows listening. An important distinction to make 
+ * is that between this panel's components focus traversal and this panel's elder frame's focus traversal.
  *
  * @see WindowFocusListener
  * @see java.awt.event.FocusListener 
@@ -28,14 +28,24 @@ import view.components.GlyphsPanel;
 public abstract class TraversablePanel extends JPanel implements InitiableContainer  {		
 
 	
-	/** Filters key events to those that concerns the bindings in use in the application and then dispatches them again. */
+	/** 
+	 * Filters key events to those that concerns the bindings in use in the application and then dispatches them again. 
+	 */
 	public class CustomDispatcher implements KeyEventDispatcher {
-																																				/**(251A)**/
+
+		/**
+		 * Overriden method to handle direct commands via keyboard key short cuts. After handling events and redispatching
+		 * them to the keyboard focus manager it consumes them so that they wont flood event handling as the easily do.
+		 * <br>
+		 * SPACE key is for accepting a formal<br>
+		 * SHIFT, ALT is for focus traversal<br>
+		 * ELSE istreated as key strokes.
+		 */
 		public boolean dispatchKeyEvent(KeyEvent e) {
 
 			KeyStroke stroke = KeyStroke.getKeyStrokeForEvent(e);
 
-			if (e.isControlDown() || stroke.getKeyCode() == KeyEvent.VK_SPACE) {																///(E82E)
+			if (e.isControlDown() || stroke.getKeyCode() == KeyEvent.VK_SPACE) {
 
 				manager.redispatchEvent(panel, e);
 				e.consume();
@@ -43,25 +53,26 @@ public abstract class TraversablePanel extends JPanel implements InitiableContai
 
 			} else {
 
-				if (e.isShiftDown() || e.isAltDown() || e.getModifiersEx() == 0){ 															///(FAE4)
+				if (e.isShiftDown() || e.isAltDown() || e.getModifiersEx() == 0){ 
 
 					Tuple<Formal, Shortcut> binding = findByKeystroke(bindings, stroke);
 
-					if (binding != null) {																									///(FCA6)
+					if (binding != null) {
 
 						manager.dispatchKeyEvent(e);								
 						e.consume();
 						return true;	
 
-					} else {																													///(8AEB)
+					} else {
 
 						e.consume(); 							
 						return false;
 					}
 
-				} else {																														///(E3F2)
+				} else {
 
-					e.consume(); 													System.out.println("Other strange modifiers.");
+					System.out.println("Other strange modifiers.");
+					e.consume(); 													
 					return false;
 				}
 			}
@@ -79,38 +90,58 @@ public abstract class TraversablePanel extends JPanel implements InitiableContai
 	}
 
 	
-	/** The bindings used in the application. Keyboard events that is not in this collection are filtered away. */
+	/** 
+	 * The bindings used in the application. Keyboard events that is not in this collection are filtered away. 
+	 */
 	protected DoubleArray<Formal, Shortcut> 	bindings = new  DoubleArray<Formal, Shortcut>() ;
 
 	
-	/** Often the elder or grand elder container of this panel. */
+	/** 
+	 * Often the elder or grand elder container of this panel. 
+	 */
 	protected DeductionFrame 					parent;
 
-	/** The panel containing the buttons for typing primitives. */																																			
+	/** 
+	 * The panel containing the buttons for typing primitives. 
+	 */																																			
 	protected GlyphsPanel						panel;
 
-	/** Handles focus traversal by keyboard. */
+	/** 
+	 * Handles focus traversal by keyboard. 
+	 */
 	protected CustomKeyboardFocusManager 		manager;
 
 	/** 
 	 * The default component to focus 
 	 * 
 	 * @see java.awt.KeyboardFocusManager#upFocusCycle(Component) 
-	 * */
+	 */
 	protected Component 						defaultfocus;
 
 	
-	/** When changing to and from this panel, a key event dispatcher change is needed. Then this variable holds the old one temporarily. */
+	/** 
+	 * When changing to and from this panel, a key event dispatcher change is needed. Then this variable holds the old
+	 * one temporarily. 
+	 */
 	protected KeyEventDispatcher 	olddispatcher;				
 
-	/** The dispatcher that filter key events to only thos that are relevant, that are bound to primitives. */
+	/** 
+	 * The dispatcher that filter key events to only thos that are relevant, that are bound to primitives. 
+	 */
 	protected CustomDispatcher 		dispatcher;
 	
-
+	/**
+	 * Exports the theorem in use.
+	 * 
+	 * @return	The theorem in the tab currently selected.
+	 */
  	public DTheorem getTheorem() {
  		return this.parent.getSession().getCurrentCanvas().getTheorem();
  	}
  	
+ 	/**
+ 	 * The display canvas currently selected.
+ 	 */
  	public DisplayCanvas getCanvas() {
  		return this.parent.getSession().getCurrentCanvas(); 		
  	}
@@ -156,5 +187,4 @@ public abstract class TraversablePanel extends JPanel implements InitiableContai
 	 */
 	public Component[][] focusCycleNodes() { return null; }
 	
-
 }

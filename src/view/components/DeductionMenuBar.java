@@ -30,10 +30,18 @@ import view.components.dialogs.TheoremStore;
 import view.DeductionFrame;
 import view.abstraction.AbstractFrame;
 
+/**
+ * Thee menu bar of this application. It has a quite extensive actionPerformed method that reaches out and does things
+ * in almost all parts of the program. Therefore many parts of the program has to be introduced into the constructor.
+ */
 public class DeductionMenuBar extends JMenuBar implements ActionListener {
 
-	private DeductionFrame 	parent;	
+	/**
+	 *  Session currently in use 
+	 */
 	public Session			session;
+
+	private DeductionFrame 	parent;	
 
 	private final SessionLoader<AbstractFrame>		ssdialog;
 	private final TheoremStore<AbstractFrame> 		lsdialog;
@@ -44,10 +52,21 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 	private final CompositeMaker 		composite;
 	private final DeductionPicker<?> 	picker;
 
-	
+	/** 
+	 * Bindings currently in use 
+	 */
 	protected DoubleArray<Formal, Shortcut> 	bindings = new  DoubleArray<Formal, Shortcut>();
 
 	
+	/**
+	 * Constructor confining almost all sections of the application and creating all dialogs used now and then.
+	 * Annexes: {@see DeductionPicker},{@see DeductionTrainer},{@see DeductionFrame}.
+	 * Dialogs: {@see TheoremStore},{@see PrimitivesLoader},{@see CompositesStore},{@see SessionLoader}.
+	 * 
+	 * @param trainer	The annex application for mapping short cuts to keyboard keys.
+	 * @param picker	The annex application for chosing glyphs to use.
+	 * @param parent	The main application frame.
+	 */
 	public DeductionMenuBar(DeductionTrainer trainer, DeductionPicker<?> picker, DeductionFrame parent) {
 	
 		this.trainer = trainer;
@@ -65,14 +84,19 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		makeMenus();
 	}
 
+	
 	/**
 	 * Sets the one at a time session.
+	 * 
 	 * @param session Contains all the user works.
 	 */
-
 	public Session getSession() { return session; }
 	
-	
+	/**
+	 * Name of the currently used primmitives table.
+	 * 
+	 * @return Primitives table's name.
+	 */
 	public String getPrimitivestable() {
 		return session.primitivestable;
 	}
@@ -87,7 +111,9 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		lsdialog.insertNames(added);
 	}
 
-	
+	/** 
+	 * Extensive action performed hub handling all menu item's actions. 
+	 */
 	public void actionPerformed(ActionEvent e) {
 		
 		GlyphsPanel 	glyphs;
@@ -336,7 +362,5 @@ public class DeductionMenuBar extends JMenuBar implements ActionListener {
 		mnGlyps.add(mntmLoadComposites);
 		mnGlyps.add(mntmEditComposite);
 		mnGlyps.add(mntmProgramBindings);
-
 	}
-
 }

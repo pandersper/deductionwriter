@@ -9,7 +9,7 @@ import java.util.Vector;
 import model.independent.DoubleArray.Tuple;
 
 /**
- * Array of tuples to be used as a sortable bijection, that is a mapping that maintains the correspondance between 
+ * Array of tuples to be used as a sortable bijection, that is a mapping that maintains the correspondence between 
  * the tuples's first and second coordinate. 
  * 
  * @param <S>	The domain value.
@@ -25,9 +25,7 @@ public class DoubleArray<S extends Comparable<? super S>, T extends Comparable<?
 		public int compare(Tuple<S,T> o1, Tuple<S,T> o2) { return o1.second().compareTo(o2.second()); }
 	}
 	
-	/** Compares first coordinate of tuple. */
 	private final FirstComparator firstComparator = new FirstComparator();
-	/** Compares second coordinate of tuple. */
 	private final SecondComparator secondComparator = new SecondComparator();
 	
 	

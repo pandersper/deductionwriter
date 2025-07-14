@@ -15,12 +15,15 @@ import control.statics.ViewStatics;
 import view.abstraction.TraversablePanel;
 
 
+/**
+ * The main center pane where the theorems are drawn.
+ */
 public class MainPanel extends TraversablePanel  {
 	
 	/**
 	 * The main center pane where the theorems are drawn.
 	 * 
-	 * @param elder The outermst fram of the application.
+	 * @param elder The outermost frame of the application.
 	 */
 	public MainPanel(DeductionFrame parent) {
 		
@@ -38,7 +41,7 @@ public class MainPanel extends TraversablePanel  {
 		
 		Rectangle tabs = new Rectangle();
 		
-		tabs.setSize(ViewStatics.canvasdimension);
+		tabs.setSize(ViewStatics.cnvDspSize);
 		tabs.grow(0,15);
 		
 		works.setSize(tabs.getSize());

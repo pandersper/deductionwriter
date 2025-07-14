@@ -19,7 +19,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JInternalFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
@@ -40,7 +39,7 @@ import view.components.DButton;
 
 /**
  * CompositePanel is the intermediary between the canvas and the topmost component, the frame.
- * It handles mouse events and puts together and exports the end product, a described composite, amongst other things.
+ * It handles mouse events and is primarily used to put together and the end product, a described composite.
  * 
  * When complete and rendered the described composite is exported via {@link #requestComposite()}.
  * 
@@ -48,7 +47,6 @@ import view.components.DButton;
  * via {@link #setupComposite(DComposite)}. 
  */
 public class CompositePanel extends JPanel implements MouseListener, MouseMotionListener, ChangeListener, ActionListener {
-
 
 	private Point2D.Double 		first = null, second = null, dragged;
 
@@ -59,9 +57,11 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 
 	private double 				scale = 1, oldbaseline = -1;
 		
+	
 	/**
 	 * Instantiates a new composite panel.
-	 * @param elder The elder frame to return control to.
+	 * 
+	 * @param elder The elder frame to return control to. Elder meaning upwards in the component hierarchy.
 	 */
 	public CompositePanel(JPanel buttons) {
 
@@ -74,13 +74,14 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 		canvas.addMouseListener(this);
 		canvas.addMouseMotionListener(this);
 
-		canvas.setOrigo(new Point2D.Double(ViewStatics.makercanvasdimension.width / 2.0, 
-										   ViewStatics.makercanvasdimension.height / 2.0));
+		canvas.setOrigo(new Point2D.Double(ViewStatics.cnvMkrSize.width / 2.0, 
+										   ViewStatics.cnvMkrSize.height / 2.0));
 
 		this.setName("composites panel");
 		
 		add(canvas, BorderLayout.CENTER);
 	}
+	
 	
 	/** 
 	 * Retreives the canvas of the composite maker.
@@ -90,20 +91,24 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 	public CompositeCanvas 	getCanvas() {
 		return canvas;
 	}
-	
+	/**
+	 * Returns the all framing place holder, the back-drop of all sub components.
+	 * 
+	 * @return	The framing place holder which also constitutes the composite's bounds. 
+	 */
 	public Placeholder 		getFrameholder() {
 		return frameholder;
 	}
 	
 	/**
-	 * Sets the bounding backdrop of the current composite. It is often only a blank dummy rectangle
-	 * but can be also some glyph giving this composite a structure.
+	 * Sets the bounding back-drop of the current composite. It is often only a blank dummy rectangle
+	 * but can also be some glyph giving this composite a structure.
 	 * 
 	 * @param primitive The described primitive.
 	 * 
 	 * @see CompositeCanvas#setCurrent(Placeholder)
 	 */
-	public void 		setupFrame(Described init) {
+	public void 	setupFrame(Described init) {
 		
 		canvas.clearAll();
 
@@ -153,7 +158,7 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 	 * 
 	 * @param composite	The described composite to continue editing.
 	 */
-	public void 		setupComposite(DComposite composite) {
+	public void 	setupComposite(DComposite composite) {
 
 		Placeholder frame = composite.getFrame();		
 
@@ -179,7 +184,7 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 	 * @return The designed described composite formal.
 	 */
 	
-	public void 		removeButton(Placeholder current) {
+	public void 	removeButton(Placeholder current) {
 
 		for (Component component : buttons.getComponents()) {
 		
@@ -202,7 +207,7 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 	 * 
 	 * @param button	The button to add.
 	 */
-	public void 		addButton(DButton button) {
+	public void 	addButton(DButton button) {
 
 		if (button != null) {
 			
@@ -216,7 +221,10 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 		buttons.revalidate();
 	}
 
-	public void clear() {
+	/**
+	 * Resets this panel's all states and also resets it's canvas.
+	 */
+	public void reset() {
 
 		Described frame = frameholder.described();
 		
@@ -227,7 +235,6 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 		this.setupFrame(frame);
 		
 		this.addButton(new DButton(frame));
-
 		
 		buttons.revalidate();
 	}
@@ -235,7 +242,7 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 	/**
 	 * Clears the workpiece, the described composite and resets this panel.
 	 */
-	public void clearAll() {
+	public void resetAll() {
 		
 		canvas.clearAll();
 		
@@ -262,15 +269,19 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 		canvas.repaint();
 	}
 
+	/**
+	 * Toggle zooming mode.
+	 */
 	public void toggleResizing() {
 
 		oldbaseline = (oldbaseline == -1) ? canvas.getCurrent().getAdvance() : -1;
 	}
 
+	
 	/**
 	 * Only receives and acts on events from buttons in the east panel of sub primitives.
 	 * 
-	 * @param e Only events originating from buttons is handled.
+	 * @param e 	Only events originating from buttons is handled.
 	 */	
 	public void actionPerformed(ActionEvent e) {
 
@@ -334,6 +345,7 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 
 		canvas.repaint();
 	}
+
 	
 	/**
 	 * Registers first and second point clicked on and sets the sub components movable-variable.
@@ -492,35 +504,6 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 		e.consume();
 	}
 
-	/**
-	 * Add a action listener to all buttons.
-	 * 
-	 * @param al The action listener distributed to all components that it should listen on.
-	 * 
-	 * @see ActionListener
-	 */
-	public void addListeners(ActionListener al) {
-
-		btnCursor.addActionListener(al);
-		btnInsert.addActionListener(al);
-		btnRender.addActionListener(al);
-		btnDone.addActionListener(al);
-
-		btnDelete.addActionListener(al);
-		btnClear.addActionListener(al);
-	}
-
-	public void setButtons(JButton[] btns) {
-		
-		btnCursor 	= btns[0];
-		btnInsert 	= btns[1];
-		btnRender 	= btns[2];
-		btnDone   	= btns[3];
-
-		btnDelete 	= btns[4];
-		btnClear  	= btns[5];
-	}		
-
 	//start_win_var_init
 	
 	private JPanel 			content = new JPanel();
@@ -530,20 +513,9 @@ public class CompositePanel extends JPanel implements MouseListener, MouseMotion
 
 	private JInternalFrame 		viewport;
 	private JPanel 				buttons;
-
-	private JButton btnNext = new JButton("step");
-	
-	private JButton btnCursor, btnInsert, btnRender, btnDone, btnDelete, btnClear;
-	
+		
 	private GridBagLayout 		grdbgWest 	= new GridBagLayout();
 	private GridBagConstraints 	cnstrWest	= new GridBagConstraints();
 	
-	//end_win_var_init
-	
-	/**
-	 * Iterates the selected component to the next one.
-	 */
-	public void forward() {		
-		System.out.println("Not implemented (CompsitePanel:forward()");
-	}
+	//end_win_var_init	
 }

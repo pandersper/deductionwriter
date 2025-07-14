@@ -80,7 +80,7 @@ public class DeductionBase {
 	/**
 	 * Drops all tables in the database.
 	 */
-	public void dropDB() {
+	private void dropDB() {
 
 		try (Statement s = connection.createStatement()) {
 
@@ -155,7 +155,7 @@ public class DeductionBase {
 	 *
 	 * @throws SQLException		General SQL exception for now.
 	 */
-	public void setupDB() 			throws SQLException {
+	private void setupDB() 			throws SQLException {
 
 		try (Statement s = connection.createStatement()) {
 
@@ -181,7 +181,7 @@ public class DeductionBase {
 
 	/* * * * * * * * * * * * database conditionals  * * * * * * * * * * */	
 	
-	public boolean 		isConsistent(Session session) {
+	private boolean 		isConsistent(Session session) {
 
 //		try {
 //			
@@ -309,8 +309,9 @@ public class DeductionBase {
 		
 		try {			
 			
-			String sql = update ? "UPDATE Sessions SET " + session.getSQLUpdateString() + " WHERE name='" + sessionname + "'" :
-								  SQLStatics.sessions_insert + session.getSQLInsertString();
+			String sql = update ? "UPDATE Sessions SET " + SQLStatics.updateString(session) + 
+								  " WHERE name='" + sessionname + "'" :
+								  SQLStatics.sessions_insert + SQLStatics.valuesString(session);
 			
 			Statement s = connection.createStatement();
 
@@ -327,7 +328,8 @@ public class DeductionBase {
 				insertions += this.insert(theorem, overwrite);
 			}
 				
-			DebugStatics.output(true,"saved session: " + sessionname + " with " + insertions + " insertions. (session ok: " + ok + ")", "", "");
+			DebugStatics.output(true, "saved session: " + sessionname + " with " + insertions + 
+									  " insertions. (session ok: " + ok + ")", "", "");
 			
 			s.closeOnCompletion();		
 
@@ -552,6 +554,13 @@ public class DeductionBase {
 	}
 	
 	
+	/**
+	 * Removes a theorem and it's components from the data base.
+	 * 
+	 * @param theorem	The theorem to remove.
+	 * 
+	 * @return The number of theorems remove or -1 if some sql-exception occured.
+	 */
 	public int	 		drop(DTheorem theorem) {
 
 		try (Statement query = connection.createStatement()) {
@@ -569,12 +578,14 @@ public class DeductionBase {
 				
 				gone = delete(deleted, "Statements","theorem");				
 				DebugStatics.output(gone,"Deleted " + deleted + " statements.", "", "Error in db-interaction: statements deletion.");
+				
+				return 1;
 			
 			} else {};
 			
-		} catch (SQLException sqle) { sqle.printStackTrace(); }
+		} catch (SQLException sqle) { sqle.printStackTrace(); return -1; }
 
-		return -1; 
+		return 0; 
 	}	
 	/**
 	 * Updates the data base regarding the theorem given as parameter, and everything related to it.
@@ -658,45 +669,6 @@ public class DeductionBase {
 		return false;
 	}
 	
-	/**
-	 * Creates a new view for managing formals.
-	 *
-	 * @param viewprefix 	The name prefixed to identify the view.
-	 * @param formalsview 	The name of the view to fetch formals data from.
-	 * @return 				The number of rows in the new view.
-	 */
-	public int 			createView(String viewprefix, String formalsview) {
-
-		try {
-			
-			Statement s = connection.createStatement();
-
-			String sql = "CREATE VIEW IF NOT EXISTS " + viewprefix + "View" + 
-					" AS " +
-					" SELECT glyphtablename, codepoint, keycode, modifiers " +
-					" FROM " + formalsview + " WHERE glyphtablename='" + viewprefix + "'";
-			
-			s.execute(sql);
-
-			connection.commit();
-
-			int count = 0;
-
-			sql = "SELECT COUNT(codepoint) FROM " + viewprefix + "View;";
-
-			s.execute(sql);
-
-			ResultSet result = s.getResultSet();
-
-			count = result.getInt(1);
-
-			return count;
-
-		} catch (SQLException sqle) { sqle.printStackTrace(); }
-
-		return -1;
-	}
-
 	/* * * * * * * * * * * * * * * retreivers * * * * * * * * * * * * * * */		
 
 	/**
@@ -921,7 +893,7 @@ public class DeductionBase {
 		return bindings;
 	}
 	
-	public CyclicMap<Handle, Placeholder> 	fetchComposite(int codepoint) {
+	private CyclicMap<Handle, Placeholder> 	fetchComposite(int codepoint) {
 
 		CyclicMap<Handle, Placeholder> subs = new CyclicMap<Handle, Placeholder>();
 

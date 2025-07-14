@@ -45,6 +45,12 @@ import view.abstraction.AbstractFrame;
 import view.abstraction.InitiableContainer;
 import view.components.DButton;
 
+/**
+ * A sub application for puting together a menu of glyph to use when deriving your favourite kind of theorems. Or other
+ * symbol intensive written things.
+ * 
+ * @param <C> 
+ */
 public class DeductionPicker<C extends Container & InitiableContainer> extends AbstractFrame implements ActionListener, ItemListener {
 
 	private DeductionFrame		mainframe;
@@ -54,6 +60,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 	private HashSet<Formal> selected = new HashSet<Formal>();	
 
 	//start_win_var_init
+	
 	private final JPanel 		pnlUpper 		= new JPanel();
 	private final JPanel 		pnlControl 		= new JPanel();
 	private final JPanel 		pnlCategories	= new JPanel();	
@@ -75,15 +82,15 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 
 	private void makeUpper(JScrollPane scrOverview) {
 		
-		scrOverview.setMinimumSize(ViewStatics.pckpnlminsize);
-		scrOverview.setMaximumSize(ViewStatics.pckpnlmaxsize);
+		scrOverview.setMinimumSize(ViewStatics.pnlPickMinSize);
+		scrOverview.setMaximumSize(ViewStatics.pnlPickMaxSize);
 
 		scrOverview.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		scrOverview.setViewportView(pnlUpper);
 
-		pnlUpper.setMaximumSize(ViewStatics.pckpnlmaxsize); 
-		pnlUpper.setMinimumSize(ViewStatics.pckpnlminsize); 		
-		pnlUpper.setPreferredSize(ViewStatics.pckpnlminsize);
+		pnlUpper.setMaximumSize(ViewStatics.pnlPickMaxSize); 
+		pnlUpper.setMinimumSize(ViewStatics.pnlPickMinSize); 		
+		pnlUpper.setPreferredSize(ViewStatics.pnlPickMinSize);
 
 		TitledBorder titledBorder = new TitledBorder(UIManager.getBorder("ScrollPane.border"), "chosen", 
 														TitledBorder.CENTER, TitledBorder.TOP, null, new Color(51, 51, 51)); 	
@@ -181,9 +188,10 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 
 	//end_win_var_init
 
+	
 	/**
-	 * Sub application for choosing glyphs out of the UTF-8 character set to
-	 * use in the main application DeductionWriter.
+	 * Sub application for choosing glyphs out of the UTF-16 character set to use in the main application 
+	 * DeductionWriter.
 	 */
 	public DeductionPicker(Session session) {
 		super("Pick primitives ...");
@@ -195,7 +203,6 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 		
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setBounds(100, 100, 640, 560);	
-
 		
 		JPanel 		pnlLower 	= new JPanel();
 		JPanel 		contentPane = new JPanel();		
@@ -291,7 +298,11 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 	}	
 
 	
-
+	/**
+	 * Adds a new glyph to the pane of the glyph category "custom".
+	 * 
+	 * @param codepoint	The UTF-16 codepoint of the glyph to add.
+	 */
 	public void addCustomGLyph(int codepoint) {
 
 		DPrimitive fresh = new DPrimitive(codepoint);
@@ -312,6 +323,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 
 		categorypanels.get(index).add(button);			
 	}
+	
 	/**
 	 * Update the overview panel and all structures it depends on.
 	 */
@@ -342,6 +354,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 	public void storeInBase(String viewprefix) {		
 		session.getBase().insert(new ArrayList<Formal>(selected), viewprefix);
 	}
+	
 	/**
 	 * Adds a database table of primitives to the currently selected primitives.
 	 *
@@ -358,6 +371,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 		
 		this.addToSelected(view);
 	}
+ 	
 	/**
 	 * Sets the sibling main frame of this sub application. Used in initialisation.
 	 *
@@ -366,7 +380,8 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 	public void setMainFrame(DeductionFrame mainframe) {
 		this.mainframe = mainframe;
 	}
-		
+	
+	
 	private void setupCategoryPanes() {
 		
 		int i = 0;
@@ -378,12 +393,6 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 		categorychkbxs.get(1).setSelected(false);
 		categorychkbxs.get(2).setSelected(true);	
 	}
-	/**
-	 * Fill a pane with primitives from a particular sql view.
-	 *
-	 * @param viewname 	The view (table) of primitives.
-	 * @param paneindex Index of the pane to fill.
-	 */
 
 	private void fillPaneByPrimitivesView(String viewname, int paneindex) {
 
@@ -410,9 +419,6 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 
 	}
 	
-	/**
-	 * Clear selected primitives and everything it depends on.
-	 */
 	private void clearSelected() {
 
 		selected.clear();
@@ -421,11 +427,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 		pnlUpper.revalidate();
 		pnlUpper.repaint();
 	}	 	
-	/**
-	 * Adds a collection of formals to the set of currently selected.
-	 *
-	 * @param addition 	The primitives to add to the selection.
-	 */
+
 	private void addToSelected(Collection<Formal> addition) {
 		
 		for (JScrollPane sp : categoryscrollers) {
@@ -458,11 +460,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 				System.err.println("Unknown component in JScrollPane");	
 		}		
 	}
-	/**
-	 * Set all buttons selected state.
-	 *
-	 * @param selected 	If all button's state should be selected or unselected.
-	 */
+
 	private void setSelectedAll(boolean selected) {
 		
 		for (JPanel p : categorypanels) {
@@ -519,7 +517,7 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 			}			
 		}
 	}
-	
+
 	
 	private static int indexOf(String string, ArrayList<String> strings) {
 
@@ -530,6 +528,22 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 
 		return -1;
 	}
+
+	private static JButton makeControlButton(String name, String command, ActionListener listener) {
+		
+		JButton button = new JButton(name);		
+
+		button.setMargin(ViewStatics.btnInset);
+		//button.setBorder(new BevelBorder(BevelBorder.RAISED));
+		button.setBackground(ViewStatics.btnBkgr);
+		button.setFont(ViewStatics.btnFontBold);
+		
+		button.setActionCommand(command);
+		button.addActionListener(listener);
+		
+		return button;		
+	}
+
 	
 	/* * * * * * * * * * FOCUS TRAVERSAL * * * * * * * * * */
 	
@@ -564,20 +578,5 @@ public class DeductionPicker<C extends Container & InitiableContainer> extends A
 	public void loadComposites(String columnvalue) {
 		// NOT IN USE		
 	}
-
-
-	public static JButton makeControlButton(String name, String command, ActionListener listener) {
-		
-		JButton button = new JButton(name);		
-
-		button.setMargin(ViewStatics.btnInset);
-		//button.setBorder(new BevelBorder(BevelBorder.RAISED));
-		button.setBackground(ViewStatics.btnBkgr);
-		button.setFont(ViewStatics.btnFontBold);
-		
-		button.setActionCommand(command);
-		button.addActionListener(listener);
-		
-		return button;		
-	}
+	
 }

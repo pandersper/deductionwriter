@@ -14,16 +14,18 @@ import view.DeductionFrame;
 import view.abstraction.InitiableContainer;
 
 /**
- * Dialog for loading a set of primitives into the application.
+ * Dialog for loading sessions.
+ * 
  * @see DefaultDialog
+ * @see Session
  */
 public class SessionLoader<C extends Container & InitiableContainer> extends DefaultDialog<C> {
 	
 	
  	/**
-	  * Instantiates a new primitives loader.
+	  * Instantiates a new session loader.
 	  *
-	  * @param elder The grandparent container ince it is launched by the elder the controlpanel.
+	  * @param elder The grandparent container.
 	  * @param session The base of theorems.
 	  */
 	public SessionLoader(C elder, Session session) {
@@ -31,6 +33,9 @@ public class SessionLoader<C extends Container & InitiableContainer> extends Def
 	 }
 
 	
+	/**
+	 * Updates the menu to select sessions from.
+	 */
 	protected int updateMenu()  {
 
 		menu.clear();

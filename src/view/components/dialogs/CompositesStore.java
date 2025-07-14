@@ -11,7 +11,8 @@ import control.statics.ViewStatics;
 import view.abstraction.InitiableContainer;
 
 /**
- * Dialog for loading a set of primitives into the application.
+ * Dialog for loading a set of composites into the application.
+ * 
  * @see DefaultDialog
  */
 public class CompositesStore<C extends Container & InitiableContainer> extends DefaultDialog<C> {

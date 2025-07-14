@@ -5,32 +5,63 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
+/**
+ * A list that is cyclic, holds it's own current position which can be iterated and that can export
+ * a variable length section centered around its current position, the middle of the list.
+ * 
+ * @param <T>	The type contained in the list.
+ */
 public class CyclicAccessList<T> extends ArrayDeque<T> {
 	
 
+	/**
+	 * New empty list.
+	 */
 	public CyclicAccessList() {
 		super();
 	}
 
-	public CyclicAccessList(Collection<? extends T> display) {
-		super(display);
+	/**
+	 * New list from a collection of items. The order is not determined since the order of collections is unknowm.
+	 * 
+	 * @param items	The items to contain in the list.
+	 */
+	public CyclicAccessList(Collection<? extends T> items) {
+		super(items);
 	}
 
 	
+	/**
+	 * Inserts an element in the middle of list which is the current position.
+	 * 
+	 * @param e	The item to add.
+	 */
 	public void insert(T e) {
 		this.addFirst(e);
 	}
 	
+	/**
+	 * Retreives the current item, the one in the middle.
+	 * 
+	 * @return	The middle element.
+	 */
 	public T getMiddle() {
 		return this.getFirst();
 	}
 
-	public T getMiddle(int i) {
+	/**
+	 * Not used yet. Fetches the item s steps forward.
+	 * 
+	 * @param s	The number of steps forward.
+	 * 
+	 * @return	The element at thst position.
+	 */
+	public T getAhead(int s) {
 
-		if (i > 0) {
+		if (s > 0) {
 			Iterator<T> it = this.iterator();
 	
-			int steps = i;
+			int steps = s;
 			
 			T retur = null;
 			
@@ -43,11 +74,11 @@ public class CyclicAccessList<T> extends ArrayDeque<T> {
 		
 		} else 	
 			
-			if (i < 0) {
+			if (s < 0) {
 			
 				Iterator<T> it = this.descendingIterator();
 				
-				int steps = -i;
+				int steps = -s;
 				
 				T retur = null;
 				
@@ -59,26 +90,33 @@ public class CyclicAccessList<T> extends ArrayDeque<T> {
 				return retur;
 				
 			} else 
-				return (i==0) ? this.getMiddle() : null;		
+				return (s==0) ? this.getMiddle() : null;		
 	}
 
-	public ArrayList<T> getCenterArray(int i) {
+	/**
+	 * Returns an array of length (1+2*n) with the elements around the middle of the list.
+	 * 
+	 * @param n	The number of elements on one side of the middle.
+	 * 
+	 * @return	The array centered around the middle.
+	 */
+	public ArrayList<T> getCenterArray(int n) {
 		
-		i = i*i/i;
+		n = n*n/n;
 
-		ArrayList<T> center = new ArrayList<T>(1 + 2*i);
+		ArrayList<T> center = new ArrayList<T>(1 + 2*n);
 		
-		for (int j = 0; j < 2*i+1; j++) 
+		for (int j = 0; j < 2*n+1; j++) 
 			center.add(null);
 		
 		Iterator<T> it = this.iterator();
 	
 		int steps = 0;
 		
-		center.set(i,it.next());	// middle element
+		center.set(n,it.next());	// middle element
 		
-		while (it.hasNext() && steps < i) {
-				center.set(i + 1 + steps,it.next());
+		while (it.hasNext() && steps < n) {
+				center.set(n + 1 + steps,it.next());
 				steps++;
 		}
 		
@@ -86,8 +124,8 @@ public class CyclicAccessList<T> extends ArrayDeque<T> {
 		
 		steps = 0;
 					
-		while (it.hasNext() && steps < i) {
-				center.set(i - 1 - steps, it.next());
+		while (it.hasNext() && steps < n) {
+				center.set(n - 1 - steps, it.next());
 				steps++;
 		}
 				
@@ -95,23 +133,35 @@ public class CyclicAccessList<T> extends ArrayDeque<T> {
 	}
 	
 	
+	/**
+	 * Removes the midde element which results the the next element in positive direction is the new middle.
+	 * 
+	 * @return	The removed middle.
+	 */
 	public T removeMiddle() {
 		return this.removeFirst();
 	}
 	
-	public T moveMiddle(int offset) {
+	/**
+	 * Move the middle of the list a certain number of steps.
+	 * 
+	 * @param s	The number of steps to move the middle.
+	 * 
+	 * @return	The new middle element.
+	 */
+	public T moveMiddle(int s) {
 		
-		while (offset > 0) {
+		while (s > 0) {
 			this.addLast(this.removeFirst());
-			offset--;			
+			s--;			
 		}
 		
-		while (offset < 0) {
+		while (s < 0) {
 			this.addFirst(this.removeLast());
-			offset++;			
+			s++;			
 		}
 
-		assert(offset == 0);
+		assert(s == 0);
 		
 		return this.getMiddle();
 	}

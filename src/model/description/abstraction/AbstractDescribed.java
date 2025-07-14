@@ -15,19 +15,20 @@ import model.logic.abstraction.Formal;				// interface Formal is doubly implemen
 
 /**
  * Provides the basic functionality for classes that meet the {@link model.description.abstraction.Described} interface.
- * Constructors and clone is not provided. 
+ * Constructors and clones is not provided. 
  * 
  * @see Described
  */
 public abstract class AbstractDescribed extends AbstractFormal implements Described {
 
-	/** Baseline length is the basis for scale computation for now. Don't know typography more than so. */
+
 	/** {@inheritDoc} */
 	protected DRectangle 	description;
 	
 	private boolean 		underlined = false;
 	
 	
+	/** {@inheritDoc} */
 	public void 		draw(Graphics g) {
 		description.draw(g,underlined);
 	}
@@ -48,21 +49,23 @@ public abstract class AbstractDescribed extends AbstractFormal implements Descri
 		return (this.codepoint < UTFMAX) ? this.codepoint == Primitive.DUMMYFORMAL.getCodepoint() : false;
 	}
 	
-	// // //  CONTINUATION  TO DRectanle  - Code reuse has to stand back for interface semantics disciplin // // //
+	// // //  CONTINUATION  TO DRectangle  - Code reuse has to stand back for interface semantics disciplin // // //
+
 	/** {@inheritDoc} */
 	public Formal		value() {
 		return description.getValue();
-	}
-	
+	}	
+	/** {@inheritDoc} */
 	public DRectangle 	description() {	
 		return description;		
 	}
 
 	
+	/** {@inheritDoc} */
 	public Point2D.Double 		getLocalReference() {
 		return description.getLocalReferencepoint();
 	}
-	
+	/** {@inheritDoc} */
 	public Point2D.Double 		getWritepoint() {
 		return description.getWritepoint();
 	}
@@ -72,10 +75,12 @@ public abstract class AbstractDescribed extends AbstractFormal implements Descri
 		description.setWritepoint(writepoint);
 	}
 	
+	/** {@inheritDoc} */
 	public void 				setErase() {
 		description.setErase();
 	}
 	
+	/** {@inheritDoc} */
 	public double 				getAdvance() {
 		return description.getAdvance();
 	}
@@ -87,11 +92,13 @@ public abstract class AbstractDescribed extends AbstractFormal implements Descri
 	// // //  CONTINUATION END  // // //
 
 	
+	/** {@inheritDoc} */
 	public Size2D				getSize() {
 		return new Size2D(description);
 	}
 	
 	
+	/** {@inheritDoc} */
 	public BufferedImage 				getImage() {
 		return description.getImage();
 	}
@@ -104,6 +111,7 @@ public abstract class AbstractDescribed extends AbstractFormal implements Descri
 	public abstract AbstractDescribed 	clone();
 	
 
+	/** {@inheritDoc} */
 	public AbstractDescribed 			scaledClone(double baseline, boolean transparent) {
 		
 		DPrimitive clone =  new DPrimitive(this.getCodepoint(), baseline, transparent);

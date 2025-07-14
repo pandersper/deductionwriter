@@ -38,32 +38,49 @@ import java.awt.event.FocusEvent;
  */
 public abstract class DefaultDialog<C extends Container & InitiableContainer> extends JDialog implements ActionListener, InitiableContainer {
 	
-	/** The elder calling container. */	
+	/** 
+	 * The elder calling container. 
+	 */	
 	protected C 		elder;
-	/** The base used for storage. */
+	/** 
+	 * The base used for storage. 
+	 */
 	protected Session 	session;																																
 	
-	/** The menu used for selecting items from the data base or for removal from the data base. */
+	/** 
+	 * The menu used for selecting items from the data base or for removal from the data base.
+	 */
 	protected DefaultListModel<String> menu  = new DefaultListModel<String>();																										
 	
-	/** The list of the menu. */
+	/** 
+	 * The list of the menu. 
+	 */
 	protected final JList<String> 	   list = new JList<String>(menu);
 	
 	private final JPanel contentpanel   = new JPanel();	
 	private final JPanel buttonspanel   = new JPanel();
 	
-	/** The text field used for naming new items. */
+	/** 
+	 * The text field used for naming new items. 
+	 */
 	protected final JTextField txfName  = new JTextField("name of that to store");
 
-	/** The button for loading selected items and adding them to the application. */
+	/** 
+	 * The button for loading selected items and adding them to the application. 
+	 */
 	protected final JButton 	btnLoad 	= new JButton("Load");	
 	private final 	JButton 	btnStore 	= new JButton("Store");	
 	private final	JButton 	btnDelete 	= new JButton("Delete");	
 	private final 	JButton 	btnCancel 	= new JButton("Cancel");
-	/** Simple state variable for decided when som task is completed. */
+	
+	/** 
+	 * Simple state variable for decided when som task is completed.
+	 */
 	protected boolean done;
 
-	/** Simple state variable form maintaining name of selected item. */
+	/** 
+	 * Simple state variable form maintaining name of selected item. 
+	 */
 	protected String columnvalue;
 	
 	
@@ -127,7 +144,9 @@ public abstract class DefaultDialog<C extends Container & InitiableContainer> ex
 		makeButtons();
 	}
 	
-	/** Updates the menu and selects first. */
+	/** 
+	 * Updates the menu and selects first. 
+	 */
 	public void 	initialise() {
 		
 		updateMenu();

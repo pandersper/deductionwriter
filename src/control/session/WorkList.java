@@ -33,7 +33,8 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 	/**
 	 * A new empty list of only one empty canvas with an empty theorem together
 	 * with an empty {@see DoubleArray} of bindings between described mathematic
-	 * primitives and keyboard keys.		 
+	 * primitives and keyboard keys.		
+	 *  
 	 * @see DisplayCanvas	
 	 * @see DTheorem
 	 */
@@ -55,7 +56,9 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 	/**
 	 * A new empty list of only one empty canvas with an empty theorem. It initiates
 	 * this list of work with keybard key to mathematics bindings.
+	 * 
 	 * @param bindings 	Bijective list of keyboard key to mathematics bindings.
+	 * 
 	 * @see DisplayCanvas	
 	 * @see DTheorem
 	 */
@@ -65,6 +68,7 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 	}	
 	/**
 	 * A new work list initiated with both a set of canvases and the bindings for this session
+	 * 
 	 * @param bindings 	Bijective list of keyboard key to mathematics bindings.
 	 * @param canvases		List of canvases to be worked on in this session.
 	 */
@@ -78,7 +82,12 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 
 		this.bindings = bindings;
 	}
-
+	/**
+	 * A new work list initiated with both a set of canvases and the bindings for this session
+	 * 
+	 * @param bindings 	Bijective list of keyboard key to mathematics bindings.
+	 * @param canvases		List of canvases to be worked on in this session.
+	 */
 	public WorkList(ArrayList<DisplayCanvas> canvases,  DoubleArray<Formal, Shortcut> primitives, 
 														DoubleArray<Described, Shortcut> composites, String description) {
 
@@ -110,37 +119,63 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 			this.bindings = bindings;
 	}
 
-	
+	/**
+	 * Returns the description string, which might contain line delimiters and other special characters.
+	 * 
+	 * @return	The full mmulti line description of this list of ongoing works. 
+	 */
 	public String 			getDescription() {
 		return description;
 	}
-
+	/**
+	 * Appends a string to the description of this worklist.
+	 * 
+	 * @param string	Addition to the description.
+	 */
 	public void 			appendToDescription(String string) {	
 		description += string;
 	}
 
-	
+	/**
+	 * Return the canvas currently worked on.
+	 */
 	public DisplayCanvas 	getSelectedComponent() {
 		return (DisplayCanvas) super.getSelectedComponent();
 		
 	}
-	
+	/**
+	 * Just delegates, continues on to underlying model.
+	 * @see DefaultSingleSelectionModel#getSelectedIndex()
+	 */
 	public int 				getSelectedIndex() {
 		return model.getSelectedIndex();
 	}
-
+	/**
+	 * Just delegates, continues on to underlying model.
+	 * @see DefaultSingleSelectionModel#setSelectedIndex()
+	 */
 	public void 			setSelectedIndex(int index) {
 		model.setSelectedIndex(index);
 	}
-
-	public void 			clearSelection() {
-		model.clearSelection();	
-	}
-
+	/**
+	 * Just delegates, continues on to underlying model.
+	 * @see DefaultSingleSelectionModel#isSelected()
+	 */
 	public boolean 			isSelected() {
 		return model.isSelected();
 	}
-
+	/**
+	 * Just delegates, continues on to underlying model.
+	 * @see DefaultSingleSelectionModel#clearSelection()
+	 */	
+	public void clearSelection() {
+		model.clearSelection();
+		
+	}	
+	/**
+	 * Exports all the canvases in the work list.
+	 * @return
+	 */
 	public DisplayCanvas[] 	getCanvases() {
 		
 		int n = this.getTabCount();
@@ -153,6 +188,5 @@ public class WorkList extends JTabbedPane implements SingleSelectionModel {
 			canvases[i] = (DisplayCanvas) cs[i];
 	
 		return canvases;
-	}	
-
+	}
 }

@@ -19,7 +19,8 @@ public class CyclicList<T> extends LinkedList<T> {
 	protected int index = 0;
 	
 	/**
-	 * Constructs a new cyclic list from the collection given, maintaining it's ordering.
+	 * Constructs a new cyclic list from the collection given but not maintaining it's ordering. For now that ordering
+	 * is assumed to be random.
 	 * 
 	 * @param collection	A collection objects of class T.
 	 */

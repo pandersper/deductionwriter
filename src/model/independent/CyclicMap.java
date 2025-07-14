@@ -8,12 +8,9 @@ import java.util.Map;
 import java.util.PriorityQueue;
 
 import control.statics.Toolbox;
-import model.description.abstraction.AbstractDComposite;
-import model.description.abstraction.Described;
-import model.description.abstraction.Placeholder;
 
 /**
- * A cyclic list with convenient access to iteration.
+ * A map that can be cycled through in the order that the keys and values have been added to it.
  * 
  * @param <V> Class of objects contained.
  */
@@ -26,8 +23,16 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 	
 	protected LinkedList<K> keys = new LinkedList<K>();		
 	
+	
 	/**
-	 * Constructs a new cyclic list from the collection given, maintaining it's ordering.
+	 * Constructs a new cyclic map from the collection given and also ordered in the same way as that collection. 
+	 * That is one has to maintain the ordering oneself and be able to insert according to that. This will probably
+	 * change soon.
+	 * 
+	 * NOT IMPLEMENTED YET: This ordering is not decided yet so a collection orderedanyhow could be given for the 
+	 * moment. The implementation is now a based on a hash map wich must have orderable keys secure to collision 
+	 * detection but that is not used as ordering but the ordering exported by {@see sortedKeys} is the order of 
+	 * addition and insertion.
 	 * 
 	 * @param collection	A collection objects of class T.
 	 */
@@ -43,14 +48,19 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 	}
 	
 	/**
-	 * Constructs an empty cyclic list.
+	 * Constructs an empty cyclic map.
 	 */
 	public CyclicMap() {
 		super();
 	}
 
-
 	
+	/**
+	 * Insert a new key and value pair into this map. Appending the key last in the cycle ordering.
+	 *
+	 *@param key
+	 *@param value
+	 */
 	public V put(K key, V value) {
 
 		keys.add(key);
@@ -70,7 +80,7 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 	/**
 	 * Iterates one step forward an returns that postition's element.
 	 * 
-	 * @return Next element in this cyclic list.
+	 * @return Next element in this cyclic map.
 	 */
 	public V next() {
 
@@ -82,7 +92,7 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 	/**
 	 * Iterates one step backward an returns that postition's element.
 	 * 
-	 * @return Previous element in this cyclic list.
+	 * @return Previous element in this cyclic map.
 	 */
 	public V previous() {
 
@@ -92,11 +102,11 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 	}
 	
 	/**
-	 * Remove a specific element from this cyclic list.
+	 * Removes a specific element from this cyclic list.
 	 * 
-	 * @param key 	The element to remove.
+	 * @param key 	The key of the element value to remove.
 	 * 
-	 * @return 			The element removed or null if nothing found to remove.
+	 * @return	The element removed or null if nothing found to remove.
 	 */
 	public V removeElement(K key) {
 						
@@ -125,7 +135,8 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 			return null;
 	}
 	/**
-	 * Inserts an element at the specified index.
+	 * Inserts an element at the specified index. This indexation is wholy guaranteed by the programmer. Underlying 
+	 * implementation is not arrayed.
 	 * 
 	 * @param index		The index where to insert the element.
 	 * @param element	The element to insert.
@@ -165,7 +176,11 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 		return index == keys.size() - 1;
 	}
 	
-	
+	/**
+	 * The keys of this map sorted according to their hashing function.
+	 * 	
+	 * @return	The ordered keys ordered anyhow tolerated by {@see IdentityHashMap}, the ordering is not checked yet. 
+	 */
 	public Collection<K> sortedKeys() {
 		
 		if (sortsize == this.size())	// already sorted
@@ -182,6 +197,11 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 		}
 	}
 
+	/**
+	 * The values of this map sorted according to their key's hashing function.
+	 * 	
+	 * @return	The ordered keys ordered anyhow tolerated by {@see IdentityHashMap}, the ordering is not checked yet. 
+	 */
 	public Collection<V> sortedValues() {
 		
 		PriorityQueue<K> ordering = new PriorityQueue<K>(keys);
@@ -194,7 +214,6 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 		return values;
 	}
 
-	
 	/**
 	 * Resets this cyclic lists iteration to the first element.
 	 */
@@ -209,19 +228,4 @@ public class CyclicMap<K,V> extends IdentityHashMap<K,V> {
 		keys.clear();
 		index = 0;
 	}
-
-	/**
-	 * Replaces a constituent of a composite.
-	 * 
-	 * @param composite		The composite which should have a constituent replaced.
-	 * @param replace		The constituent to replace.
-	 * @param replaced		The constituent to become.
-	 */
-	public static void replaceComponent(AbstractDComposite composite, Described replace, Described replaced) {
-
-		for(Placeholder holder : composite.getConstituents().values()) 			
-			if (holder.described() == replaced)
-				holder.insert(replace);
-	}
-
 }

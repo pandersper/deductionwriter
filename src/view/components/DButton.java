@@ -14,18 +14,16 @@ import javax.swing.KeyStroke;
 
 import control.session.Shortcut;
 import control.statics.ViewStatics;
-import control.statics.ViewStatics.Mode;
 import model.description.DComposite;
 import model.description.abstraction.Described;
 import view.abstraction.CursoredCanvas;
 
 /**
- * Button used across the application for user input: 'a described primitive'. Not all input from keyboard
- * or other devices pass this button and some times it is used only as a sign. 
+ * Button used across the application for user input. Not all input from keyboard or other devices pass this button 
+ * and some times it is used only as a symbol. 
  */
 public class DButton extends JButton {
 
-	
 	private Described  	formal;
 	private KeyStroke 	key;    
 
@@ -40,23 +38,23 @@ public class DButton extends JButton {
 		/**
 		 * Instantiates a new display action.
 		 * 
-		 * @param formal The primitive that it displays in the connected cursored canvas.
+		 * @param formal The primitive that this button types and displays in the canvas.
 		 */
 		public DisplayAction(Described formal) { this.putValue("formal", formal); }
 
 		/**
 		 * Sets the cursored canvas that the action display on.
 		 * 
-		 * @param canvas the new canvas
+		 * @param canvas The canvas whose cursor should be filled in.
 		 */
 		public void setCanvas(CursoredCanvas canvas) { this.putValue("canvas", canvas);	}
 		
 		/**
 		 * Sets the component that should re-receive the focus after displaying.
 		 * 
-		 * @param primitivesPanel The component (currently a PrimitivesPanel) to focus after displaying.
+		 * @param focusreceiver The component (currently a PrimitivesPanel) to focus after displaying.
 		 */
- 		public void setFocusrestore(GlyphsPanel primitivesPanel) { this.putValue("focusrestore", primitivesPanel); }   		
+ 		public void setFocusrestore(GlyphsPanel focusreceiver) { this.putValue("focusrestore", focusreceiver); }   		
 
 		/**
 		 * Action performed.
@@ -74,16 +72,17 @@ public class DButton extends JButton {
 
 				Described newformal = formal.clone();
 				
-				canvas.fillCursor(newformal, null, Mode.PAINT);
+				canvas.fillCursor(newformal, null, ViewStatics.PAINT);
 				
 				if (newformal instanceof DComposite) 
 					((DComposite) newformal).setCodepoint(formal.getCodepoint());
-				
+
  				focus.restoreFocus(); 				
 			}
 		}
 	}
 
+	
 	/**
 	 * Instantiates a new button for a described primitive.
 	 *
@@ -99,12 +98,6 @@ public class DButton extends JButton {
 	
 		this.makeAppearence();
  	}
-
- 	public DButton(Described formal, int id) {
- 		this(formal);
- 		
- 		this.id = id; 		
-	}
 
  	
 	/**
@@ -133,16 +126,11 @@ public class DButton extends JButton {
 	 */
 	public KeyStroke makeKeyStroke(Shortcut binding) {
 
-		this.key = KeyStroke.getKeyStroke(binding.keycode, binding.modifiers); 																///(A960)
+		this.key = KeyStroke.getKeyStroke(binding.keycode, binding.modifiers); 
 
 		return this.key;
 	}
 	
-	/**
-	 * Returns the display action of this button.
-	 *
-	 * @return The action displaying the description of the primitive.
-	 */
 	private void makeAppearence() {
 
 		Icon icon, selected, pressed;

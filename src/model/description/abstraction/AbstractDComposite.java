@@ -22,10 +22,24 @@ import model.logic.abstraction.Formal;
  */
 public abstract class AbstractDComposite extends Composite implements Described {
 	
-	/** Iterable list o tuples of primitives description and it's baseline.  **/	
-	protected CyclicMap<Handle, Placeholder> constituents;	
-	/** The bounding and framing component that functions as a backdrop form the other components. */
-	protected Placeholder 	frameholder, current;	/** The graphical description, the image description of this piece of mathematics. */
+	/** 
+	 * Iterable list o tuples of primitives description and it's baseline.  
+	 */	
+	protected CyclicMap<Handle, Placeholder> constituents;
+	
+	/** 
+	 * The bounding and framing component that functions as a backdrop form the other components. 
+	 */
+	protected Placeholder 	frameholder;
+	
+	/**
+	 * The currently chosen placeholder. Chosen in the sense of being edited or highlighted for example.
+	 */
+	protected Placeholder current;	
+	
+	/** 
+	 * The graphical description, the image description of this piece of mathematics. 
+	 */
 	protected DRectangle 	description;
 
 	private boolean underlined = false;
@@ -39,8 +53,9 @@ public abstract class AbstractDComposite extends Composite implements Described 
 	public CyclicMap<Handle, Placeholder> getConstituents() {
 		return this.constituents;
 	}
-		
 	
+	
+	/** {@inheritDoc} */
 	public void 		draw(Graphics g) {
 
 		Rectangle2D.Double bounds = this.frameholder.described().description();
@@ -110,8 +125,8 @@ public abstract class AbstractDComposite extends Composite implements Described 
 		return underlined;
 	}
 	
+	// // //  CONTINUATION  TO DRectangle  - Code reuse has to stand back for inteface semantics discipline // // //
 
-	// // //  CONTINUATION  TO DRectangle  - Code reuse has to stand back for interface semantics discipline // // //
 	/** {@inheritDoc} */
 	public Formal 			value() {
 		return description.getValue();
@@ -136,6 +151,7 @@ public abstract class AbstractDComposite extends Composite implements Described 
 		this.description.setWritepoint(location);
 	}
 
+	/** {@inheritDoc} */
 	public void 			setErase() {
 		description.setErase();
 	}
@@ -151,25 +167,26 @@ public abstract class AbstractDComposite extends Composite implements Described 
 		return frameholder;
 	}	
  	
+	/** {@inheritDoc} */
 	public double 				getAdvance() {
 		return frameholder.getAdvance();
 	}
-
+	/** {@inheritDoc} */
 	public Rectangle2D.Double 	getBounds() {
 		return frameholder.frame();
 	}
-
+	/** {@inheritDoc} */
 	public Size2D				getSize() {
 		return new Size2D(frameholder.frame());
 	}
 
-
+	/** {@inheritDoc} */
 	public BufferedImage getImage() {
 				
 		return description.getImage();
 
 	}
-/** {@inheritDoc} */	
+	/** {@inheritDoc} */	
 	public Described 	clone() {
 		return null;
 	}

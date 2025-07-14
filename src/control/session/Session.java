@@ -10,7 +10,6 @@ import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import java.awt.Component;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -53,13 +52,14 @@ public class Session implements  ActionListener, ChangeListener {
 		private HashMap<String,Rectangle> windowstates;
 		
 		/**
-		 * The session must have its data base from start and ande before something can happen
-		 * in the modell it must be connected with it's panel. 
-		 * @param name
-		 * @param base TODO
-		 * @param base The data base describing the theorems. The descripton parts most often generated 
+		 * The session must have its data base from start and ande before something can happen in the modell 
+		 * it must be connected with it's panel. 
+		 * 
+		 * @param name	Name of the session.
+		 * @param base 	The data base describing the theorems. The descripton parts most often generated 
 		 * 				on, in and by the canvas that contains the theorem. Except from composites which
 		 * 				also have some layout information in the data base.
+		 * 
 		 * @see connectPanels
 		 * @see DComposite
 		 * @see Composite
@@ -79,7 +79,12 @@ public class Session implements  ActionListener, ChangeListener {
 		}
 		
 
-		private String 					getTheoremsNames() {
+		/**
+		 * A string semicolon concatenation of all theorems's names. For use in db interaction.
+		 * 
+		 * @return Names concatenated with ":".
+		 */
+		public String 					getTheoremsNames() {
 			
 			String concatenation = "";
 			
@@ -89,6 +94,9 @@ public class Session implements  ActionListener, ChangeListener {
 			return concatenation.substring(0, concatenation.length()-1);
 		}
 		
+		/**
+		 * Returns all theorems worked on in the canvases of this session.
+		 */
 		public LinkedList<DTheorem> 	getTheorems() {
 			
 			LinkedList<DTheorem> theorems = new LinkedList<DTheorem>();
@@ -99,7 +107,11 @@ public class Session implements  ActionListener, ChangeListener {
 			return theorems;
 		}
 
-		
+		/**
+		 * Retreives a work list from the data base and sets it up in this session.
+		 * 
+		 * @param sessionname	Name of the session to fetch from the database.
+		 */
 		public void 			fetchWorklist(String sessionname) {
 
 			ArrayList<DisplayCanvas> 		canvases 	= base.fetchWorklist(sessionname);
@@ -122,7 +134,7 @@ public class Session implements  ActionListener, ChangeListener {
 				
 				workings.addTab(canvas.getTheorem().getName(), canvas);
 
-				canvas.setSize(ViewStatics.canvasdimension);
+				canvas.setSize(ViewStatics.cnvDspSize);
 				canvas.reset();
 				canvas.describeTheorem();
 			}
@@ -131,14 +143,19 @@ public class Session implements  ActionListener, ChangeListener {
 		}
 		/**
 		 * The worklist of this session.
-		 * @return This sessions list of canvases each containing one theorem. 
+		 * 
+		 * @return The work list of this session, encapsulating a list of canvases each containing one theorem. 
 		 */
 		public WorkList 		getWorks() {		
 			
 			return workings;
 		}
 
-		
+		/**
+		 * Fetches a theorem from data base and sets it up in the current tab.
+		 * 
+		 * @param theoremname Name of theorem to fetch in data base.
+		 */
 		public void 			openWork(String theoremname) {
 
 			DTheorem theorem = base.fetchTheorem(theoremname);
@@ -146,13 +163,9 @@ public class Session implements  ActionListener, ChangeListener {
 			newWork(theorem);
 		}
 		/**
-		 * Creates a new work couple, a canvas with a theorem and adds it last to this sessions list of works.
+		 * Creates a canvas with a theorem and adds it last to this session's list of works.
 		 * 
-		 * @param name 		The name (String) for a new empty theorem or an existing theorem (DTheorem) for the canvas to display.
-		 * 
-		 * @return 	The canvas describing a theorem. The theorem is within the canvas.
-		 * 
-		 * @see WorkList
+		 * @param theorem 	The theorem to setup in a canvas and append to this session.
 		 */
 		public void 			newWork(DTheorem theorem) {
 		
@@ -163,6 +176,12 @@ public class Session implements  ActionListener, ChangeListener {
 			setupCanvasAndTheorem(newcanvas);
 		}
 
+		/**
+		 * Replaces currently worked on theorem.
+		 * 
+		 * @param theorem	New theorem t replace with. 
+		 * @return	The old canvas with the the old theorem.
+		 */
 		public DisplayCanvas 	replaceCurrentWork(DTheorem theorem) {
 			
 			DisplayCanvas newcanvas = new DisplayCanvas(theorem);
@@ -178,7 +197,11 @@ public class Session implements  ActionListener, ChangeListener {
 
 			return previous;
 		}
-		 
+		/**
+		 * Removes current canvas and theorem and closes it's tab.
+		 * 
+		 * @return	The index of the newly tab selected after removing. 
+		 */
 		public int 				removeWork() {
 
 				int selected = workings.getSelectedIndex();
@@ -213,15 +236,19 @@ public class Session implements  ActionListener, ChangeListener {
 		
 		/**
 		 * The name of this session.
+		 * 
 		 * @return The name of this session.
 		 */
 		public String 			getName() {
 			
 			return name;
 		}
+		
 		/**
 		 * Returns the canvas currently visible for the user upon which theorems are derived.
+		 * 
 		 * @return The canvas on which mathematcs are rendered, that is painted.
+		 * 
 		 * @see Graphics.paint(Graphics g)
 		 * @ses Canvas
 		 */
@@ -229,8 +256,10 @@ public class Session implements  ActionListener, ChangeListener {
 			
 			return current;
 		}
+		
 		/**
 		 * Return the one and only data base of this application instance. 
+		 * 
 		 * @see DeductionBase
 		 */
 		public DeductionBase 	getBase() {
@@ -238,13 +267,17 @@ public class Session implements  ActionListener, ChangeListener {
 			return base;
 		}
 
-		
+		/**
+		 * Sets a new name for the session.
+		 */
 		public void 	changeSessionName(String newname) {
 			
 			this.name = newname; 
 		}
+		
 		/**
 		 * Stores session in data base so that it can be fully restored later.
+		 * 
 		 * @see DeductionBase
 		 * @see WorkList
 		 */
@@ -252,15 +285,18 @@ public class Session implements  ActionListener, ChangeListener {
 			
 			return base.insert(this);	
 		}
+		
 		/**
-		 * Closes all and checks that current session is consistent with the database description of it. Exits anyhow, with 
-		 * error message.
+		 * Closes the session. For now only closes data base.
 		 */
 		public void 	closeSession() {
 			
 			base.closeDB();
 		}
 
+		/**
+		 * Clears and resets session for a new start.
+		 */
 		public void 	clearSesssion() {
 			
 			workings.removeAll();
@@ -273,8 +309,11 @@ public class Session implements  ActionListener, ChangeListener {
 			compositestable = "default";
 		}
 				
-		/** Adds primitives to this session and to the panel with glyphs.
-		 * @param primitivestable The name of the table of primitives to fetch
+		/** 
+		 * Adds primitives to this session and to the panel with glyphs.
+		 * 
+		 * @param primitivestable The name of the table of primitives to fetch.
+		 * 
 		 * @see DeductionBase
 		 * @see Primitive
 		 */	
@@ -286,21 +325,25 @@ public class Session implements  ActionListener, ChangeListener {
 
 			this.unionPrimitiveBindings(bindings, primitivestable);
 		}
-		/** Adds composites to this session and to the panel with glyphs.
-		 * @param compsitestable The name of the table of composites to fetch
+		
+		/** 
+		 * Adds composites to this session and to the panel with glyphs.
+		 * 
+		 * @param compsitestable The name of the table of composites to fetch.
+		 * 
 		 * @see DeductionBase
 		 * @see Composite
 		 */	
+		
 		public void loadComposites(String compositestable) {
 			
 			this.compositestable = compositestable;
 
 			DoubleArray<Described, Shortcut> composites = base.fetchComposites(compositestable);
 
-			this.unionCompositeBindings(composites, compositestable);	
-			
-			//composites = null;																													///(DGGF)
+			this.unionCompositeBindings(composites, compositestable);				
 		}
+		
 		/**
 		 * Stores the composites currently in use in DeductionBase. 
 		 * 
@@ -321,7 +364,7 @@ public class Session implements  ActionListener, ChangeListener {
 		
 		/**
 		 * Add new bindings to the set of primitives in use. Only adds primitives not already there. It also sets 
-		 * a new name for the table of primitives stored.  
+		 * a new name for the table of primitives.  
 		 * 
 		 * @param bindings	The bindings to update with.
 		 * @param viewname	The new name of the set (table) of primitives in use.
@@ -334,8 +377,8 @@ public class Session implements  ActionListener, ChangeListener {
 			glyphs.generatePrimitiveButtons();
 		}		
 		/**
-		 * Add new bindings to the set of composites in use. Only adds composites not already there. It also sets 
-		 * a new name for the table of composites stored.  
+		 * Adds new bindings to the set of composites in use. Only adds composites not already there. It also sets 
+		 * a new name for the table of composites.  
 		 * 
 		 * @param bindings	The bindings to update with.
 		 * @param viewname	The new name of the set (table) of primitives in use.
@@ -344,42 +387,13 @@ public class Session implements  ActionListener, ChangeListener {
 
 			this.compositestable = viewname;
 
-			glyphs.unionBindings(Toolbox.formals(bindings));		// values (everywhere)
-			glyphs.addCompositesButtons(bindings);					// descriptions (permanent)
+			glyphs.unionBindings(Toolbox.formals(bindings));
+			glyphs.addCompositesButtons(bindings);
 		}
 
-		
-		public String getSQLInsertString() {
-			
-			String sql = "";
-			
-			sql += "'" + name + "',";
-			
-			sql += "'" + this.getTheoremsNames() + "',";
-			
-			sql += "'" + this.primitivestable + "',";
-			
-			sql += "'" + this.compositestable + "',";
-			
-			sql += "'" + this.getWorks().getDescription() + "'";	
-			
-			return "(" + sql + ")";			
-		}
-
-		public String getSQLUpdateString() {
-			
-			String sql = "";
-			
-			sql += "'theorems'='" + this.getTheoremsNames() + "', ";
-			sql += "'primitivestable'='" + this.primitivestable + "', ";
-			sql += "'compositestable'='" + this.compositestable + "', ";
-			sql += "'description'='" + this.workings.getDescription() + "'";
-			
-			
-			return sql;
-		}
-
-		
+		/**
+		 * Resets focus to the glyps panel where the buttons that do all the filling in resides.
+		 */
 		public void restoreFocus() {
 			this.current.repaint();
 			if (glyphs != null) glyphs.restoreFocus();
@@ -428,9 +442,8 @@ public class Session implements  ActionListener, ChangeListener {
 		/**
 		 * Updates this panel when any change has occured the motivates updating. It is mostly called automatically
 		 * by the selection model of the tabs component but also directly in some methods for now.
+		 * 
 		 * @see DefaultSingleSelectionModel
-		 * @see Component
-		 * @param ce
 		 */
 		public void stateChanged(ChangeEvent ce) {
 			
@@ -447,7 +460,14 @@ public class Session implements  ActionListener, ChangeListener {
 			workings.invalidate();
 		}
 
-
+		/**
+		 * Sets up a new glyph panel for this session.
+		 * 
+		 * @param parent	The parent main frame of this application that catches and handle events and sets up and
+		 * 					connects all parts.
+		 * 
+		 * @return The panel of glyph buttons, the buttons that fills in new formals into cursors.
+		 */
 		public GlyphsPanel makeGlypsPanel(DeductionFrame parent) {
 
 			this.glyphs = new GlyphsPanel(parent);

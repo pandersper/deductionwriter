@@ -75,17 +75,13 @@ public class TrainerDialog<C extends Container & InitiableContainer>  extends De
 		ViewStatics.switchContainer(elder, this);
 	}
 	/**
-	 * NOT IMPLEMENTED
-	 *
-	 * @param name Not used here.
+	 * Not implemented yet.
 	 */
 	public void store(String name) {
 		System.err.println("Not implemented method in " + this.getClass());
 	}
 	/**
-	 * NOT IMPLEMENTED
-	 *
-	 * @param name Not used here.
+	 * Not implemented yet.
 	 */
 	public void delete(String name) {
 		System.err.println("Not implemented method in " + this.getClass());

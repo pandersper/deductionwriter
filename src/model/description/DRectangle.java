@@ -4,7 +4,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Color;
 import java.awt.Rectangle;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -17,35 +16,32 @@ import model.logic.Primitive;
 import model.logic.abstraction.Formal;
 
 /**
- * A rectangle containg the graphical part (image) of the description of a formal expression. It also
- * is and should be <i>the only class for containers of the value</i> it describes and that so all along the described 
- * theorem and it's statements. The value could have other descriptions but then those should also be <i>DRectangles</i>.
- * That is: don't implement other image structures for formal values. So, the value semantics are contained, by static 
- * storage on the stack, in these description rectangles. 
+ * A rectangle containg the graphical part (image) of the description of a formal expression. <br><br>
+ * It's inherited class is also the sole container of the formal values. A value could have other descriptions but 
+ * that should also be objects of this class. That is: don't implement other image structures for formal values but
+ * think that they could be used as stack values. <br><br>
  * 
- * The reference point is this glyph's origo and so painting it at it's referencepoint makes it rendered correctly along 
- * the indended base line. See {@link java.awt.FontMetrics} for info about how this works.
+ * The reference point is this glyph's origo and so painting it at it's referencepoint makes it rendered correctly 
+ * along  the indended base line. See {@link java.awt.FontMetrics} for info about how this works.
  * 
  * @see model.description.abstraction.Described#description()
  * @see model.description.abstraction.Described#value()
  */
 public class DRectangle extends DCursor {
 	
-	
+	/**
+	 * To be used when empty positions are temporarily needed when editing.
+	 */
 	public static final DRectangle DUMMYRECTANGLE = dummyDescription();
-	
-	
-	private	BufferedImage	image, transparent;
 
+	private	BufferedImage		image, transparent;
 	private Rectangle2D.Double	surrounding;			// offset vector plus size
 
 	private boolean background = false;
-	/** For later use: affine transform to further manipulate the glyph. */
-	protected static AffineTransform	transform = null;								
 	
-		/**
-	 * A default graphical description (glyph) of a formal mathematics primitive. The glyph is rendered by the 
-	 * typographical standards of UTF.
+	/**
+	 * A default graphical description (glyph) of a formal mathematics primitive. The glyph is rendered by java
+	 * according to the standards of UTF.
 	 * 
 	 * @param primitive	The formal primitive to render an image for.
 	 */
@@ -53,11 +49,11 @@ public class DRectangle extends DCursor {
 		this(primitive, new CharGauge(primitive).advance, false);
 	}
     /**
-     * As previous constructor but scales rendering so as to fit onto a baseline.
+     * As previous constructor but scales rendering to fit onto a baseline of given length.
      * 
      * @param primitive	The formal primitive to render an image for.
      * @param baseline	The length of the rendered glyph's baseline.
-     * @param transparent TODO
+     * @param transparent If the background should be transparent or not.
      */
  	public DRectangle(Formal primitive, double baseline, boolean transparent) {
  		super(primitive, baseline);
@@ -69,24 +65,38 @@ public class DRectangle extends DCursor {
  		this.surrounding 	= new Rectangle2D.Double(-width/2.0,-height/2.0 , 2*width, 2*height); 		
   	}
 	
+    /**
+     * Constructor adapted for composites that which needs a prerendered total image description preview
+     * to hand over to button icons for example. So that it's constituents don't have to be draw every
+     * time by components.
+     * 
+     * CONSIDER: Should frame size be corrected to the image size or be assumed as correct?
+     * 
+     * @param value	The value this description represents. TO BE REMOVED.
+     * @param frame	The frame placeholder carrying the described formal that this drectangle describes.
+     * @param fullglyph The image that this drectangle should display.
+     */
     public DRectangle(Composite value, Placeholder frame, BufferedImage fullglyph) {
     	super(frame);
     	
     	this.value 			= (Formal) value;
- 		this.image 			= fullglyph;
- 		
-// 		int width  = this.image.getWidth();
-// 		int height = this.image.getHeight();
-// 		
  		this.surrounding 	= new Rectangle2D.Double(-width/2.0d, -height/2.0d , 2*width, 2*height); 		
+
+ 		this.image 			= fullglyph;	
  		this.transparent 	= PaintStatics.transparantSurrounding(this.image);			
 	}
 
-	    
+	 /**
+	  * Draws this graphical description. 
+	  *    
+	  * @param g			The common graphics object.
+	  * @param underlined	Sets marker for if the glyph should be underlined.
+	  */
 	public void draw(Graphics g, boolean underlined) {	
 
 		// the surrounding (outer)
-		Graphics2D g2d = (Graphics2D) g.create((int)(x + surrounding.x), (int)(y + surrounding.y), (int)surrounding.width, (int)surrounding.height);
+		Graphics2D g2d = (Graphics2D) g.create((int) (x + surrounding.x), (int) (y + surrounding.y), 
+											   (int) surrounding.width, (int) surrounding.height);
 
 		if (erase) {	
 			g2d.setColor(PaintStatics.BACKGROUND);
@@ -106,7 +116,12 @@ public class DRectangle extends DCursor {
 		g2d.dispose();		
 	}
 	
-	
+	/**
+	 * The image of this description. It is the main functionality of these objects but they also carry a lot of gauge
+	 * an positional variables.
+	 * 
+	 * @return The image of this description.
+	 */
 	public BufferedImage getImage() {
 		return image;
 	}
@@ -128,6 +143,11 @@ public class DRectangle extends DCursor {
 		return clone;
     }
 	
+	/**
+	 * Returns a new object carying only the cursor part of this description. A new downcasted clone.
+	 * 
+	 * @return A new downcast clone of this description.
+	 */
 	public DCursor cast() {	
 		 
 		DCursor cast = new DCursor(value, advance);

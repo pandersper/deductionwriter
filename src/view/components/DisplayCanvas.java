@@ -11,7 +11,6 @@ import control.statics.Arithmetic;
 import control.statics.PaintStatics;
 import control.statics.PaintStatics.Size2D;
 import control.statics.ViewStatics;
-import control.statics.ViewStatics.Mode;
 import model.description.DCursor;
 import model.description.DEditableStatement;
 import model.description.DRectangle;
@@ -23,36 +22,37 @@ import view.abstraction.CursoredCanvas;
 /**
  * The canvas upon which to draw theorems.
  * 
- * The canvas is particularly 'view part of the application' but
- * <b>Remark:</b><i> it encapsulates and shields a core part of the model</i>
- * namely the {@see DTheorem} which is created in it and should be accessed
- * through either this {@see DisplayCanvas} which lays out and draws the theorem
- * or via the {@see Session} which stores all canvases.
+ * The canvas is particularly 'view part of the application' but <i> it also encapsulates and shields a core part of 
+ * the model</i>, namely the {@see DTheorem} which is created in it and should be accessed through either this 
+ * {@see DisplayCanvas} which lays out and draws the theorem or via the {@see Session} which stores all canvases.
  */
 public class DisplayCanvas extends Canvas implements CursoredCanvas {
 	
-	
+	/** 
+	 * The standard cursor size of the application. 
+	 */
 	public static final Size2D CURSORSIZE = new Size2D(DRectangle.DUMMYRECTANGLE);
 	
 	private DTheorem			theorem;
 	private Described			drawn  = null, erase  = null;	
 	
-	private DCursor				dcursor 	= PaintStatics.DUMMYCURSOR.clone();
-	private Point2D.Double		writepoint 	= dcursor.getWritepoint();
-	private double				advance		= dcursor.getAdvance();
+	private DCursor				cursor 	= PaintStatics.DUMMYCURSOR.clone();
+	private Point2D.Double		writepoint 	= cursor.getWritepoint();
+	private double				advance		= cursor.getAdvance();
 
 	private boolean 			painting = true;
 	public boolean				degrowth = false;
 	
 	/**
-	 * Instantiates a new canvas for drawing fantastic math theorems upon.
-	 * Every canvas holds one and only one theorem and is the only direct holder of that theorem.
+	 * Instantiates a new canvas for drawing a fantastic math theorem upon. The canvas determines how the theorem's
+	 * description is laid out. Every canvas holds one and only one theorem and is the only direct holder of that 
+	 * theorem.
 	 * 
 	 * @param theorem The theorem that is described by this canvas.
 	 */
  	public DisplayCanvas(DTheorem theorem) {
 
- 		this.setSize(ViewStatics.canvasdimension); 		
+ 		this.setSize(ViewStatics.cnvDspSize); 		
 
  		this.theorem = theorem; 		 		
 
@@ -60,24 +60,24 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
  	}
  	
  	/**
- 	 * Resets this canvas to a cleared canvas with cursor a start position.
+ 	 * Resets this canvas to a cleared canvas with cursor at a page start position.
  	 */
 	public void 	reset() {
 
 		drawn = null;
 		erase = null;
 		
-		dcursor.setWritepoint((Point2D.Double) PaintStatics.PAGESTART.clone());
+		cursor.setWritepoint((Point2D.Double) PaintStatics.PAGESTART.clone());
 
-		this.setWritecursor(dcursor);		
+		this.setWritecursor(cursor);		
 		this.repaint();
 	}
  	
  	/**
-	 * Sets the cursor's position, this canvas's write point.
+	 * Sets the cursor's position, this canvas's write point to the given cursor's write point.
 	 * 
-	 * @param	movedto 			The described formal who's referencepoint should be the new write point.
-	 * 								If this is null the writepoint is set to the startcursor's. 
+	 * @param	movedto 			The described formal who's reference point should be the new write point.
+	 * 								If this is null the writepoint is set to the startcursors. 
 	 */
  	public void 	setWritecursor(DCursor movedto) {
 						
@@ -90,8 +90,9 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
  	/**
 	 * Sets the cursor's position, this canvas's write point.
 	 * 
-	 * @param	movedto 	If there is no offset (offset is null) set the writepoint to this described formals referencepoint. 
-	 * @param	origo	The position in the canvas where the current cursor has it's upper left corner.
+	 * @param	movedto 	If there is no offset (offset is null) the writepoint is set to this described formals 
+	 * 						local reference point. 
+	 * @param	origo		The position in the canvas where the current cursor has it's upper left corner.
 	 * @param	offset		The offset, the cursors reference point, from the local origo.
 	 */
 	public void 	setWritecursor(DCursor movedto, Point2D.Double origo, Point2D.Double offset) {
@@ -103,12 +104,19 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 			writepoint.setLocation(Arithmetic.add(origo, offset));
 	}
 
+	/**
+	 * Fills in a descibed formal in the cursor, erases the previous and calls repaint. 
+	 * 
+	 * @param formal 	The description that should be filled in.
+	 * @param erased	The description that should be erased.
+	 * @param paint		Boolean telling if the changes should be painted or just laid out.
+	 */
 	public void 	fillCursor(Described formal, Described erased, boolean paint) {
 
  		// erase the previous and clear current
  		erase = drawn;
  		drawn = null;	
-		dcursor.setErase();
+		cursor.setErase();
  		if (paint) this.paint(this.getGraphics());
 		
 		// fill in the new
@@ -116,34 +124,44 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
  		drawn = formal; 		
  		advance = drawn.getAdvance();
 
- 		dcursor.setFrame(drawn.description()); 		//dcursor.setFrame(drawn.description().getAscendingBounds());
+ 		cursor.setFrame(drawn.description()); 			//dcursor.setFrame(drawn.description().getAscendingBounds());
 
  		this.repaint();
 	}	
 
+	/** 
+	 * Proceeds the current cursor one step.  
+	 */
 	public void 	proceedCursor() {
 		
  		if (drawn != null) {
 				
  			// erase previous cursor
-	 		dcursor.setErase();
+	 		cursor.setErase();
 	 		if (this.getGraphics()!=null) this.paint(this.getGraphics());
 	 		
 	 		// move on one position or new row
-			if (writepoint.x + 2*advance > ViewStatics.canvasdimension.width - PaintStatics.MARGINS[PaintStatics.RIGHT])
+			if (writepoint.x + 2*advance > ViewStatics.cnvDspSize.width - PaintStatics.MARGINS[PaintStatics.RIGHT])
 				this.newRow();
 			else 
 				writepoint.x += advance;
 					
 			// set up new empty cursor
-			dcursor.setFrame(writepoint, CURSORSIZE);	
-			dcursor.setWritepoint(writepoint);
+			cursor.setFrame(writepoint, CURSORSIZE);	
+			cursor.setWritepoint(writepoint);
  		}
 		
 		erase = drawn;
 		drawn = null;
 	}
 
+	/**
+	 * Call the methods {@see #fillCursor(Described, Described, boolean)} and {@see #proceedCursor()}.
+	 * 
+	 * @param formal 	The description that should be filled in.
+	 * @param erased	The description that should be erased.
+	 * @param paint		Boolean telling if the changes should be painted or just laid out.
+	 */
  	private void 	fillAndProceed(Described fillin, Described erase, boolean paint) {
  
  		this.fillCursor(fillin, erase, paint);
@@ -165,8 +183,8 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		proceedCursor();
 	}
 	/**
- 	 * Finalises and appends the work piece preliminary statement of the theorem to the theorem and creates a 
-	 * new preliminary statement to work on. 
+ 	 * Finalises and appends the work piece preliminary statement to the theorem and creates a new preliminary
+ 	 * statement to work on. 
 	 *
 	 * @param implication The implication ending the finalised statement.
 	 */
@@ -179,15 +197,17 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		proceedCursor();
 	}
 	
-	
+	/**
+	 * Sets the theorem displayed by this canvas. There must alway be one so this method just overwrites the old.
+	 */
 	public void 	setTheorem(DTheorem theorem) {
 		this.theorem = theorem;
 	}
 	/** 
-	 * The theorem worked on in this canvas. Try to export the theorem only frmo its canvas. They are a couple.
+	 * The theorem worked on in this canvas. Try to export the theorem only from it's canvas. They are a couple.
 	 * 
 	 * @return The theorem beloning to this canvas and only this canvas. Sessions consists of many canvas-theorem pairs.
-	 **/
+	 */
 	public DTheorem getTheorem() {
 		return theorem;
 	}
@@ -202,28 +222,32 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		erase = drawn;
 		drawn = null;
 	}
- 	
+ 	/** 
+ 	 * Opens an new cursor at the suitable position at the end of the theorem to continue write.
+ 	 */
  	public void 	newCursor() {
  		
  		Point2D.Double lastwrite = theorem.lastFormal().getWritepoint();
 
- 		dcursor.setFrame(PaintStatics.DUMMYCURSOR);
- 		dcursor.setWritepoint(lastwrite);
+ 		cursor.setFrame(PaintStatics.DUMMYCURSOR);
+ 		cursor.setWritepoint(lastwrite);
 
- 		advance = dcursor.getAdvance();
+ 		advance = cursor.getAdvance();
  		
  		writepoint.setLocation(lastwrite);
  		
  		proceedCursor(); 		
  	} 	 	
- 	/** Increment the writing point so as to point at the begining of the next row. */
+ 	/** 
+ 	 * Increment the writing point so as to point at the begining of the next row. 
+ 	 */
 	private void 	newRow() {
 		writepoint.y += PaintStatics.AVERAGELEAD;
 		writepoint.x = PaintStatics.PAGESTART.x;
 	}
 		
  	/**
- 	 * Do a new layout of the whole theorem
+ 	 * Do a new layout of the whole theorem, relating to the current state of this canvas.
  	 */
  	public void 	describeTheorem() {
 
@@ -231,9 +255,9 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 
 	 		Described firstformal = theorem.firstFormal();
 	 		
-	 		dcursor.setFrame(firstformal.description());
+	 		cursor.setFrame(firstformal.description());
 	 			 		
-	 		this.setWritecursor(dcursor);
+	 		this.setWritecursor(cursor);
 
 			DStatement firststatement = theorem.firstStatement();
 
@@ -286,17 +310,19 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 	}	 	
 	/**
 	 * Redescribes a statement of the theorem. Lays out the statement to fit this canvas.
+	 * 
+	 * REMARK: Does not restore cursor, just leaves it at the end.
 	 *
 	 * @param statement The statement to lay out and redescribe.
 	 */
- 	public void 	describeStatement(DStatement statement) {			/** DOES NOT RESTORE CURSOR **/
+ 	public void 	describeStatement(DStatement statement) {			
 
  		if (statement.isEmpty()) return;
  		
 		Iterator<Described> it = statement.iterator();
 		
 		while (it.hasNext()) 
-			this.fillAndProceed(it.next(), null, !Mode.PAINT);
+			this.fillAndProceed(it.next(), null, !ViewStatics.PAINT);
 		
 		statement.setWritepoint(statement.getFirst().getWritepoint());			
 	}
@@ -318,7 +344,7 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 				Described first = editing.current();
 				
 				this.setWritecursor(first.description());
-				this.fillCursor(first, null, Mode.PAINT);
+				this.fillCursor(first, null, ViewStatics.PAINT);
 			} 												
 			
 		} else {										// edited statement is larger than two
@@ -340,7 +366,7 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 			Described last = theorem.lastFormal();
 		
 			this.setWritecursor(last.description());									// reset cursor
-			this.fillAndProceed(last, editing.current(), !Mode.PAINT);			
+			this.fillAndProceed(last, editing.current(), !ViewStatics.PAINT);			
 
 			editing = null;																// editing no more
 		}		
@@ -357,14 +383,17 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		return editing != null ? editing.prompting : false;
 	}
 	
-	
+	/**
+	 * This update implementation erases apropriately, paints the common base line, redraw the whole theorem and it's 
+	 * preliminary statement. Then calls paint for the last finishing things to paint.
+	 */
 	public void update(Graphics g) {		
 
 		Graphics2D g2dc = (Graphics2D) g.create();
 
 		if (degrowth) {
 			degrowth = false;
-			PaintStatics.clearEndOfLine(g2dc,dcursor.getBounds());
+			PaintStatics.clearEndOfLine(g2dc,cursor.getBounds());
 		}
 
 		paintBaseline(g2dc);
@@ -375,11 +404,14 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 		this.paint(g2dc); 
 	}
 		
+	/**
+	 * The paint method is now very simple. It erases only once, draw the lst filled in formal and it's cursor.
+	 */
 	public void paint(Graphics g) {
     	
 		Graphics2D g2dc = (Graphics2D) g.create();
 		
-		if (painting && drawn != null) { 			
+		if (painting) { 			
 			paintDrawnAndErase(g2dc);
 			paintCursor(g2dc);						
 			//paintEditing(g2dc);
@@ -388,7 +420,7 @@ public class DisplayCanvas extends Canvas implements CursoredCanvas {
 
 	
 	private void 	paintCursor(Graphics2D g2dc) {
-		dcursor.draw(g2dc);
+		cursor.draw(g2dc);
 	}
 
 	private void 	paintDrawnAndErase(Graphics2D g2d) {

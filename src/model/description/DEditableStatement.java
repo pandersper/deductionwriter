@@ -1,7 +1,6 @@
 package model.description;
 
 import java.awt.Graphics;
-import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
 import java.util.Stack;
 
@@ -38,7 +37,11 @@ public class DEditableStatement {
 		index = 0;
 	}
 	
-
+	/**
+	 * Draws this edited statement and all the things that comes with being an edited statement.
+	 * 
+	 * @param g
+	 */
 	public void draw(Graphics g) {
 		g.create();
 	}
@@ -46,21 +49,12 @@ public class DEditableStatement {
 	/**
 	 * The current state of the edited statement.
 	 *
-	 * @return The described statement that is edited.
+	 * @return The described statement that is edited as it currently is.
 	 */
 	public DStatement whole() { 
 		return statement; 
 	}
 
-	/**
-	 * Return the outlining boundary of this statment's all formals.
-	 * 
-	 * @return	The shape of the bounding outline. For now a rectangle.
-	 */
-	public Shape getBounds() {
-		 return statement.getBounds();
-	 }
-	
 	/**
 	 * The described formal currently navigated to.
 	 *
@@ -72,7 +66,7 @@ public class DEditableStatement {
 	/**
 	 * Circularly steps to the next (or first) described formal in this statement and then returns it.
 	 *
-	 * @return The next described formal, also setting the cursor to it.
+	 * @return The next described formal.
 	 */
 	public Described next() {
 
@@ -82,13 +76,13 @@ public class DEditableStatement {
 
 			return statement.get(index);
 		
-		} else 								// something in lowest											
+		} else 	// something in lowest											
 			return lowest.peek().nextPlaceholder().described();					
 	}	
 	/**
 	 * Circularly backs to the previous (or last) described primitive in this statement and returns it.
 	 *
-	 * @return The previous described primitive, also setting the cursor to it.
+	 * @return The previous described primitive.
 	 */ 	
 	public Described previous() {
 
@@ -98,7 +92,7 @@ public class DEditableStatement {
 
 			return statement.get(index);
 		
-		} else 								// something in lowest											
+		} else 	// something in lowest											
 			return lowest.peek().previousPlaceholder().described();					
 	}
 
@@ -126,10 +120,10 @@ public class DEditableStatement {
 		return null;
 	}
 	/**
-	 * Ascends up from the composite the cursor in is or does nothing if it is already on
+	 * Ascends up from the composite the cursor is in or does nothing if it is already on
 	 * topmost level.
 	 * 
-	 * @return The ascended to or null if already at top level.
+	 * @return The ascended to sub component or null if already at top level.
 	 */
  	public DComposite ascend() {
 		return (lowest.size() == 0) ? null : lowest.pop();		
@@ -138,9 +132,9 @@ public class DEditableStatement {
 	/**
 	 * Replaces the described formal at the current position.
 	 *
-	 * @param replacing	Replacing The described formal to replace current with.
+	 * @param replacing	The described formal to replace current with.
 	 * 
-	 * @return 			The replaced described formal.
+	 * @return The replaced described formal.
 	 */
 	public Described replaceCurrent(Described replacing) {
 		
@@ -151,7 +145,7 @@ public class DEditableStatement {
 	/**
 	 * Delete the current described formal.
 	 *
-	 * @return 	The deleted described formal.
+	 * @return The deleted described formal.
 	 */
 	public Described deleteCurrent() {										
 
@@ -170,7 +164,7 @@ public class DEditableStatement {
 	 * formal a step forward.
 	 *
 	 * @param inserted	The inserted described formal.
-	 * @return int 		The new size of this statement.
+	 * @return int The new size of this statement.
 	 */
 	public int insertBeforeCurrent(Described inserted) {
 		
@@ -184,6 +178,10 @@ public class DEditableStatement {
 		return statement.size();
 	}
 
+	/**
+	 * Insert a replacable dummy of a described primitive at the current position, shifting every following described 
+	 * formal a step forward.
+	 */
 	public void insertDummy() {
 
 		Described dummy = DPrimitive.DUMMY.clone();
@@ -196,7 +194,7 @@ public class DEditableStatement {
 	/**
 	 * Checks if this statement is empty.
 	 *
-	 * @return 	True, if is empty
+	 * @return True, if empty.
 	 */
 	public boolean isEmpty() {
 		return size == 0;
@@ -217,7 +215,6 @@ public class DEditableStatement {
 	public boolean isSublevel() {
 		return lowest.size() > 0;
 	}
-		
 	
 	/**
 	 * Turn of asking for input.
@@ -231,7 +228,10 @@ public class DEditableStatement {
 	
 	 }
 
-
+	/**
+	 * Returns the bounds of this statment without it's implication if there is one.
+	 * @return This statements bound with implication discarded.
+	 */
 	public Rectangle2D.Double bounds() {
 		
 		if (statement.isClosed()) {

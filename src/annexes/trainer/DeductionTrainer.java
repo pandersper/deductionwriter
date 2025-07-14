@@ -46,12 +46,13 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 	private boolean stopped = true;
 	private boolean halting = false;
 	
-/**
- *  
- * A DeductionWriter sub application for connecting keyboard keys to primitives and practice using them.
- * 
- * @param session TODO
- * @param base The base of theorems and their constituents.
+	
+	/**
+	 *  
+	 * A DeductionWriter sub application for connecting keyboard keys to primitives and practice using them.
+	 * 
+	 * @param session The session variable the main application uses and which stores everything currently
+	 * 				  worked on.
 	 */
  	public DeductionTrainer(Session session) {
 		
@@ -64,6 +65,7 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 		frame.addListener(this);
 		frame.addKeyListener(this);
 	}
+ 	
  	
 	/** {@inheritDoc} */
 	public void keyTyped(KeyEvent e) {
@@ -140,7 +142,10 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 		}
 	}
 
-
+	
+	/**
+	 * Starts the practicing sequence.
+	 */
 	public void startTimer() {
 		
 		timer = new Thread(this);
@@ -220,6 +225,9 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 		System.err.println("Uncontrolled return.");					// could not possiby be reached
 	}
 
+	/**
+	 * Halts the timer task so that the application can shut down without leaving threads alive.
+	 */
 	public void halt() {
 		
 		halting = true;
@@ -265,6 +273,7 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 			}		
 		}
 	}
+	
 	
 	/**
 	 * The main hub of functionality executed by the buttons clicked in the application.
@@ -383,6 +392,7 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 		  		
   		mainframe.getGlyphsPanel().unionBindings(bindings);
 	}
+	
 	/** 
 	 * Loads currently used primitives table into this trainer.  
 	 */
@@ -394,7 +404,6 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 		
 		frame.setArrayAndInfo();				
 	} 
- 	
 	/**
 	 *  
 	 * Set a particular set of primitives and their bindings to be used in this trainer.
@@ -416,6 +425,7 @@ public class DeductionTrainer implements Runnable, KeyListener, ActionListener {
 	}
 	/**
 	 * Sets the main sibling application frame for hading over control.
+	 * 
 	 * @param mainframe The DeductionWriter frame.
 	 */
 	public void setMainFrame(DeductionFrame mainframe) {

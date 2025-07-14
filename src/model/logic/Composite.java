@@ -26,10 +26,16 @@ public class Composite extends AbstractComposite {
 		
 	}
 	
+	/**
+	 * Since this class has non default constructors and abstract classes extend it, a default constructor
+	 * has to exist otherwise there could be non-instantiable classes extending instantiable ones.
+	 */
 	protected Composite() {
 	}	
 		
-
+	/**
+	 * Gives a string representation of a composite. 
+	 */
 	public static String 					makeCompositeName(Iterable<Placeholder> components) {
 	
 		String sequence = "";

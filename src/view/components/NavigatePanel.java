@@ -2,7 +2,6 @@ package view.components;
 
 import java.awt.Component;
 import java.awt.GridLayout;
-import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.Color;
 
@@ -23,27 +22,32 @@ import model.description.DCursor;
 import model.description.DStatement;
 import model.description.DTheorem;
 import control.statics.ViewStatics;
-import control.statics.ViewStatics.Mode;
 
-
+/**
+ * Panel used as a control panel for navigation mainly and editing at some extent.
+ */
 public class NavigatePanel extends TraversablePanel {
 
 	private Implication toggled;
 	private JButton minimalbutton;
 
 	/**
-	 * Panel for navigation in deductions.
+	 * Panel for navigating in deductions.
 	 */
 	public NavigatePanel(DeductionFrame parent) {
 
 		this.parent = parent;
 		
-		this.setMaximumSize(ViewStatics.navpnlsize);
+		this.setMaximumSize(ViewStatics.pnlNaviSize);
 
 		makeButtons();
 	}
 
-	
+	/**
+	 * Iterate among the theorem's statments.
+	 * 
+	 * @param forward	If going forward or backward.
+	 */
 	public void navigate(boolean forward) {
 
 		DisplayCanvas current = this.getCanvas();
@@ -52,9 +56,9 @@ public class NavigatePanel extends TraversablePanel {
 				
 		if (!theorem.isEdited()) { 							// common case outside edit
 			
-			if (!theorem.isEmptyTheorem()) {			
+			if (!theorem.isEmptyTheorem()) 			
 				theorem.moveChosen(forward);
-			}
+			
 			
 		} else { 											// in editing mode
 
@@ -87,12 +91,16 @@ public class NavigatePanel extends TraversablePanel {
 				movedto = forward ? edit.next() : edit.previous();
 
 			current.setWritecursor(movedto.description(), localorigo, offset); 	// next cursor in all cases
-			current.fillCursor(movedto, position, !Mode.PAINT);
+			current.fillCursor(movedto, position, !ViewStatics.PAINT);
 		}
 	}
 		
 	
-	public void dropPrimitive() {
+	/**
+	 * Drop the formal in this cursor or if the cursor is empty, drop the last formal in the theorem and fill the 
+	 * cursor with so that is only preliminary lost.
+	 */
+	public void dropFormal() {
 
 		DisplayCanvas canvas = this.getCanvas();
 
@@ -111,12 +119,15 @@ public class NavigatePanel extends TraversablePanel {
 
 				Described removed = theorem.removeLastPrimitive();
 					
-				canvas.fillCursor(removed, null, Mode.PAINT);
+				canvas.fillCursor(removed, null, ViewStatics.PAINT);
 		}
 
 		return;
 	}
 	
+	/**
+	 * Drops the last statment of the the theorem.
+	 */
 	public void dropStatement() {
 
 		DisplayCanvas canvas = this.getCanvas();
@@ -137,12 +148,15 @@ public class NavigatePanel extends TraversablePanel {
 			canvas.paint(canvas.getGraphics());
 			
 			canvas.setWritecursor(lastcursor);		
-			canvas.fillCursor(last, null, Mode.PAINT);
+			canvas.fillCursor(last, null, ViewStatics.PAINT);
 			canvas.newCursor();
 			canvas.repaint();
 		}
 	}
 
+	/**
+	 * Creates a new empty theorem after finalizing the last one, useing the toggled implication as the closing such. 
+	 */
 	public void newStatement() {
 
 		DisplayCanvas canvas = this.getCanvas();
@@ -152,7 +166,9 @@ public class NavigatePanel extends TraversablePanel {
 		canvas.newStatement(new DPrimitive(implication));
 	}
 
-	
+	/**
+	 * Delete a statement that is not being edited.
+	 */
 	public void ordinaryDelete() {
 		
 		DisplayCanvas canvas = this.getCanvas();	
@@ -175,40 +191,52 @@ public class NavigatePanel extends TraversablePanel {
 		canvas.newCursor();
 	}
 
+	/**
+	 * Delete an edited statement. Deleting an edited statement is more cumbersome since it can be in several
+	 * states when deleting it leaving things unfinished. Since the statement can be whichever it has to be 
+	 * given as argument.
+	 * 
+	 * @param edit	The editable statement to delete.
+	 */
 	public void editDelete(DEditableStatement edit) {
 
-		Described remove = edit.current();																									///(83D2)
+		Described remove = edit.current();
 
 		DisplayCanvas canvas = this.getCanvas();
 
 		DTheorem theorem = canvas.getTheorem();
 		
-		if (edit.isSingleton()) {																											///(04A2)
-
+		if (edit.isSingleton()) {
+			
 			if (remove.isDummy()) {
 				
-				theorem.deleteStatement(edit.whole());																						///(3895)
-
-				canvas.toggleEditingMode();																									///(C717)
+				theorem.deleteStatement(edit.whole());	
+				
+				canvas.toggleEditingMode();
 				canvas.describeTheoremTail(null);		
 				canvas.newCursor();
 
-				return;																														///(19E5)
+				return;
 				
 			} else 	 
-				edit.replaceCurrent(DPrimitive.DUMMY.clone());																			///(E7A0)
-
-		} else 																																///(2CFF)
+				edit.replaceCurrent(DPrimitive.DUMMY.clone());
+		} else 
 			edit.deleteCurrent();	
 		
-		DStatement previous = theorem.getPreviousStatement(edit.whole()); 																			///(9A5A)
+		DStatement previous = theorem.getPreviousStatement(edit.whole()); 
 
-		canvas.describeTheoremTail(previous);																									///(F209)
-		canvas.setWritecursor(edit.current().description());																								///(5B71)
+		canvas.describeTheoremTail(previous);
+		canvas.setWritecursor(edit.current().description());
 
 		return;
 	}
 	
+	/**
+	 * Inserts a dummy formal before the currently selected one. Is only called if there is one selected. The dummy
+	 * will be replaced by a real glyph och removed.
+	 * 
+	 * @param edit	The edited statement to insert a dummy into.
+	 */
 	public void insertDummy(DEditableStatement edit) {
 
 		Described dummy = DPrimitive.DUMMY.clone();
@@ -219,18 +247,23 @@ public class NavigatePanel extends TraversablePanel {
 	}
 
 	
+	/**
+	 * Set the implication that should be used to close the preliminary statment.  
+	 * @param implication
+	 */
 	public void setImplication(Implication implication) {
 		
 		toggled = implication;
 
-		this.getCanvas().fillCursor(new DPrimitive(implication),null,Mode.PAINT);
+		this.getCanvas().fillCursor(new DPrimitive(implication),null,ViewStatics.PAINT);
 	}
 	
-	public Rectangle getMinimalButtonBounds() {
-		return minimalbutton.getBounds();
-	}
-
-	public void registerButtons(SidePanel listener) {
+	/**
+	 * Registers the side panel as button listener on each button.
+	 * 
+	 * @param listener The side panel listening on buttons.
+	 */
+	public void registerButtonsListener(SidePanel listener) {
 
 		Component[] components = this.getComponents();
 
@@ -238,7 +271,6 @@ public class NavigatePanel extends TraversablePanel {
 			if (button instanceof JButton)
 				((JButton)button).addActionListener(listener);
 	}
-
 		
 	private void makeButtons() {
 
@@ -256,7 +288,7 @@ public class NavigatePanel extends TraversablePanel {
 
 		JButton[] buttons = new JButton[] { btnDelete, btnBackward, btnForward, btnInsert, dummy1, btnEditUp, btnEditDown, btnNext };
 
-		this.setLayout(new GridLayout(2, 4, ViewStatics.btnhgap, ViewStatics.btnvgap));
+		this.setLayout(new GridLayout(2, 4, ViewStatics.btnHGap, ViewStatics.btnVGap));
 
 		for (JButton button : buttons) {
 			button.setMargin(ViewStatics.btnInset);

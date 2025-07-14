@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import control.session.Session;
 import model.description.DComposite;
 import model.description.DStatement;
 import model.description.DTheorem;
@@ -58,6 +59,7 @@ public final class SQLStatics {
 														"componentset  INT NOT NULL, codepoint INT NOT NULL, advance REAL NOT NULL, refx REAL NOT NULL, refy REAL NOT NULL," +
 														"height REAL NOT NULL, depth INT NOT NULL, PRIMARY KEY (componentset, codepoint, depth));";
 	
+	
 	public static String valuesString(Formal primitive, String viewname) {
 		
 		String result = "(";
@@ -109,7 +111,32 @@ public final class SQLStatics {
 		
 		return result;
 	}	
+
+	public static String valuesString(Session session) {
+		
+		String sql = "";
+		
+		sql += "'" + session.getName() + "',";
+		sql += "'" + session.getTheoremsNames() + "',";
+		sql += "'" + session.primitivestable + "',";
+		sql += "'" + session.compositestable + "',";
+		sql += "'" + session.getWorks().getDescription() + "'";	
+		
+		return "(" + sql + ")";			
+	}
 	
+	public static String updateString(Session session) {
+		
+		String sql = "";
+		
+		sql += "'theorems'='" + session.getTheoremsNames() + "', ";
+		sql += "'primitivestable'='" + session.primitivestable + "', ";
+		sql += "'compositestable'='" + session.compositestable + "', ";
+		sql += "'description'='" + session.getWorks().getDescription() + "'";
+		
+		return sql;
+	}
+
 	
 	public static String[] TheoremToSQL(DTheorem theorem) {
 
@@ -120,7 +147,7 @@ public final class SQLStatics {
 		String sql = SQLStatics.statements_insert;
 
 		int i = 0;
-		for (DStatement s : theorem) {								///(0B1D)
+		for (DStatement s : theorem) {
 			sql += SQLStatics.valuesString(s, theorem);
 			sqls[i++] = sql;
 			sql = SQLStatics.statements_insert;

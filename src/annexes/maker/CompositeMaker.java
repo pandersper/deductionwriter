@@ -12,6 +12,7 @@ import java.awt.Point;
 import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.Hashtable;
@@ -40,7 +41,6 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.border.TitledBorder;
 
-import control.statics.PaintStatics;
 import control.statics.ViewStatics;
 import model.description.DComposite;
 import model.description.abstraction.Described;
@@ -56,13 +56,187 @@ import view.components.GlyphsPanel;
  */
 public class CompositeMaker extends JFrame implements ActionListener, InitiableContainer {
 
-	//start_win_var_int
 	
+	 /**
+	 * Sub application for constructing composite glyphs.
+	 * @param elder The JFrame-derived elder of this JFrame-derivative that opened this
+	 * 				 and to which this should return.
+	 */
+	public CompositeMaker(DeductionFrame parent) {
+
+		this.frmParent = parent;
+		
+		pnlComposites = new CompositePanel(pnlGlyphs);
+
+		setTitle("Design you composite");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 831, 600);
+
+		contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
+
+		this.setContentPane(contentPane);
+
+		makePanels();
+		makeDesktop();						
+		
+		ifrmEdit.add(pnlComposites);		
+		desktop.add(ifrmEdit);
+		pnlMain.add(desktop);		
+	}
+
+	
+	/**
+	 * As usual, this is the main hub of control, directed by button clicks.
+	 * 
+	 * @param ae The action event originating from buttons.
+	 */
+	public void actionPerformed(ActionEvent ae) {
+
+		switch (ae.getActionCommand()) {
+		
+			case "adjust":
+								
+				break;
+				
+			case "render":
+	
+				CompositeCanvas canvas = pnlComposites.getCanvas();
+				
+				done = new DComposite(canvas.exportCursors());								
+	
+				pnlComposites.getCanvas().setInset(done);		
+				pnlComposites.repaint();
+				
+				break;
+	
+			case "quit":
+	
+				if (done != null) {				
+					pnlGlyps.makeButton(done, null);						
+					done = null;					
+				}
+			
+				changeActions(false);	
+	
+				ViewStatics.switchContainer(frmParent, this);
+				
+				frmParent.setGlyphsPanel(pnlGlyps);		
+				frmParent.doLayout();
+
+				break;
+
+			case "internal": 	ViewStatics.switchContainer(this, extfrmPrimitives); break;
+			case "external": 	ViewStatics.switchContainer(extfrmPrimitives, this); break;
+
+			case "clear": 		pnlComposites.reset();						break;
+			case "delete":		pnlComposites.getCanvas().deleteCurrent(); 	break;			
+			case "cursor": 		pnlComposites.toggleEditing(); 				break;
+	
+			default: break;
+		}
+	}
+	
+	
+	/**
+	 * Initialises this composite maker frame.
+	 * 
+	 * @param described	If composite it sets it up for further editing and if primitive it works 
+	 * 					as the bounding frame for a new composite.
+	 */
+	public void initialise(Described described) {
+		
+		described.setWritepoint(new Point2D.Double(0,0));
+		
+		pnlComposites.resetAll();	
+		
+		pnlComposites.setupFrame(described);
+		
+	}
+	
+	/**
+	 * Sets the primitives pnlComposites.
+	 *
+	 * @param pnlComposites the new primitives pnlComposites
+	 */
+	public void setGlyphsPanel(GlyphsPanel panel) {
+
+		pnlGlyps = panel;		
+		pnlGlyps.doLayout();
+
+		extfrmPrimitives.setLayout(new BorderLayout());
+		extfrmPrimitives.add(this.pnlGlyps, BorderLayout.CENTER);
+
+		btnQuit = new JButton(new AbstractAction() {
+
+			public void actionPerformed(ActionEvent ae) {
+
+				extfrmPrimitives.remove(btnQuit);
+
+				ViewStatics.switchContainer(CompositeMaker.this, extfrmPrimitives);
+			}
+		});
+
+		btnQuit.setText("btnQuit");
+		btnQuit.setPreferredSize(new Dimension(30,25));
+		btnQuit.setMinimumSize(new Dimension(30,25));
+
+		extfrmPrimitives.add(btnQuit, BorderLayout.SOUTH);
+		extfrmPrimitives.setSize(500,500);
+
+		changeActions(true);
+	}	
+	
+	/**
+	 * Makes new or removes actions in all buttons used in OldCompositeMaker sub application. 
+	 * The buttona are transfered from and to the main application. The same buttons are used
+	 * everywhere so their actions have to be changed. 
+	 *
+	 * @param to Transfering to or from the main application that is leaving versus entering.
+	 */
+	public void changeActions(boolean to) {
+
+		Collection<DButton> buttons = pnlGlyps.getButtons();
+
+		if (to) {
+
+			for (DButton button : buttons) {
+
+				DisplayAction action = button.getDisplayAction();
+
+				replaced = (DisplayCanvas) action.getValue("canvas");
+
+				action.putValue("canvas", pnlComposites.getCanvas());
+
+				button.setActionCommand("internal");
+				button.addActionListener(this);
+			}	
+			
+		} else { // from
+
+			for (DButton button : buttons) {
+
+				DisplayAction action = button.getDisplayAction();
+
+				action.putValue("canvas", replaced);
+
+				button.setActionCommand("");
+				button.removeActionListener(this);
+			}		
+		}
+	}	
+	
+	//start_win_var_init
+	
+	private static final AffineTransform IDENTITY = AffineTransform.getTranslateInstance(0, 0);
+
 	private static final Font btnfont = new Font("Dialog", Font.PLAIN, 10);
 
-	private static final CompoundBorder borderdesktop = new CompoundBorder(new BevelBorder(BevelBorder.LOWERED), new BevelBorder(BevelBorder.RAISED));
+	private static final CompoundBorder borderdesktop = new CompoundBorder(new BevelBorder(BevelBorder.LOWERED),
+																			new BevelBorder(BevelBorder.RAISED));
 
-	private static final MatteBorder 	borderside			= new MatteBorder(1, 1, 1, 1, (Color) new Color(0, 0, 0));
+	private static final MatteBorder	borderside			= new MatteBorder(1, 1, 1, 1, (Color) new Color(0, 0, 0));
 	private static final Insets 		insetsbtn 			= new Insets(2, 2, 2, 2);
 	private static final Color 			colorlineborder 	= new Color(107, 107, 107);
 	private static final Color 			colortitledborder 	= new Color(57, 57, 57);
@@ -70,7 +244,7 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 	private static final Dimension PRFSIDE 		= new Dimension(200, 175);
 	private static final Dimension PRFZOOM 		= new Dimension(100, 150);
 	private static final Dimension PRFSIZE 		= new Dimension(200, 80);
-	private static final Dimension PRFGLYPHS 	= new Dimension(800, 100);
+	private static final Dimension PRFGLYPHS	= new Dimension(800, 100);
 	private static final Dimension PRFINFO 		= new Dimension(400, 200);
 	private static final Dimension PRFBTN 		= new Dimension(110, 30);
 
@@ -96,8 +270,8 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 	
 	private final JButton[] buttons = new JButton[] { btnCursor, btnInsert, btnRender, btnDone, btnDelete, btnClear};
 	
-	private final JSlider 	sldZoom = new JSlider();
-	private final JSlider 	sldSize = new JSlider();
+	private final JSlider 	sldZoom 	= new JSlider();
+	private final JSlider 	sldSize 	= new JSlider();
 
 	private final JInternalFrame ifrmEdit = new JInternalFrame("Composite");
 	
@@ -195,7 +369,7 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 				if (sldZoom.isEnabled()) {
 					sldZoom.setEnabled(false);					
 					sldZoom.setValue(10);
-					pnlComposites.getCanvas().setTransform(PaintStatics.IDENTITY);
+					pnlComposites.getCanvas().setTransform(IDENTITY);
 				} else
 					sldZoom.setEnabled(true);
 			}
@@ -313,17 +487,34 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 		
 		ifrmEdit.setForeground(new Color(0, 0, 0));
 		ifrmEdit.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
-		ifrmEdit.setSize(ViewStatics.makercanvasdimension);
-		ifrmEdit.setPreferredSize(ViewStatics.makercanvasdimension);
+		ifrmEdit.setSize(ViewStatics.cnvMkrSize);
+		ifrmEdit.setPreferredSize(ViewStatics.cnvMkrSize);
 		ifrmEdit.setLocation(new Point(20,20));
 		
 		ifrmEdit.setIconifiable(true);		ifrmEdit.setMaximizable(true);
 		ifrmEdit.setResizable(true);		ifrmEdit.setVisible(true);
 		
-		pnlComposites.setButtons(buttons);
-		pnlComposites.addListeners(this);
+		this.addListeners(this);
 	}	
 
+	/**
+	 * Add a action listener to all buttons.
+	 * 
+	 * @param al The action listener distributed to all components that it should listen on.
+	 * 
+	 * @see ActionListener
+	 */
+	public void addListeners(ActionListener al) {
+
+		btnCursor.addActionListener(al);
+		btnInsert.addActionListener(al);
+		btnRender.addActionListener(al);
+		btnDone.addActionListener(al);
+
+		btnDelete.addActionListener(al);
+		btnClear.addActionListener(al);
+	}
+	
 	private void setButton(JButton btn, String cmd) {
 		
 		btn.setFont(btnfont);
@@ -344,192 +535,24 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 			
 		}
 		
-		pnlCommand.setMinimumSize(ViewStatics.grow(PRFSIDE, 0, -25));
+		pnlCommand.setMinimumSize(ViewStatics.resizedClone(PRFSIDE, 0, -25));
 		pnlCommand.setPreferredSize(PRFSIDE);
-		pnlCommand.setMaximumSize(ViewStatics.grow(PRFSIDE, 0, 25));
+		pnlCommand.setMaximumSize(ViewStatics.resizedClone(PRFSIDE, 0, 25));
 
 		pnlGlyphs.setPreferredSize(PRFGLYPHS);
 						
 		sldZoom.setSize(PRFZOOM);			
-		sldZoom.setMinimumSize(ViewStatics.grow(PRFZOOM, -10,-50));		
-		sldZoom.setMaximumSize(ViewStatics.grow(PRFZOOM, 10,10));
+		sldZoom.setMinimumSize(ViewStatics.resizedClone(PRFZOOM, -10,-50));		
+		sldZoom.setMaximumSize(ViewStatics.resizedClone(PRFZOOM, 10,10));
 
 		pnlZoom.setSize(PRFSIDE);			
-		pnlZoom.setMinimumSize(ViewStatics.grow(PRFSIDE, 0, -25));		
-		pnlZoom.setMaximumSize(ViewStatics.grow(PRFSIDE, 0, 25));
+		pnlZoom.setMinimumSize(ViewStatics.resizedClone(PRFSIDE, 0, -25));		
+		pnlZoom.setMaximumSize(ViewStatics.resizedClone(PRFSIDE, 0, 25));
 		
 		pnlGlyphs.setSize(PRFGLYPHS);		pnlGlyphs.setMaximumSize(PRFGLYPHS);								pnlGlyphs.setMinimumSize(PRFGLYPHS);
 	}
 	
-	//end_win_var_init
-	/**
-	 * Sub application for constructing composite glyphs.
-	 * @param elder The JFrame-derived elder of this JFrame-derivative that opened this
-	 * 				 and to which this should return.
-	 */
-	public CompositeMaker(DeductionFrame parent) {
-
-		this.frmParent = parent;
-		
-		pnlComposites = new CompositePanel(pnlGlyphs);
-
-		setTitle("Design you composite");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 831, 600);
-
-		contentPane = new JPanel();
-		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
-
-		this.setContentPane(contentPane);
-
-		makePanels();
-		makeDesktop();						
-		
-		ifrmEdit.add(pnlComposites);		
-		desktop.add(ifrmEdit);
-		pnlMain.add(desktop);		
-	}
-
-	/**
-	 * As usual, this is the main hub of control, directed by button clicks.
-	 * 
-	 * @param ae The action event originating from buttons.
-	 */
-	public void actionPerformed(ActionEvent ae) {
-
-		switch (ae.getActionCommand()) {
-		
-			case "adjust":
-								
-				break;
-				
-			case "render":
 	
-				CompositeCanvas canvas = pnlComposites.getCanvas();
-				
-				done = new DComposite(canvas.exportCursors());								
-	
-				pnlComposites.getCanvas().setInset(done);		
-				pnlComposites.repaint();
-				
-				break;
-	
-			case "quit":
-	
-				if (done != null) {				
-					pnlGlyps.makeButton(done, null);						
-					done = null;					
-				}
-			
-				changeActions(false);	
-	
-				ViewStatics.switchContainer(frmParent, this);
-				
-				frmParent.setGlyphsPanel(pnlGlyps);		
-				frmParent.doLayout();
-
-				break;
-
-			case "internal": 	ViewStatics.switchContainer(this, extfrmPrimitives); break;
-			case "external": 	ViewStatics.switchContainer(extfrmPrimitives, this); break;
-
-			case "clear": 		pnlComposites.clear();						break;
-			case "delete":		pnlComposites.getCanvas().deleteCurrent(); 	break;			
-			case "cursor": 		pnlComposites.toggleEditing(); 				break;
-			case "next":		pnlComposites.forward(); 					break;
-	
-			default: break;
-		}
-	}
-	
-	/**
-	 * Initialises this composite maker frame.
-	 * 
-	 * @param described	If composite it sets it up for further editing and if primitive it works 
-	 * 					as the bounding frame for a new composite.
-	 */
-	public void initialise(Described described) {
-		
-		described.setWritepoint(new Point2D.Double(0,0));
-		
-		pnlComposites.clearAll();	
-		
-		pnlComposites.setupFrame(described);
-		
-	}
-	/**
-	 * Sets the primitives pnlComposites.
-	 *
-	 * @param pnlComposites the new primitives pnlComposites
-	 */
-	public void setGlyphsPanel(GlyphsPanel panel) {
-
-		pnlGlyps = panel;		
-		pnlGlyps.doLayout();
-
-		extfrmPrimitives.setLayout(new BorderLayout());
-		extfrmPrimitives.add(this.pnlGlyps, BorderLayout.CENTER);
-
-		btnQuit = new JButton(new AbstractAction() {
-
-			public void actionPerformed(ActionEvent ae) {
-
-				extfrmPrimitives.remove(btnQuit);
-
-				ViewStatics.switchContainer(CompositeMaker.this, extfrmPrimitives);
-			}
-		});
-
-		btnQuit.setText("btnQuit");
-		btnQuit.setPreferredSize(new Dimension(30,25));
-		btnQuit.setMinimumSize(new Dimension(30,25));
-
-		extfrmPrimitives.add(btnQuit, BorderLayout.SOUTH);
-		extfrmPrimitives.setSize(500,500);
-
-		changeActions(true);
-	}	
-	/**
-	 * Makes new or removes actions in all buttons used in OldCompositeMaker sub application. 
-	 * The buttona are transfered from and to the main application. The same buttons are used
-	 * everywhere so their actions have to be changed. 
-	 *
-	 * @param to Transfering to or from the main application that is leaving versus entering.
-	 */
-	public void changeActions(boolean to) {
-
-		Collection<DButton> buttons = pnlGlyps.getButtons();
-
-		if (to) {
-
-			for (DButton button : buttons) {
-
-				DisplayAction action = button.getDisplayAction();
-
-				replaced = (DisplayCanvas) action.getValue("canvas");
-
-				action.putValue("canvas", pnlComposites.getCanvas());
-
-				button.setActionCommand("internal");
-				button.addActionListener(this);
-			}	
-			
-		} else { // from
-
-			for (DButton button : buttons) {
-
-				DisplayAction action = button.getDisplayAction();
-
-				action.putValue("canvas", replaced);
-
-				button.setActionCommand("");
-				button.removeActionListener(this);
-			}		
-		}
-	}
-
-
 	private static CompoundBorder compoundBorder() {
 		
 		EtchedBorder 	etchedborder 	= new EtchedBorder(EtchedBorder.RAISED);	
@@ -548,5 +571,6 @@ public class CompositeMaker extends JFrame implements ActionListener, InitiableC
 
 		return titledborder;		
 	}
-
+	
+	//end_win_var_init
 }
